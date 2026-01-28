@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function LayoutMain({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
     const router = useRouter()
-    const [email, setEmail] = useState('')
+    const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
@@ -13,10 +13,30 @@ export default function LoginPage() {
         e.preventDefault()
         setIsLoading(true)
 
-        setTimeout(() => {
-            setIsLoading(false)
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
+            }
+
+            // In a real app, you might store the user data/token here
+            // localStorage.setItem('user', JSON.stringify(data.user))
+            
             router.push('/dashboard')
-        }, 1000)
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -37,13 +57,13 @@ export default function LoginPage() {
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
                             <label className="mb-1 block text-sm font-medium text-gray-700">
-                                อีเมล
+                                ชื่อผู้ใช้งาน
                             </label>
                             <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="กรอกอีเมลของคุณ"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="กรอกชื่อผู้ใช้งานของคุณ"
                                 required
                                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
@@ -91,7 +111,7 @@ export default function LoginPage() {
                     <div className="mt-6 text-center text-sm text-gray-600">
                         ยังไม่มีบัญชี?{' '}
                         <a
-                            href="#"
+                            href="/sign-up"
                             className="font-medium text-blue-600 hover:text-blue-700"
                         >
                             สมัครสมาชิก

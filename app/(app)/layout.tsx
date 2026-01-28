@@ -1,5 +1,5 @@
-import ClientLayout from './ClientLayout'
+import LayoutMain from '@/components/Layouts/LayoutMain'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    return <ClientLayout>{children}</ClientLayout>
+    return <LayoutMain>{children}</LayoutMain>
 }
