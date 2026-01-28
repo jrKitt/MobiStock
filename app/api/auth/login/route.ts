@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { RowDataPacket } from 'mysql2';
+import { signToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
     try {
@@ -40,9 +41,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // In a real app, we would generate a JWT or session here
-        // For now, we just return success and user info (excluding password)
-        return NextResponse.json(
+        // Generate JWT
+        const token = await signToken({
+            id: user.user_id,
+            username: user.username,
+            email: user.email,
+            name: user.name
+        });
+
+        // Create response
+        const response = NextResponse.json(
             {
                 message: 'เข้าสู่ระบบสำเร็จ',
                 user: {
@@ -54,6 +62,19 @@ export async function POST(req: NextRequest) {
             },
             { status: 200 }
         );
+
+        // Set Cookie
+        response.cookies.set({
+            name: 'token',
+            value: token,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7 // 7 days in seconds
+        });
+
+        return response;
     } catch (error) {
         console.error('Login error:', error);
         return NextResponse.json(

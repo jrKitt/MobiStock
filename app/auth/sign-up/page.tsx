@@ -145,7 +145,7 @@ export default function SignUpPage() {
                     <div className="mt-6 text-center text-sm text-gray-600">
                         มีบัญชีอยู่แล้ว?{' '}
                         <Link
-                            href="/login"
+                            href="/authlogin"
                             className="font-medium text-blue-600 hover:text-blue-700"
                         >
                             เข้าสู่ระบบ

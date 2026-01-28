@@ -30,7 +30,7 @@ export default function LoginPage() {
 
             // In a real app, you might store the user data/token here
             // localStorage.setItem('user', JSON.stringify(data.user))
-            
+
             router.push('/dashboard')
         } catch (error) {
             alert(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด')
@@ -111,7 +111,7 @@ export default function LoginPage() {
                     <div className="mt-6 text-center text-sm text-gray-600">
                         ยังไม่มีบัญชี?{' '}
                         <a
-                            href="/sign-up"
+                            href="/auth/sign-up"
                             className="font-medium text-blue-600 hover:text-blue-700"
                         >
                             สมัครสมาชิก
