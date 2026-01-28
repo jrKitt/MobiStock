@@ -85,11 +85,11 @@ export default function LoginPage() {
 
                         <div className="flex items-center justify-between text-sm">
                             <label className="flex cursor-pointer items-center gap-2">
-                                <input
+                                {/*<input
                                     type="checkbox"
                                     className="rounded border-gray-300 focus:ring-blue-500"
                                 />
-                                <span className="text-gray-600">จำฉันไว้</span>
+                                <span className="text-gray-600">จำฉันไว้</span>*/}
                             </label>
                             <a
                                 href="#"
