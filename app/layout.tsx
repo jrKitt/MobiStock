@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Prompt } from 'next/font/google'
 import './globals.css'
+import Providers from '@/components/Providers'
 
 const prompt = Prompt({
     weight: ['300', '400', '500', '600', '700'],
@@ -20,9 +21,11 @@ export default function RootLayout({
     children: React.ReactNode
 }>) {
     return (
-        <html lang="th">
+        <html lang="th" className="light">
             <body className={`${prompt.className} antialiased`}>
-                {children}
+                <Providers>
+                    {children}
+                </Providers>
             </body>
         </html>
     )

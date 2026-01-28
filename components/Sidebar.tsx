@@ -1,8 +1,7 @@
-'use client'
-
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/Toast'
 
 interface SidebarProps {
     isOpen?: boolean
@@ -11,7 +10,41 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const [showUserMenu, setShowUserMenu] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
     const pathname = usePathname()
+    const router = useRouter()
+    const { showToast } = useToast()
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(event.target as Node)
+            ) {
+                setShowUserMenu(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [])
+
+    const handleLogout = async () => {
+        try {
+            const res = await fetch('/api/auth/logout', {
+                method: 'POST',
+            })
+            if (res.ok) {
+                showToast('ออกจากระบบสำเร็จ', 'success')
+                router.push('/auth/login')
+            }
+        } catch {
+            showToast('เกิดข้อผิดพลาดในการออกจากระบบ', 'error')
+        }
+    }
 
     const menuItems = [
         {
@@ -128,13 +161,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
 
             <div
-                className={`
-                    fixed inset-y-0 left-0 z-30 flex h-screen flex-col border-r border-gray-200 bg-gradient-to-b from-white to-gray-50 shadow-sm transition-all duration-300
-                    lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
-                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-                    ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}
-                    w-64
-                `}
+                className={`fixed inset-y-0 left-0 z-30 flex h-screen flex-col border-r border-gray-200 bg-linear-to-b from-white to-gray-50 shadow-sm transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64`}
             >
                 <div className="border-b border-gray-200 bg-white p-6">
                     <div className="flex items-center justify-between">
@@ -150,11 +177,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Desktop Collapse Button */}
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="hidden lg:block rounded-lg p-2 transition-all duration-200 hover:bg-gray-100"
+                            className="hidden rounded-lg p-2 transition-all duration-200 hover:bg-gray-100 lg:block"
                             title={isCollapsed ? 'ขยาย' : 'ย่อ'}
                         >
                             <svg
@@ -174,10 +201,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             </svg>
                         </button>
 
-                         {/* Mobile Close Button */}
-                         <button
+                        {/* Mobile Close Button */}
+                        <button
                             onClick={onClose}
-                            className="block lg:hidden rounded-lg p-2 transition-all duration-200 hover:bg-gray-100"
+                            className="block rounded-lg p-2 transition-all duration-200 hover:bg-gray-100 lg:hidden"
                         >
                             <svg
                                 className="h-5 w-5 text-gray-600"
@@ -196,7 +223,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </div>
                 </div>
 
-                <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+                <nav className="flex-1 space-y-1 overflow-y-auto p-4">
                     {menuItems.map((item) => {
                         const isActive =
                             item.href === '/dashboard'
@@ -245,52 +272,83 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     })}
                 </nav>
 
-                <div className="border-t border-gray-200 bg-white p-4">
-                    <div
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 hover:bg-gray-50 ${
-                            isCollapsed && !isOpen ? 'justify-center' : ''
-                        }`}
-                    >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 font-bold text-white shadow-lg ring-2 ring-blue-100">
-                            <svg
-                                className="h-5 w-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                <div
+                    className="border-t border-gray-200 bg-white p-4"
+                    ref={menuRef}
+                >
+                    <div className="relative">
+                        {showUserMenu && (
+                            <div
+                                className={`absolute bottom-full left-0 mb-2 w-full min-w-50 rounded-lg border border-gray-100 bg-white shadow-lg ${isCollapsed && !isOpen ? 'bottom-0 left-full ml-2' : ''}`}
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                            </svg>
-                        </div>
-                        {(!isCollapsed || isOpen) && (
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-gray-900">
-                                    Admin
-                                </p>
-                                <p className="truncate text-xs text-gray-600">
-                                    admin@mobistock.com
-                                </p>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                >
+                                    <svg
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                        />
+                                    </svg>
+                                    ออกจากระบบ
+                                </button>
                             </div>
                         )}
-                        {(!isCollapsed || isOpen) && (
-                            <svg
-                                className="h-4 w-4 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                />
-                            </svg>
-                        )}
+                        <button
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 hover:bg-gray-50 ${
+                                isCollapsed && !isOpen ? 'justify-center' : ''
+                            }`}
+                        >
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-600 to-blue-700 font-bold text-white shadow-lg ring-2 ring-blue-100">
+                                <svg
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                    />
+                                </svg>
+                            </div>
+                            {(!isCollapsed || isOpen) && (
+                                <div className="min-w-0 flex-1 text-left">
+                                    <p className="truncate text-sm font-semibold text-gray-900">
+                                        Admin
+                                    </p>
+                                    <p className="truncate text-xs text-gray-600">
+                                        admin@mobistock.com
+                                    </p>
+                                </div>
+                            )}
+                            {(!isCollapsed || isOpen) && (
+                                <svg
+                                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                    />
+                                </svg>
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>

@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/Toast'
 
 export default function LoginPage() {
     const router = useRouter()
+    const { showToast } = useToast()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -31,9 +33,10 @@ export default function LoginPage() {
             // In a real app, you might store the user data/token here
             // localStorage.setItem('user', JSON.stringify(data.user))
 
+            showToast('เข้าสู่ระบบสำเร็จ', 'success')
             router.push('/dashboard')
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด')
+            showToast(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด', 'error')
         } finally {
             setIsLoading(false)
         }

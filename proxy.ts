@@ -39,7 +39,7 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
   // Get token from cookies
-  const token = request.cookies.get('token')?.value
+  const token = request.cookies.get('token_mobi')?.value
   const isValidToken = token ? await verify(token) : false
 
   // Redirect unauthenticated users accessing protected routes to login

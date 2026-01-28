@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useToast } from '@/components/ui/Toast'
 
 export default function SignUpPage() {
     const router = useRouter()
+    const { showToast } = useToast()
     const [name, setName] = useState('')
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
@@ -16,7 +18,7 @@ export default function SignUpPage() {
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault()
         if (password !== confirmPassword) {
-            alert('รหัสผ่านไม่ตรงกัน')
+            showToast('รหัสผ่านไม่ตรงกัน', 'error')
             return
         }
         setIsLoading(true)
@@ -36,10 +38,10 @@ export default function SignUpPage() {
                 throw new Error(data.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก')
             }
 
-            alert('สมัครสมาชิกสำเร็จ')
-            router.push('/login')
+            showToast('สมัครสมาชิกสำเร็จ', 'success')
+            router.push('/auth/login')
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด')
+            showToast(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด', 'error')
         } finally {
             setIsLoading(false)
         }

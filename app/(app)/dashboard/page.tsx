@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { ProductRow } from '../../api/products/route'
+import { useToast } from '@/components/ui/Toast'
 
 interface PhoneData extends ProductRow {
     id: number
@@ -19,6 +20,7 @@ interface PaginationData {
 }
 
 export default function DashboardPage() {
+    const { showToast } = useToast()
     const [phones, setPhones] = useState<PhoneData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -64,12 +66,11 @@ export default function DashboardPage() {
                 setTotalPages(data.pagination.totalPages)
                 setTotalItems(data.pagination.total)
             } catch (err) {
-                setError(
-                    err instanceof Error
+                const message = err instanceof Error
                         ? err.message
                         : 'Failed to load products'
-                )
-                console.error(err)
+                setError(message)
+                showToast(message, 'error')
             } finally {
                 setLoading(false)
             }

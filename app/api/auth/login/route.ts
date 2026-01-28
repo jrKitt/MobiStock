@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
         // Set Cookie
         response.cookies.set({
-            name: 'token',
+            name: 'token_mobi',
             value: token,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
