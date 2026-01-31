@@ -1,10 +1,13 @@
 import LayoutMain from '@/components/Layouts/LayoutMain'
 import { getSession } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
     const session = await getSession()
-    
+
     // Optional: Redirect if no session, though middleware might handle this
     // if (!session) redirect('/auth/login')
 

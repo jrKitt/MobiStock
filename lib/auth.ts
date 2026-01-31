@@ -15,7 +15,15 @@ export async function signToken(payload: JWTPayload) {
 
 export async function verifyToken(token: string) {
     try {
-        const { payload } = await jwtVerify(token, key)
+        const {
+            payload,
+        }: {
+            payload: {
+                id: number
+                email: string
+                username: string
+            }
+        } = await jwtVerify(token, key)
         return payload
     } catch (error) {
         return null

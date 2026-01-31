@@ -6,7 +6,11 @@ import { useToast } from '@/components/ui/Toast'
 interface SidebarProps {
     isOpen?: boolean
     onClose?: () => void
-    user?: any
+    user?: {
+        id: number
+        email: string
+        username: string
+    } | null
 }
 
 export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
