@@ -4,7 +4,13 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 
-export default function LayoutMain({ children }: { children: React.ReactNode }) {
+export default function LayoutMain({ 
+    children,
+    user 
+}: { 
+    children: React.ReactNode
+    user?: any 
+}) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     return (
@@ -13,6 +19,7 @@ export default function LayoutMain({ children }: { children: React.ReactNode }) 
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
+                user={user}
             />
 
             <div className="flex-1 flex flex-col min-w-0">

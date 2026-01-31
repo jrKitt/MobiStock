@@ -1,23 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 
 interface HeaderProps {
     onMenuClick?: () => void
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
-    const [currentDate, setCurrentDate] = useState('')
 
-    useEffect(() => {
-        const date = new Date()
-        const formatter = new Intl.DateTimeFormat('th-TH', {
+    const currentDate = useMemo(() => {
+        return new Intl.DateTimeFormat('th-TH', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
-        })
-
-        setCurrentDate(formatter.format(date))
+        }).format(new Date())
     }, [])
 
     return (
@@ -67,7 +63,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="mr-2 text-right hidden sm:block lg:mr-4">
+                    <div className="mr-2 hidden text-right sm:block lg:mr-4">
                         <p className="text-xs text-gray-500">วันที่</p>
                         <p className="text-sm font-medium text-gray-700">
                             {currentDate}

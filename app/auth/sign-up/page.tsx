@@ -35,13 +35,18 @@ export default function SignUpPage() {
             const data = await res.json()
 
             if (!res.ok) {
-                throw new Error(data.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก')
+                throw new Error(
+                    data.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก'
+                )
             }
 
             showToast('สมัครสมาชิกสำเร็จ', 'success')
             router.push('/auth/login')
         } catch (error) {
-            showToast(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด', 'error')
+            showToast(
+                error instanceof Error ? error.message : 'เกิดข้อผิดพลาด',
+                'error'
+            )
         } finally {
             setIsLoading(false)
         }
@@ -84,7 +89,9 @@ export default function SignUpPage() {
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                onChange={(e) =>
+                                    setUsername(e.target.value.toLowerCase())
+                                }
                                 placeholder="ตั้งชื่อผู้ใช้งาน"
                                 required
                                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"

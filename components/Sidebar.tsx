@@ -6,9 +6,10 @@ import { useToast } from '@/components/ui/Toast'
 interface SidebarProps {
     isOpen?: boolean
     onClose?: () => void
+    user?: any
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
@@ -326,10 +327,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             {(!isCollapsed || isOpen) && (
                                 <div className="min-w-0 flex-1 text-left">
                                     <p className="truncate text-sm font-semibold text-gray-900">
-                                        Admin
+                                        {user?.username || 'Admin'}
                                     </p>
                                     <p className="truncate text-xs text-gray-600">
-                                        admin@mobistock.com
+                                        {user?.email || 'admin@mobistock.com'}
                                     </p>
                                 </div>
                             )}
