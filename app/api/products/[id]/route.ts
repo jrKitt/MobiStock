@@ -11,13 +11,13 @@ interface Product {
     made_in?: string
 }
 
-// GET - ดึงข้อมูลสินค้าตาม ID
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const productId = parseInt(params.id)
+        const { id } = await params
+        const productId = parseInt(id)
         
         if (isNaN(productId)) {
             return NextResponse.json(
@@ -48,13 +48,13 @@ export async function GET(
     }
 }
 
-// PUT - แก้ไขข้อมูลสินค้า
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const productId = parseInt(params.id)
+        const { id } = await params
+        const productId = parseInt(id)
         
         if (isNaN(productId)) {
             return NextResponse.json(
@@ -73,7 +73,6 @@ export async function PUT(
             made_in
         } = body
 
-        // ตรวจสอบว่าสินค้ามีอยู่จริง
         const existingProduct = await query(
             'SELECT * FROM products WHERE product_id = ?',
             [productId]
@@ -86,7 +85,6 @@ export async function PUT(
             )
         }
 
-        // อัพเดทข้อมูล
         await query(
             `UPDATE products 
              SET name = ?, 
@@ -107,7 +105,6 @@ export async function PUT(
             ]
         )
 
-        // ดึงข้อมูลที่อัพเดทแล้ว
         const updatedProduct = await query(
             'SELECT * FROM products WHERE product_id = ?',
             [productId]
@@ -126,13 +123,13 @@ export async function PUT(
     }
 }
 
-// DELETE - ลบสินค้า
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const productId = parseInt(params.id)
+        const { id } = await params
+        const productId = parseInt(id)
         
         if (isNaN(productId)) {
             return NextResponse.json(
@@ -141,7 +138,6 @@ export async function DELETE(
             )
         }
 
-        // ตรวจสอบว่าสินค้ามีอยู่จริง
         const existingProduct = await query(
             'SELECT * FROM products WHERE product_id = ?',
             [productId]
@@ -154,7 +150,6 @@ export async function DELETE(
             )
         }
 
-        // ลบสินค้า
         await query(
             'DELETE FROM products WHERE product_id = ?',
             [productId]
