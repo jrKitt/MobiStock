@@ -28,6 +28,16 @@ export default function DashboardPage() {
     const [pageSize, setPageSize] = useState(10)
     const [totalPages, setTotalPages] = useState(1)
     const [totalItems, setTotalItems] = useState(0)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedProduct, setSelectedProduct] = useState<PhoneData | null>(null)
+    const [formData, setFormData] = useState({
+        name: '',
+        serial_number: '',
+        IMEI: '',
+        sell_price: 0,
+        status: 'Available',
+        made_in: ''
+    })
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -41,7 +51,7 @@ export default function DashboardPage() {
                 const data: PaginationData = await response.json()
                 const formattedPhones = (data.data as ProductRow[]).map(
                     (product) => {
-                        let status = 'in-stock'
+                        let status = 'Available'
                         if (product.status) {
                             status = product.status
                         }
@@ -84,6 +94,97 @@ export default function DashboardPage() {
         setPageSize(newPageSize)
         setCurrentPage(1)
     }
+
+    const handleEdit = (product: PhoneData) => {
+        setSelectedProduct(product)
+        setFormData({
+            name: product.name || '',
+            serial_number: product.serial_number || '',
+            IMEI: product.IMEI || '',
+            sell_price: product.sell_price || 0,
+            status: product.status || 'Available',
+            made_in: product.made_in || ''
+        })
+        setIsModalOpen(true)
+    }
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false)
+        setSelectedProduct(null)
+        setFormData({
+            name: '',
+            serial_number: '',
+            IMEI: '',
+            sell_price: 0,
+            status: 'Available',
+            made_in: ''
+        })
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === 'sell_price' ? parseFloat(value) || 0 : value
+        }))
+    }
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedProduct) return
+
+        try {
+            const response = await fetch(`/api/products/${selectedProduct.product_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+
+            if (!response.ok) throw new Error('Failed to update product')
+
+            showToast('แก้ไขข้อมูลสำเร็จ', 'success')
+            handleCloseModal()
+            
+            // Refresh data
+            const updatedResponse = await fetch(
+                `/api/products?page=${currentPage}&pageSize=${pageSize}`
+            )
+            if (updatedResponse.ok) {
+                const data: PaginationData = await updatedResponse.json()
+                const formattedPhones = (data.data as ProductRow[]).map(
+                    (product) => {
+                        let status = 'Available'
+                        if (product.status) {
+                            status = product.status
+                        }
+
+                        return {
+                            ...product,
+                            id: product.product_id,
+                            status,
+                            brand: product.name?.split(' ')[0] || 'Unknown',
+                            model:
+                                product.name?.split(' ').slice(1).join(' ') ||
+                                '',
+                            color: product.made_in || 'N/A',
+                            storage: 'N/A',
+                            price: product.sell_price || 0,
+                            stock: 0,
+                        }
+                    }
+                )
+                setPhones(formattedPhones)
+            }
+        } catch (err) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Failed to update product'
+            showToast(message, 'error')
+        }
+    }
+
     return (
         <>
             {error && (
@@ -299,18 +400,18 @@ export default function DashboardPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
-                                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold w-full ${
                                                         phone.status ===
-                                                        'in-stock'
+                                                        'Available'
                                                             ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
                                                             : phone.status ===
-                                                                'low-stock'
+                                                                'oos'
                                                               ? 'bg-orange-100 text-orange-800 ring-1 ring-orange-200'
                                                               : 'bg-red-100 text-red-800 ring-1 ring-red-200'
                                                     }`}
-                                                >
+                                                >   
                                                     {phone.status ===
-                                                        'in-stock' && (
+                                                        'Available' && (
                                                         <svg
                                                             className="h-3.5 w-3.5"
                                                             fill="none"
@@ -325,12 +426,18 @@ export default function DashboardPage() {
                                                             />
                                                         </svg>
                                                     )}
-                                                    {phone.status || 'ไม่ระบุ'}
+                                                    {phone.status === 'Available'
+                                                        ? 'พร้อมขาย'
+                                                          : phone.status === 'oos'
+                                                            ? 'หมดสต็อก'
+                                                            : 'ไม่ระบุ'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex gap-2">
-                                                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
+                                                    <button 
+                                                        onClick={() => handleEdit(phone)}
+                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
                                                         <svg
                                                             className="h-4 w-4"
                                                             fill="none"
