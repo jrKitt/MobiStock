@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Prompt } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const prompt = Prompt({
     weight: ['300', '400', '500', '600', '700'],
@@ -23,9 +24,8 @@ export default function RootLayout({
     return (
         <html lang="th" className="light">
             <body className={`${prompt.className} antialiased`}>
-                <Providers>
-                    {children}
-                </Providers>
+                <SpeedInsights />
+                <Providers>{children}</Providers>
             </body>
         </html>
     )
