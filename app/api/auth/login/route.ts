@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
         // Find user
         const users = await query<RowDataPacket>(
-            'SELECT user_id, username, email, password FROM Users WHERE username = ?',
+            'SELECT user_id, username, email, password FROM User WHERE username = ?',
             [username]
         );
 

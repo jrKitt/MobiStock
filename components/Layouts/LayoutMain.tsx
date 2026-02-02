@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 
@@ -16,9 +16,6 @@ export default function LayoutMain({
     } | null
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    useEffect(() => {
-        console.log(user)
-    }, [])
     return (
         <div className="flex min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
             {/* Sidebar with overlay props */}
