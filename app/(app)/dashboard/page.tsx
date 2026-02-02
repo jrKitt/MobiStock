@@ -29,14 +29,16 @@ export default function DashboardPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [totalItems, setTotalItems] = useState(0)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedProduct, setSelectedProduct] = useState<PhoneData | null>(null)
+    const [selectedProduct, setSelectedProduct] = useState<PhoneData | null>(
+        null
+    )
     const [formData, setFormData] = useState({
         name: '',
         serial_number: '',
         IMEI: '',
         sell_price: 0,
         status: 'Available',
-        made_in: ''
+        made_in: '',
     })
 
     useEffect(() => {
@@ -58,12 +60,15 @@ export default function DashboardPage() {
 
                         return {
                             ...product,
-                            id: product.product_id,
+                            id: product.prod_id,
                             status,
-                            brand: product.name?.split(' ')[0] || 'Unknown',
+                            brand:
+                                product.prod_name?.split(' ')[0] || 'Unknown',
                             model:
-                                product.name?.split(' ').slice(1).join(' ') ||
-                                '',
+                                product.prod_name
+                                    ?.split(' ')
+                                    .slice(1)
+                                    .join(' ') || '',
                             color: product.made_in || 'N/A',
                             storage: 'N/A',
                             price: product.sell_price || 0,
@@ -76,7 +81,8 @@ export default function DashboardPage() {
                 setTotalPages(data.pagination.totalPages)
                 setTotalItems(data.pagination.total)
             } catch (err) {
-                const message = err instanceof Error
+                const message =
+                    err instanceof Error
                         ? err.message
                         : 'Failed to load products'
                 setError(message)
@@ -98,12 +104,12 @@ export default function DashboardPage() {
     const handleEdit = (product: PhoneData) => {
         setSelectedProduct(product)
         setFormData({
-            name: product.name || '',
+            name: product.prod_name || '',
             serial_number: product.serial_number || '',
             IMEI: product.IMEI || '',
             sell_price: product.sell_price || 0,
             status: product.status || 'Available',
-            made_in: product.made_in || ''
+            made_in: product.made_in || '',
         })
         setIsModalOpen(true)
     }
@@ -117,15 +123,17 @@ export default function DashboardPage() {
             IMEI: '',
             sell_price: 0,
             status: 'Available',
-            made_in: ''
+            made_in: '',
         })
     }
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
         const { name, value } = e.target
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: name === 'sell_price' ? parseFloat(value) || 0 : value
+            [name]: name === 'sell_price' ? parseFloat(value) || 0 : value,
         }))
     }
 
@@ -134,19 +142,22 @@ export default function DashboardPage() {
         if (!selectedProduct) return
 
         try {
-            const response = await fetch(`/api/products/${selectedProduct.product_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            })
+            const response = await fetch(
+                `/api/products/${selectedProduct.prod_id}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                }
+            )
 
             if (!response.ok) throw new Error('Failed to update product')
 
             showToast('แก้ไขข้อมูลสำเร็จ', 'success')
             handleCloseModal()
-            
+
             // Refresh data
             const updatedResponse = await fetch(
                 `/api/products?page=${currentPage}&pageSize=${pageSize}`
@@ -162,12 +173,15 @@ export default function DashboardPage() {
 
                         return {
                             ...product,
-                            id: product.product_id,
+                            id: product.prod_id,
                             status,
-                            brand: product.name?.split(' ')[0] || 'Unknown',
+                            brand:
+                                product.prod_name?.split(' ')[0] || 'Unknown',
                             model:
-                                product.name?.split(' ').slice(1).join(' ') ||
-                                '',
+                                product.prod_name
+                                    ?.split(' ')
+                                    .slice(1)
+                                    .join(' ') || '',
                             color: product.made_in || 'N/A',
                             storage: 'N/A',
                             price: product.sell_price || 0,
@@ -178,9 +192,8 @@ export default function DashboardPage() {
                 setPhones(formattedPhones)
             }
         } catch (err) {
-            const message = err instanceof Error
-                ? err.message
-                : 'Failed to update product'
+            const message =
+                err instanceof Error ? err.message : 'Failed to update product'
             showToast(message, 'error')
         }
     }
@@ -350,7 +363,7 @@ export default function DashboardPage() {
                                 {phones.length > 0 ? (
                                     phones.map((phone) => (
                                         <tr
-                                            key={phone.product_id}
+                                            key={phone.prod_id}
                                             className="transition-colors hover:bg-gray-50"
                                         >
                                             <td className="px-6 py-4">
@@ -372,7 +385,7 @@ export default function DashboardPage() {
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-gray-900">
-                                                            {phone.name}
+                                                            {phone.prod_name}
                                                         </p>
                                                         <p className="text-sm text-gray-600">
                                                             {phone.serial_number ||
@@ -400,7 +413,7 @@ export default function DashboardPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
-                                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold w-full ${
+                                                    className={`inline-flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                                                         phone.status ===
                                                         'Available'
                                                             ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
@@ -409,7 +422,7 @@ export default function DashboardPage() {
                                                               ? 'bg-orange-100 text-orange-800 ring-1 ring-orange-200'
                                                               : 'bg-red-100 text-red-800 ring-1 ring-red-200'
                                                     }`}
-                                                >   
+                                                >
                                                     {phone.status ===
                                                         'Available' && (
                                                         <svg
@@ -426,18 +439,22 @@ export default function DashboardPage() {
                                                             />
                                                         </svg>
                                                     )}
-                                                    {phone.status === 'Available'
+                                                    {phone.status ===
+                                                    'Available'
                                                         ? 'พร้อมขาย'
-                                                          : phone.status === 'oos'
-                                                            ? 'หมดสต็อก'
-                                                            : 'ไม่ระบุ'}
+                                                        : phone.status === 'oos'
+                                                          ? 'หมดสต็อก'
+                                                          : 'ไม่ระบุ'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex gap-2">
-                                                    <button 
-                                                        onClick={() => handleEdit(phone)}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
+                                                    <button
+                                                        onClick={() =>
+                                                            handleEdit(phone)
+                                                        }
+                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100"
+                                                    >
                                                         <svg
                                                             className="h-4 w-4"
                                                             fill="none"

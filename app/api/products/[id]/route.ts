@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 
 interface Product {
-    product_id: number
-    name: string
+    prod_id: number
+    prod_name: string
     serial_number?: string
     IMEI?: string
     sell_price: number
@@ -18,7 +18,7 @@ export async function GET(
     try {
         const { id } = await params
         const productId = parseInt(id)
-        
+
         if (isNaN(productId)) {
             return NextResponse.json(
                 { error: 'Invalid product ID' },
@@ -27,7 +27,7 @@ export async function GET(
         }
 
         const result = await query(
-            'SELECT * FROM products WHERE product_id = ?',
+            'SELECT * FROM Product WHERE prod_id = ?',
             [productId]
         )
 
@@ -55,7 +55,7 @@ export async function PUT(
     try {
         const { id } = await params
         const productId = parseInt(id)
-        
+
         if (isNaN(productId)) {
             return NextResponse.json(
                 { error: 'Invalid product ID' },
@@ -74,7 +74,7 @@ export async function PUT(
         } = body
 
         const existingProduct = await query(
-            'SELECT * FROM products WHERE product_id = ?',
+            'SELECT * FROM Product WHERE prod_id = ?',
             [productId]
         )
 
@@ -86,12 +86,12 @@ export async function PUT(
         }
 
         await query(
-            `UPDATE products 
-             SET name = ?, 
-                 serial_number = ?, 
-                 IMEI = ?, 
-                 sell_price = ?, 
-                 status = ?, 
+            `UPDATE products
+             SET name = ?,
+                 serial_number = ?,
+                 IMEI = ?,
+                 sell_price = ?,
+                 status = ?,
                  made_in = ?
              WHERE product_id = ?`,
             [
@@ -106,7 +106,7 @@ export async function PUT(
         )
 
         const updatedProduct = await query(
-            'SELECT * FROM products WHERE product_id = ?',
+            'SELECT * FROM product WHERE prod_id = ?',
             [productId]
         )
 
@@ -130,7 +130,7 @@ export async function DELETE(
     try {
         const { id } = await params
         const productId = parseInt(id)
-        
+
         if (isNaN(productId)) {
             return NextResponse.json(
                 { error: 'Invalid product ID' },
@@ -139,7 +139,7 @@ export async function DELETE(
         }
 
         const existingProduct = await query(
-            'SELECT * FROM products WHERE product_id = ?',
+            'SELECT * FROM product WHERE prod_id = ?',
             [productId]
         )
 
@@ -151,7 +151,7 @@ export async function DELETE(
         }
 
         await query(
-            'DELETE FROM products WHERE product_id = ?',
+            'DELETE FROM product WHERE prod_id = ?',
             [productId]
         )
 
