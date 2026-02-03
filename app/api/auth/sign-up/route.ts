@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import bcrypt from 'bcryptjs'
 import { RowDataPacket } from 'mysql2'
 
@@ -9,10 +10,7 @@ export async function POST(req: NextRequest) {
         const { name, username, email, password } = body
 
         if (!name || !username || !email || !password) {
-            return NextResponse.json(
-                { message: 'กรุณากรอกข้อมูลให้ครบถ้วน' },
-                { status: 400 }
-            )
+            return errorResponse('กรุณากรอกข้อมูลให้ครบถ้วน', null, 400)
         }
 
         // Check if user already exists
@@ -22,10 +20,7 @@ export async function POST(req: NextRequest) {
         )
 
         if (existingUsers.length > 0) {
-            return NextResponse.json(
-                { message: 'อีเมลหรือชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว' },
-                { status: 409 }
-            )
+            return errorResponse('อีเมลหรือชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว', null, 409)
         }
 
         // Hash password
@@ -37,15 +32,9 @@ export async function POST(req: NextRequest) {
             [username, email, hashedPassword]
         )
 
-        return NextResponse.json(
-            { message: 'สมัครสมาชิกสำเร็จ' },
-            { status: 201 }
-        )
+        return successResponse(null, 'สมัครสมาชิกสำเร็จ', 201)
     } catch (error) {
         console.error('Sign up error:', error)
-        return NextResponse.json(
-            { message: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' },
-            { status: 500 }
-        )
+        return errorResponse('เกิดข้อผิดพลาดในการสมัครสมาชิก', error)
     }
 }

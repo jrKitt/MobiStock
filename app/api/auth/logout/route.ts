@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/response';
 
 export async function POST() {
-    const response = NextResponse.json(
-        { message: 'Logged out successfully' },
-        { status: 200 }
-    );
+    const response = successResponse(null, 'Logged out successfully');
 
     response.cookies.delete('token_mobi');
 

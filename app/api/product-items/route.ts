@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { ProductItem } from '@/types/api'
 
 export async function GET() {
     try {
         const rows = (await query('SELECT * FROM PRODUCT_ITEM ORDER BY item_id DESC')) as ProductItem[]
-        return NextResponse.json(rows)
+        return successResponse(rows)
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching product items' }, { status: 500 })
+        return errorResponse('Error fetching product items', error)
     }
 }
 
@@ -32,12 +33,9 @@ export async function POST(req: NextRequest) {
                 model_id,
             ]
         )
-        return NextResponse.json({ id: (result as ResultSetHeader).insertId, ...body }, { status: 201 })
+        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Product item created successfully', 201)
     } catch (error) {
         console.error(error)
-        return NextResponse.json(
-            { message: 'Error creating product item' },
-            { status: 500 }
-        )
+        return errorResponse('Error creating product item', error)
     }
 }

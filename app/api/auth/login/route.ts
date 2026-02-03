@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { RowDataPacket } from 'mysql2';
 import { signToken } from '@/lib/auth';
+import { successResponse, errorResponse } from '@/lib/response';
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,10 +11,7 @@ export async function POST(req: NextRequest) {
         const { username, password } = body;
 
         if (!username || !password) {
-            return NextResponse.json(
-                { message: 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน' },
-                { status: 400 }
-            );
+            return errorResponse('กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน', null, 400);
         }
 
         // Find user
@@ -25,20 +23,14 @@ export async function POST(req: NextRequest) {
         const user = users[0];
 
         if (!user) {
-            return NextResponse.json(
-                { message: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' },
-                { status: 401 }
-            );
+            return errorResponse('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', null, 401);
         }
 
         // Verify password
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {
-            return NextResponse.json(
-                { message: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' },
-                { status: 401 }
-            );
+            return errorResponse('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', null, 401);
         }
 
         // Generate JWT
@@ -50,9 +42,8 @@ export async function POST(req: NextRequest) {
         });
 
         // Create response
-        const response = NextResponse.json(
+        const response = successResponse(
             {
-                message: 'เข้าสู่ระบบสำเร็จ',
                 user: {
                     id: user.user_id,
                     name: user.name,
@@ -60,7 +51,7 @@ export async function POST(req: NextRequest) {
                     email: user.email
                 }
             },
-            { status: 200 }
+            'เข้าสู่ระบบสำเร็จ'
         );
 
         // Set Cookie
@@ -77,9 +68,6 @@ export async function POST(req: NextRequest) {
         return response;
     } catch (error) {
         console.error('Login error:', error);
-        return NextResponse.json(
-            { message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' },
-            { status: 500 }
-        );
+        return errorResponse('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', error);
     }
 }

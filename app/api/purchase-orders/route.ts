@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { PurchaseOrder } from '@/types/api'
 
 export async function GET() {
     try {
         const rows = (await query('SELECT * FROM PURCHASE_ORDER ORDER BY po_id DESC')) as PurchaseOrder[]
-        return NextResponse.json(rows)
+        return successResponse(rows)
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching purchase orders' }, { status: 500 })
+        return errorResponse('Error fetching purchase orders', error)
     }
 }
 
@@ -20,12 +21,9 @@ export async function POST(req: NextRequest) {
             'INSERT INTO PURCHASE_ORDER (po_code, po_date, po_status, supplier_id) VALUES (?, ?, ?, ?)',
             [po_code, po_date, po_status, supplier_id]
         )
-        return NextResponse.json({ id: (result as ResultSetHeader).insertId, ...body }, { status: 201 })
+        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Purchase order created successfully', 201)
     } catch (error) {
         console.error(error)
-        return NextResponse.json(
-            { message: 'Error creating purchase order' },
-            { status: 500 }
-        )
+        return errorResponse('Error creating purchase order', error)
     }
 }

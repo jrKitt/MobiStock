@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { SaleOrder } from '@/types/api'
 
 export async function GET(
@@ -10,12 +11,12 @@ export async function GET(
         const { id } = await params
         const rows = (await query('SELECT * FROM SALE_ORDER WHERE sale_id = ?', [id])) as SaleOrder[]
         if (rows.length === 0) {
-            return NextResponse.json({ message: 'Sale order not found' }, { status: 404 })
+            return errorResponse('Sale order not found', null, 404)
         }
-        return NextResponse.json(rows[0])
+        return successResponse(rows[0])
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching sale order' }, { status: 500 })
+        return errorResponse('Error fetching sale order', error)
     }
 }
 
@@ -44,10 +45,10 @@ export async function PUT(
                 id,
             ]
         )
-        return NextResponse.json({ id, ...body })
+        return successResponse({ id, ...body }, 'Sale order updated successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error updating sale order' }, { status: 500 })
+        return errorResponse('Error updating sale order', error)
     }
 }
 
@@ -58,9 +59,9 @@ export async function DELETE(
     try {
         const { id } = await params
         await query('DELETE FROM SALE_ORDER WHERE sale_id = ?', [id])
-        return NextResponse.json({ message: 'Sale order deleted' })
+        return successResponse(null, 'Sale order deleted successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error deleting sale order' }, { status: 500 })
+        return errorResponse('Error deleting sale order', error)
     }
 }

@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { RepairOrder } from '@/types/api'
 
 export async function GET() {
     try {
         const rows = (await query('SELECT * FROM REPAIR_ORDER ORDER BY repair_id DESC')) as RepairOrder[]
-        return NextResponse.json(rows)
+        return successResponse(rows)
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching repair orders' }, { status: 500 })
+        return errorResponse('Error fetching repair orders', error)
     }
 }
 
@@ -38,12 +39,9 @@ export async function POST(req: NextRequest) {
                 item_id,
             ]
         )
-        return NextResponse.json({ id: (result as ResultSetHeader).insertId, ...body }, { status: 201 })
+        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Repair order created successfully', 201)
     } catch (error) {
         console.error(error)
-        return NextResponse.json(
-            { message: 'Error creating repair order' },
-            { status: 500 }
-        )
+        return errorResponse('Error creating repair order', error)
     }
 }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
-
+import { successResponse, errorResponse } from '@/lib/response'
 
 interface KeyedProduct {
     prod_id: number
@@ -21,10 +21,7 @@ export async function GET(
         const productId = parseInt(id)
 
         if (isNaN(productId)) {
-            return NextResponse.json(
-                { error: 'Invalid product ID' },
-                { status: 400 }
-            )
+            return errorResponse('Invalid product ID', null, 400)
         }
 
         const result = (await query(
@@ -33,19 +30,13 @@ export async function GET(
         )) as KeyedProduct[]
 
         if (!result || result.length === 0) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            )
+            return errorResponse('Product not found', null, 404)
         }
 
-        return NextResponse.json(result[0])
+        return successResponse(result[0])
     } catch (error) {
         console.error('Error fetching product:', error)
-        return NextResponse.json(
-            { error: 'Failed to fetch product' },
-            { status: 500 }
-        )
+        return errorResponse('Failed to fetch product', error)
     }
 }
 
@@ -58,10 +49,7 @@ export async function PUT(
         const productId = parseInt(id)
 
         if (isNaN(productId)) {
-            return NextResponse.json(
-                { error: 'Invalid product ID' },
-                { status: 400 }
-            )
+            return errorResponse('Invalid product ID', null, 400)
         }
 
         const body = (await request.json()) as KeyedProduct
@@ -80,21 +68,8 @@ export async function PUT(
         )) as KeyedProduct[]
 
         if (!existingProduct || existingProduct.length === 0) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            )
+            return errorResponse('Product not found', null, 404)
         }
-
-        // Fix table name consistency: 'Product' seems to be the intended one based on GET
-        // Fix column names: existing code used 'name', 'product_id' in PUT vs 'prod_name', 'prod_id' in GET
-        // I will standardize to 'prod_name', 'prod_id' as seen in GET to be safe? 
-        // Or keep them as is if I suspect the schema is messy?
-        // Actually, looking at GET: 'SELECT * FROM Product WHERE prod_id = ?'
-        // looking at PUT: 'UPDATE products ... WHERE product_id = ?'
-        // This file is definitely using mixed schema conventions. 
-        // I will assume the GET one (prod_id) is correct as it's the primary read operation.
-        // And I'll update the PUT to matches.
 
         await query<ResultSetHeader>(
             `UPDATE Product
@@ -121,16 +96,13 @@ export async function PUT(
             [productId]
         )) as KeyedProduct[]
 
-        return NextResponse.json({
+        return successResponse({
             message: 'Product updated successfully',
             product: updatedProduct[0]
         })
     } catch (error) {
         console.error('Error updating product:', error)
-        return NextResponse.json(
-            { error: 'Failed to update product' },
-            { status: 500 }
-        )
+        return errorResponse('Failed to update product', error)
     }
 }
 
@@ -143,10 +115,7 @@ export async function DELETE(
         const productId = parseInt(id)
 
         if (isNaN(productId)) {
-            return NextResponse.json(
-                { error: 'Invalid product ID' },
-                { status: 400 }
-            )
+            return errorResponse('Invalid product ID', null, 400)
         }
 
         const existingProduct = (await query(
@@ -155,10 +124,7 @@ export async function DELETE(
         )) as KeyedProduct[]
 
         if (!existingProduct || existingProduct.length === 0) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            )
+            return errorResponse('Product not found', null, 404)
         }
 
         await query<ResultSetHeader>(
@@ -166,14 +132,11 @@ export async function DELETE(
             [productId]
         )
 
-        return NextResponse.json({
+        return successResponse({
             message: 'Product deleted successfully'
         })
     } catch (error) {
         console.error('Error deleting product:', error)
-        return NextResponse.json(
-            { error: 'Failed to delete product' },
-            { status: 500 }
-        )
+        return errorResponse('Failed to delete product', error)
     }
 }

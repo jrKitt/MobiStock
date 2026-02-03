@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { Customer } from '@/types/api'
 
 export async function GET() {
     try {
         const rows = (await query('SELECT * FROM CUSTOMER ORDER BY customer_id DESC')) as Customer[]
-        return NextResponse.json(rows)
+        return successResponse(rows)
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching customers' }, { status: 500 })
+        return errorResponse('Error fetching customers', error)
     }
 }
 
@@ -32,12 +33,9 @@ export async function POST(req: NextRequest) {
                 customer_address,
             ]
         )
-        return NextResponse.json({ id: (result as ResultSetHeader).insertId, ...body }, { status: 201 })
+        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Customer created successfully', 201)
     } catch (error) {
         console.error(error)
-        return NextResponse.json(
-            { message: 'Error creating customer' },
-            { status: 500 }
-        )
+        return errorResponse('Error creating customer', error)
     }
 }

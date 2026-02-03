@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { Customer } from '@/types/api'
 
 export async function GET(
@@ -10,12 +11,12 @@ export async function GET(
         const { id } = await params
         const rows = (await query('SELECT * FROM CUSTOMER WHERE customer_id = ?', [id])) as Customer[]
         if (rows.length === 0) {
-            return NextResponse.json({ message: 'Customer not found' }, { status: 404 })
+            return errorResponse('Customer not found', null, 404)
         }
-        return NextResponse.json(rows[0])
+        return successResponse(rows[0])
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching customer' }, { status: 500 })
+        return errorResponse('Error fetching customer', error)
     }
 }
 
@@ -44,10 +45,10 @@ export async function PUT(
                 id,
             ]
         )
-        return NextResponse.json({ id, ...body })
+        return successResponse({ id, ...body }, 'Customer updated successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error updating customer' }, { status: 500 })
+        return errorResponse('Error updating customer', error)
     }
 }
 
@@ -58,9 +59,9 @@ export async function DELETE(
     try {
         const { id } = await params
         await query('DELETE FROM CUSTOMER WHERE customer_id = ?', [id])
-        return NextResponse.json({ message: 'Customer deleted' })
+        return successResponse(null, 'Customer deleted successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error deleting customer' }, { status: 500 })
+        return errorResponse('Error deleting customer', error)
     }
 }

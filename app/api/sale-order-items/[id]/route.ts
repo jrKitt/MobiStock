@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { SaleOrderItem } from '@/types/api'
 
 export async function GET(
@@ -10,12 +11,12 @@ export async function GET(
         const { id } = await params
         const rows = (await query('SELECT * FROM SALE_ORDER_ITEM WHERE sale_item_id = ?', [id])) as SaleOrderItem[]
         if (rows.length === 0) {
-            return NextResponse.json({ message: 'Sale order item not found' }, { status: 404 })
+            return errorResponse('Sale order item not found', null, 404)
         }
-        return NextResponse.json(rows[0])
+        return successResponse(rows[0])
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching sale order item' }, { status: 500 })
+        return errorResponse('Error fetching sale order item', error)
     }
 }
 
@@ -31,10 +32,10 @@ export async function PUT(
             'UPDATE SALE_ORDER_ITEM SET sale_price = ?, sale_id = ?, item_id = ? WHERE sale_item_id = ?',
             [sale_price, sale_id, item_id, id]
         )
-        return NextResponse.json({ id, ...body })
+        return successResponse({ id, ...body }, 'Sale order item updated successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error updating sale order item' }, { status: 500 })
+        return errorResponse('Error updating sale order item', error)
     }
 }
 
@@ -45,9 +46,9 @@ export async function DELETE(
     try {
         const { id } = await params
         await query('DELETE FROM SALE_ORDER_ITEM WHERE sale_item_id = ?', [id])
-        return NextResponse.json({ message: 'Sale order item deleted' })
+        return successResponse(null, 'Sale order item deleted successfully')
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error deleting sale order item' }, { status: 500 })
+        return errorResponse('Error deleting sale order item', error)
     }
 }

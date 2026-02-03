@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 
 export type ProductRow = {
     prod_id: number
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
             [...params, pageSize, offset]
         )) as ProductRow[]
 
-        return NextResponse.json({
+        return successResponse({
             data: rows,
             pagination: {
                 page,
@@ -69,9 +70,6 @@ export async function GET(req: NextRequest) {
         })
     } catch (error) {
         console.error('Failed to fetch products', error)
-        return NextResponse.json(
-            { message: 'Unable to fetch products' },
-            { status: 500 }
-        )
+        return errorResponse('Unable to fetch products', error)
     }
 }

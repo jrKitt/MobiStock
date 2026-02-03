@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
+import { successResponse, errorResponse } from '@/lib/response'
 import { Supplier } from '@/types/api'
 
 export async function GET() {
     try {
         const rows = (await query('SELECT * FROM SUPPLIER ORDER BY supplier_id DESC')) as Supplier[]
-        return NextResponse.json(rows)
+        return successResponse(rows)
     } catch (error) {
         console.error(error)
-        return NextResponse.json({ message: 'Error fetching suppliers' }, { status: 500 })
+        return errorResponse('Error fetching suppliers', error)
     }
 }
 
@@ -32,12 +33,9 @@ export async function POST(req: NextRequest) {
                 supplier_contact_person,
             ]
         )
-        return NextResponse.json({ id: (result as ResultSetHeader).insertId, ...body }, { status: 201 })
+        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Supplier created successfully', 201)
     } catch (error) {
         console.error(error)
-        return NextResponse.json(
-            { message: 'Error creating supplier' },
-            { status: 500 }
-        )
+        return errorResponse('Error creating supplier', error)
     }
 }
