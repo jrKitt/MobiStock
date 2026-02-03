@@ -45,14 +45,17 @@ export async function GET(req: NextRequest) {
             ? `WHERE ${conditions.join(' AND ')}`
             : ''
 
-        const totalRows = await query(
+        // Cast expected result for count query
+        const totalRows = (await query(
             `SELECT COUNT(*) AS total FROM Product ${whereClause}`,
             params
-        )
-        const total = (totalRows[0] as { total: number })?.total ?? 0
+        )) as { total: number }[]
+        const total = totalRows[0]?.total ?? 0
+
+        // Cast expected result for rows query, ensuring params are passed
         const rows = (await query(
           `SELECT * FROM Product ${whereClause} ORDER BY prod_id DESC LIMIT ${pageSize} OFFSET ${offset}`,
-            // [...params, pageSize, offset]
+            [...params, pageSize, offset]
         )) as ProductRow[]
 
         return NextResponse.json({

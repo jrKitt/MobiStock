@@ -1,4 +1,6 @@
-import mysql from 'mysql2/promise'
+import mysql, { ResultSetHeader } from 'mysql2/promise'
+export type { ResultSetHeader }
+
 
 const requiredEnv = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'] as const
 const missing = requiredEnv.filter((key) => !process.env[key])
@@ -24,12 +26,12 @@ const pool = mysql.createPool({
     },
 })
 
-export type QueryParams = (string | number | boolean | null | Date | undefined | any)[]
+export type QueryParams = (string | number | boolean | null | Date | undefined)[]
 
-export async function query(
+export async function query<T = unknown>(
     sql: string,
     params: QueryParams = []
-): Promise<any> {
+): Promise<T> {
     const [results] = await pool.execute(sql, params)
-    return results
+    return results as T
 }

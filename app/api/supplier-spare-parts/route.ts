@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { query, ResultSetHeader } from '@/lib/db'
+import { SupplierSparePart } from '@/types/api'
 
 export async function GET(req: NextRequest) {
     try {
@@ -8,24 +9,25 @@ export async function GET(req: NextRequest) {
         const part_id = searchParams.get('part_id')
 
         if (supplier_id && part_id) {
-            const rows = await query(
+            const rows = (await query(
                 'SELECT * FROM SUPPLIER_SPARE_PART WHERE supplier_id = ? AND part_id = ?',
                 [supplier_id, part_id]
-            )
-            if ((rows as any[]).length === 0) {
+            )) as SupplierSparePart[]
+            if (rows.length === 0) {
                 return NextResponse.json(
                     { message: 'Supplier spare part not found' },
                     { status: 404 }
                 )
             }
-            return NextResponse.json((rows as any[])[0])
+            return NextResponse.json(rows[0])
         }
 
-        const rows = await query(
+        const rows = (await query(
             'SELECT * FROM SUPPLIER_SPARE_PART ORDER BY create_at DESC'
-        )
+        )) as SupplierSparePart[]
         return NextResponse.json(rows)
     } catch (error) {
+        console.error(error)
         return NextResponse.json(
             { message: 'Error fetching supplier spare parts' },
             { status: 500 }
@@ -35,14 +37,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json()
+        const body = (await req.json()) as SupplierSparePart
         const { supplier_id, part_id } = body
-        await query(
+        await query<ResultSetHeader>(
             'INSERT INTO SUPPLIER_SPARE_PART (supplier_id, part_id) VALUES (?, ?)',
             [supplier_id, part_id]
         )
         return NextResponse.json({ ...body }, { status: 201 })
     } catch (error) {
+        console.error(error)
         return NextResponse.json(
             { message: 'Error creating supplier spare part' },
             { status: 500 }
@@ -63,12 +66,13 @@ export async function DELETE(req: NextRequest) {
             )
         }
 
-        await query(
+        await query<ResultSetHeader>(
             'DELETE FROM SUPPLIER_SPARE_PART WHERE supplier_id = ? AND part_id = ?',
             [supplier_id, part_id]
         )
         return NextResponse.json({ message: 'Supplier spare part deleted' })
     } catch (error) {
+        console.error(error)
         return NextResponse.json(
             { message: 'Error deleting supplier spare part' },
             { status: 500 }
