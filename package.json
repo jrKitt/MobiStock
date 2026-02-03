@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@heroui/react": "^2.8.7",
