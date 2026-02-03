@@ -1,0 +1,996 @@
+{
+	"info": {
+		"_postman_id": "mobi_stock_api_v0.1",
+		"name": "MobiStock API v0.1",
+		"description": "API Documentation for MobiStock Application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "admin",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "password123",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Sign Up",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\",\n    \"role\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/sign-up",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"sign-up"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Base Tables",
+			"item": [
+				{
+					"name": "Brands",
+					"item": [
+						{
+							"name": "List Brands",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/brands?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"brands"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Brand",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"brand_name\": \"Apple\",\n    \"brand_country\": \"USA\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/brands",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"brands"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Brand",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/brands/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"brands",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Brand",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"brand_name\": \"Apple Inc.\",\n    \"brand_country\": \"USA\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/brands/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"brands",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Brand",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/brands/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"brands",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Categories",
+					"item": [
+						{
+							"name": "List Categories",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/categories?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"categories"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Category",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"category_name_th\": \"สมาร์ทโฟน\",\n    \"category_name_en\": \"Smartphone\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/categories",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"categories"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Suppliers",
+					"item": [
+						{
+							"name": "List Suppliers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/suppliers?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"suppliers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Supplier",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"supplier_name\": \"Tech Supply Co.\",\n    \"supplier_phone\": \"02-123-4567\",\n    \"supplier_email\": \"contact@techsupply.com\",\n    \"supplier_address\": \"123 Tech Rd, Bangkok\",\n    \"supplier_contact_person\": \"John Doe\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/suppliers",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"suppliers"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Customers",
+					"item": [
+						{
+							"name": "List Customers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/customers?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"customers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Customer",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer_fname\": \"Somchai\",\n    \"customer_lname\": \"Jaidee\",\n    \"customer_phone\": \"089-999-9999\",\n    \"customer_tax_number\": \"1234567890123\",\n    \"customer_address\": \"456 Happy St, Chiang Mai\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/customers",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"customers"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Spare Parts",
+					"item": [
+						{
+							"name": "List Spare Parts",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/spare-parts?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"spare-parts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Spare Part",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"part_name\": \"Screen Replacement\",\n    \"part_status\": \"active\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/spare-parts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"spare-parts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Products & Inventory",
+			"item": [
+				{
+					"name": "Product Models",
+					"item": [
+						{
+							"name": "List Models",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/product-models?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"product-models"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Model",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"model_name\": \"iPhone 15\",\n    \"model_made_in\": \"China\",\n    \"model_warranty_duration\": 12,\n    \"brand_id\": 1,\n    \"category_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/product-models",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"product-models"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Product Items",
+					"item": [
+						{
+							"name": "List Items",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/product-items?page=1&limit=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"product-items"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Item",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"item_serial_number\": \"SN12345678\",\n    \"item_imei\": \"IMEI987654321\",\n    \"item_lot_number\": \"LOT202301\",\n    \"item_status\": \"in_stock\",\n    \"model_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/product-items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"product-items"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Products",
+					"item": [
+						{
+							"name": "List Products",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/products?page=1&pageSize=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"products"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "pageSize",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "Purchase Orders",
+					"item": [
+						{
+							"name": "List POs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/purchase-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"purchase-orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create PO",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"po_code\": \"PO-2023-001\",\n    \"po_date\": \"2023-10-25\",\n    \"po_status\": \"pending\",\n    \"supplier_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/purchase-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"purchase-orders"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Purchase Order Items",
+					"item": [
+						{
+							"name": "List PO Items",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/purchase-order-items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"purchase-order-items"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create PO Item",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"po_price\": 15000,\n    \"po_quantity\": 10,\n    \"po_id\": 1,\n    \"model_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/purchase-order-items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"purchase-order-items"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Sale Orders",
+					"item": [
+						{
+							"name": "List Sales",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/sale-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sale-orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Sale",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sale_code\": \"SO-2023-001\",\n    \"sale_date\": \"2023-10-30\",\n    \"sale_total_amount\": 25000,\n    \"sale_status\": \"completed\",\n    \"customer_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sale-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sale-orders"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Sale Order Items",
+					"item": [
+						{
+							"name": "List Sale Items",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/sale-order-items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sale-order-items"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Sale Item",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sale_price\": 25000,\n    \"sale_id\": 1,\n    \"item_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sale-order-items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sale-order-items"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Services",
+			"item": [
+				{
+					"name": "Repair Orders",
+					"item": [
+						{
+							"name": "List Repairs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/repair-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"repair-orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Repair",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"repair_problem_desc\": \"Screen cracked\",\n    \"repair_technician_note\": \"Needs replacement\",\n    \"repair_date_received\": \"2023-11-01\",\n    \"repair_labor_cost\": 500,\n    \"repair_status\": \"received\",\n    \"customer_id\": 1,\n    \"item_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/repair-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"repair-orders"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Repair Order Parts",
+					"item": [
+						{
+							"name": "List Parts Used",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/repair-order-parts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"repair-order-parts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add Part to Repair",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"repair_id\": 1,\n    \"part_id\": 1,\n    \"repair_part_quantity\": 1,\n    \"repair_part_unit_price\": 2000\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/repair-order-parts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"repair-order-parts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Claim Orders",
+					"item": [
+						{
+							"name": "List Claims",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/claim-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"claim-orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Claim",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"claim_code\": \"CL-2023-001\",\n    \"claim_date_received\": \"2023-11-05\",\n    \"claim_status\": \"pending\",\n    \"claim_resolution\": \"unknown\",\n    \"supplier_id\": 1,\n    \"customer_id\": 1,\n    \"item_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/claim-orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"claim-orders"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Supplier Spare Parts",
+					"item": [
+						{
+							"name": "List Supplier Parts",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/supplier-spare-parts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"supplier-spare-parts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Link Part to Supplier",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"supplier_id\": 1,\n    \"part_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/supplier-spare-parts",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"supplier-spare-parts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
