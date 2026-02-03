@@ -1,7 +1,6 @@
 import mysql, { ResultSetHeader } from 'mysql2/promise'
 export type { ResultSetHeader }
 
-
 const requiredEnv = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'] as const
 const missing = requiredEnv.filter((key) => !process.env[key])
 
@@ -26,12 +25,26 @@ const pool = mysql.createPool({
     },
 })
 
-export type QueryParams = (string | number | boolean | null | Date | undefined)[]
+const checkLimitQuery = async (sql: string, params: QueryParams = []) => {
+    if (/limit\s+\?/i.test(sql)) {
+        return await pool.query(sql, params)
+    }
+    return await pool.execute(sql, params)
+}
+
+export type QueryParams = (
+    | string
+    | number
+    | boolean
+    | null
+    | Date
+    | undefined
+)[]
 
 export async function query<T = unknown>(
     sql: string,
     params: QueryParams = []
 ): Promise<T> {
-    const [results] = await pool.execute(sql, params)
+    const [results] = await checkLimitQuery(sql, params)
     return results as T
 }

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         const totalPages = Math.ceil(total / limit)
 
         const rows = (await query('SELECT * FROM PRODUCT_ITEM ORDER BY item_id DESC LIMIT ? OFFSET ?', [limit, offset])) as ProductItem[]
-        
+
         return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
     } catch (error) {
         console.error(error)
