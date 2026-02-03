@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+
 import { successResponse } from '@/lib/response';
 
 export async function POST() {

@@ -20,8 +20,16 @@ export async function GET(req: NextRequest) {
             return successResponse(rows[0])
         }
 
-        const rows = (await query('SELECT * FROM REPAIR_ORDER_PART ORDER BY create_at DESC')) as RepairOrderPart[]
-        return successResponse(rows)
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '10')
+        const offset = (page - 1) * limit
+
+        const countResult = await query<{ total: number }[]>('SELECT COUNT(*) as total FROM REPAIR_ORDER_PART')
+        const total = countResult[0].total
+        const totalPages = Math.ceil(total / limit)
+
+        const rows = (await query('SELECT * FROM REPAIR_ORDER_PART ORDER BY create_at DESC LIMIT ? OFFSET ?', [limit, offset])) as RepairOrderPart[]
+        return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
     } catch (error) {
         console.error(error)
         return errorResponse('Error fetching repair order parts', error)

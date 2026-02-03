@@ -3,10 +3,20 @@ import { query, ResultSetHeader } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { PurchaseOrder } from '@/types/api'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const rows = (await query('SELECT * FROM PURCHASE_ORDER ORDER BY po_id DESC')) as PurchaseOrder[]
-        return successResponse(rows)
+        const { searchParams } = new URL(req.url)
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '10')
+        const offset = (page - 1) * limit
+
+        const countResult = await query<{ total: number }[]>('SELECT COUNT(*) as total FROM PURCHASE_ORDER')
+        const total = countResult[0].total
+        const totalPages = Math.ceil(total / limit)
+
+        const rows = (await query('SELECT * FROM PURCHASE_ORDER ORDER BY po_id DESC LIMIT ? OFFSET ?', [limit, offset])) as PurchaseOrder[]
+        
+        return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
     } catch (error) {
         console.error(error)
         return errorResponse('Error fetching purchase orders', error)

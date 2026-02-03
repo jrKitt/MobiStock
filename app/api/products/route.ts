@@ -59,15 +59,17 @@ export async function GET(req: NextRequest) {
             [...params, pageSize, offset]
         )) as ProductRow[]
 
-        return successResponse({
-            data: rows,
-            pagination: {
+        return successResponse(
+            rows,
+            'Success',
+            200,
+            {
                 page,
-                pageSize,
+                limit: pageSize,
                 total,
                 totalPages: Math.max(Math.ceil(total / pageSize), 1),
-            },
-        })
+            }
+        )
     } catch (error) {
         console.error('Failed to fetch products', error)
         return errorResponse('Unable to fetch products', error)

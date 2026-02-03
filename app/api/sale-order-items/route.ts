@@ -3,10 +3,20 @@ import { query, ResultSetHeader } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { SaleOrderItem } from '@/types/api'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const rows = (await query('SELECT * FROM SALE_ORDER_ITEM ORDER BY sale_item_id DESC')) as SaleOrderItem[]
-        return successResponse(rows)
+        const { searchParams } = new URL(req.url)
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '10')
+        const offset = (page - 1) * limit
+
+        const countResult = await query<{ total: number }[]>('SELECT COUNT(*) as total FROM SALE_ORDER_ITEM')
+        const total = countResult[0].total
+        const totalPages = Math.ceil(total / limit)
+
+        const rows = (await query('SELECT * FROM SALE_ORDER_ITEM ORDER BY sale_item_id DESC LIMIT ? OFFSET ?', [limit, offset])) as SaleOrderItem[]
+        
+        return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
     } catch (error) {
         console.error(error)
         return errorResponse('Error fetching sale order items', error)
