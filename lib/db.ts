@@ -1,5 +1,4 @@
 import mysql from 'mysql2/promise'
-import { RowDataPacket } from 'mysql2'
 
 const requiredEnv = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'] as const
 const missing = requiredEnv.filter((key) => !process.env[key])
@@ -25,12 +24,12 @@ const pool = mysql.createPool({
     },
 })
 
-export type QueryParams = Array<string | number | null>
+export type QueryParams = (string | number | boolean | null | Date | undefined | any)[]
 
-export async function query<T extends RowDataPacket>(
+export async function query(
     sql: string,
     params: QueryParams = []
-): Promise<T[]> {
-    const [rows] = await pool.execute<RowDataPacket[]>(sql, params)
-    return rows as T[]
+): Promise<any> {
+    const [results] = await pool.execute(sql, params)
+    return results
 }
