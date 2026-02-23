@@ -9,7 +9,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
 
     const currentDate = useMemo(() => {
-        return new Intl.DateTimeFormat('th-TH', {
+        return new Intl.DateTimeFormat('en-US', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
@@ -17,8 +17,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }, [])
 
     return (
-        <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-            <div className="flex items-center justify-between px-4 py-4 lg:px-8 lg:py-5">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+            <div className="flex items-center justify-between px-6 py-4">
                 <div className="flex items-center gap-4">
                     {/* Hamburger Menu Button */}
                     <button
@@ -58,13 +58,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                                 />
                             </svg>
-                            ภาพรวมการจัดการสต็อกสินค้า
+                            Inventory Management Overview
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="mr-2 hidden text-right sm:block lg:mr-4">
-                        <p className="text-xs text-gray-500">วันที่</p>
+                        <p className="text-xs text-slate-500">Date</p>
                         <p className="text-sm font-medium text-gray-700">
                             {currentDate}
                         </p>

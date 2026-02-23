@@ -17,7 +17,7 @@ export default function LayoutMain({
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     return (
-        <div className="flex min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
+        <div className="flex min-h-screen bg-slate-50">
             {/* Sidebar with overlay props */}
             <Sidebar
                 isOpen={sidebarOpen}

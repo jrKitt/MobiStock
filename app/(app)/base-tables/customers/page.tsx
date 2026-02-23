@@ -1,0 +1,241 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/Toast'
+import { Customer } from '@/types/api'
+
+export default function CustomersPage() {
+    const { showToast } = useToast()
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [loading, setLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+    const [formData, setFormData] = useState({
+        customer_fname: '',
+        customer_lname: '',
+        customer_phone: '',
+        customer_tax_number: '',
+        customer_address: '',
+    })
+
+    const fetchCustomers = async () => {
+        try {
+            setLoading(true)
+            const response = await fetch('/api/customers?page=1&limit=100')
+            if (!response.ok) throw new Error('Failed to fetch customers')
+            const result = await response.json()
+            setCustomers(result.data)
+        } catch (err) {
+            showToast('Failed to load customers', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchCustomers()
+    }, [])
+
+    const handleEdit = (customer: Customer) => {
+        setSelectedCustomer(customer)
+        setFormData({
+            customer_fname: customer.customer_fname,
+            customer_lname: customer.customer_lname || '',
+            customer_phone: customer.customer_phone || '',
+            customer_tax_number: customer.customer_tax_number || '',
+            customer_address: customer.customer_address || '',
+        })
+        setIsModalOpen(true)
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this customer?')) return
+        try {
+            const response = await fetch(`/api/customers/${id}`, { method: 'DELETE' })
+            if (!response.ok) throw new Error('Failed to delete customer')
+            showToast('Customer deleted successfully', 'success')
+            fetchCustomers()
+        } catch (err) {
+            showToast('Failed to delete customer', 'error')
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            const url = selectedCustomer ? `/api/customers/${selectedCustomer.customer_id}` : '/api/customers'
+            const method = selectedCustomer ? 'PUT' : 'POST'
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            })
+
+            if (!response.ok) throw new Error('Failed to save customer')
+            showToast(`Customer ${selectedCustomer ? 'updated' : 'created'} successfully`, 'success')
+            setIsModalOpen(false)
+            setSelectedCustomer(null)
+            setFormData({
+                customer_fname: '',
+                customer_lname: '',
+                customer_phone: '',
+                customer_tax_number: '',
+                customer_address: '',
+            })
+            fetchCustomers()
+        } catch (err) {
+            showToast('Failed to save customer', 'error')
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Customers</h1>
+                    <p className="text-sm text-slate-500">Manage your customer database and info</p>
+                </div>
+                <button
+                    onClick={() => {
+                        setSelectedCustomer(null)
+                        setFormData({
+                            customer_fname: '',
+                            customer_lname: '',
+                            customer_phone: '',
+                            customer_tax_number: '',
+                            customer_address: '',
+                        })
+                        setIsModalOpen(true)
+                    }}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                >
+                    Add Customer
+                </button>
+            </div>
+
+            {loading ? (
+                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
+                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                </div>
+            ) : (
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Customer Name</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Tax ID / Phone</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Address</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {customers.map((customer) => (
+                                <tr key={customer.customer_id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {customer.customer_fname} {customer.customer_lname}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-slate-900">{customer.customer_phone || '-'}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{customer.customer_tax_number || 'No Tax ID'}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-slate-600 truncate max-w-xs">{customer.customer_address || '-'}</div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-3">
+                                            <button
+                                                onClick={() => handleEdit(customer)}
+                                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => customer.customer_id && handleDelete(customer.customer_id)}
+                                                className="text-slate-400 hover:text-red-600 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</h2>
+                        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">First Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.customer_fname}
+                                    onChange={(e) => setFormData({ ...formData, customer_fname: e.target.value })}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Last Name</label>
+                                <input
+                                    type="text"
+                                    value={formData.customer_lname}
+                                    onChange={(e) => setFormData({ ...formData, customer_lname: e.target.value })}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</label>
+                                <input
+                                    type="text"
+                                    value={formData.customer_phone}
+                                    onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tax Number</label>
+                                <input
+                                    type="text"
+                                    value={formData.customer_tax_number}
+                                    onChange={(e) => setFormData({ ...formData, customer_tax_number: e.target.value })}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Address</label>
+                                <textarea
+                                    value={formData.customer_address}
+                                    onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                                    rows={3}
+                                />
+                            </div>
+                            <div className="col-span-2 flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-blue-600"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-md bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                                >
+                                    {selectedCustomer ? 'Update' : 'Create'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}

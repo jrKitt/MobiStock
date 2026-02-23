@@ -33,7 +33,7 @@ export default function DashboardPage() {
         null
     )
     const [formData, setFormData] = useState({
-        name: '',
+        prod_name: '',
         serial_number: '',
         IMEI: '',
         sell_price: 0,
@@ -104,7 +104,7 @@ export default function DashboardPage() {
     const handleEdit = (product: PhoneData) => {
         setSelectedProduct(product)
         setFormData({
-            name: product.prod_name || '',
+            prod_name: product.prod_name || '',
             serial_number: product.serial_number || '',
             IMEI: product.IMEI || '',
             sell_price: product.sell_price || 0,
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         setIsModalOpen(false)
         setSelectedProduct(null)
         setFormData({
-            name: '',
+            prod_name: '',
             serial_number: '',
             IMEI: '',
             sell_price: 0,
@@ -155,7 +155,7 @@ export default function DashboardPage() {
 
             if (!response.ok) throw new Error('Failed to update product')
 
-            showToast('แก้ไขข้อมูลสำเร็จ', 'success')
+            showToast('Product updated successfully', 'success')
             handleCloseModal()
 
             // Refresh data
@@ -198,71 +198,68 @@ export default function DashboardPage() {
         }
     }
 
+    const handleDelete = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this product?')) return
+        try {
+            const response = await fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+            })
+            if (!response.ok) throw new Error('Failed to delete product')
+            showToast('Product deleted successfully', 'success')
+            
+            // Refresh local state or re-fetch
+            setPhones(phones.filter(p => p.prod_id !== id))
+            setTotalItems(prev => prev - 1)
+        } catch (err) {
+            showToast('Error deleting product', 'error')
+        }
+    }
+
     return (
         <>
             {error && (
                 <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                    เกิดข้อผิดพลาด: {error}
+                    Error: {error}
                 </div>
             )}
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white p-12 shadow-lg">
+                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
                     <div className="text-center">
-                        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-                        <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+                        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                        <p className="text-sm text-slate-500">Loading products...</p>
                     </div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
-                    <div className="border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-slate-50 p-7">
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                    <div className="border-b border-slate-100 bg-white p-6">
                         <div className="flex items-center justify-between">
-                            <div className="flex w-full items-center gap-8 max-sm:flex-col max-sm:justify-center">
+                            <div className="flex w-full items-center gap-6 max-sm:flex-col">
                                 <div>
-                                    <div className="mb-3 flex items-center gap-3 max-sm:justify-center">
-                                        <div>
-                                            <h2 className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-2xl font-bold text-transparent">
-                                                คลังสินค้า
-                                            </h2>
-                                        </div>
-                                    </div>
-                                    <p className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                                            รวม {totalItems} รายการ
-                                        </span>
-                                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-                                            หน้า {currentPage}/{totalPages}
-                                        </span>
+                                    <h2 className="text-lg font-bold text-slate-900">
+                                        Inventory
+                                    </h2>
+                                    <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                                        <span className="flex h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                                        <span>{totalItems} total items</span>
+                                        <span className="text-slate-300">•</span>
+                                        <span>Page {currentPage} of {totalPages}</span>
                                     </p>
                                 </div>
-                                <div className="h-16 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent max-sm:hidden"></div>
-                                <div className="flex items-center gap-4">
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                        <svg
-                                            className="h-4 w-4 text-gray-500"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                            />
-                                        </svg>
-                                        แสดงต่อหน้า:
+                                <div className="h-10 w-px bg-slate-100 max-sm:hidden"></div>
+                                <div className="flex items-center gap-3">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                        Show
                                     </label>
                                     <select
                                         value={pageSize}
                                         onChange={handlePageSizeChange}
-                                        className="cursor-pointer rounded-lg border-2 border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:border-gray-300 focus:border-blue-500 focus:ring-0 focus:outline-none"
+                                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
                                     >
-                                        <option value={5}>5 รายการ</option>
-                                        <option value={10}>10 รายการ</option>
-                                        <option value={25}>25 รายการ</option>
-                                        <option value={50}>50 รายการ</option>
-                                        <option value={100}>100 รายการ</option>
+                                        <option value={5}>5 per page</option>
+                                        <option value={10}>10 per page</option>
+                                        <option value={25}>25 per page</option>
+                                        <option value={50}>50 per page</option>
                                     </select>
                                 </div>
                             </div>
@@ -270,92 +267,23 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-gray-200 bg-gray-50">
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="h-4 w-4 text-gray-500"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                />
-                                            </svg>
-                                            ชื่อสินค้า
-                                        </div>
+                                <tr className="border-b border-slate-100 bg-slate-50/50">
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        Product Info
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        Serial Number
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        Serial / IMEI
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        IMEI
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        Price
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="h-4 w-4 text-gray-500"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                            </svg>
-                                            ราคาขาย
-                                        </div>
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        Status
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="h-4 w-4 text-gray-500"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                            </svg>
-                                            สถานะ
-                                        </div>
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold tracking-wider text-gray-700 uppercase">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="h-4 w-4 text-gray-500"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                                                />
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                />
-                                            </svg>
-                                            การจัดการ
-                                        </div>
+                                    <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
@@ -368,123 +296,58 @@ export default function DashboardPage() {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-gray-100 to-gray-200">
-                                                        <svg
-                                                            className="h-5 w-5 text-gray-600"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                            />
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-100 text-slate-500">
+                                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                         </svg>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-gray-900">
+                                                        <p className="text-sm font-semibold text-slate-900">
                                                             {phone.prod_name}
                                                         </p>
-                                                        <p className="text-sm text-gray-600">
-                                                            {phone.serial_number ||
-                                                                'ไม่ระบุ'}
+                                                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                                                            {phone.made_in || 'N/A'}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-sm font-medium text-gray-700">
-                                                    {phone.serial_number || '-'}
-                                                </span>
+                                                <div className="text-xs font-medium text-slate-600">
+                                                    SN: {phone.serial_number || '-'}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                                    IMEI: {phone.IMEI || '-'}
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-sm font-medium text-gray-700">
-                                                    {phone.IMEI || '-'}
-                                                </span>
+                                            <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                                                ฿{phone.sell_price?.toLocaleString() || '0'}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-sm font-semibold text-gray-900">
-                                                    ฿
-                                                    {phone.sell_price?.toLocaleString() ||
-                                                        '0'}
-                                                </span>
+                                            <td className="px-6 py-4 text-xs font-semibold">
+                                                {phone.status === 'Available' ? (
+                                                    <span className="text-green-600">Available</span>
+                                                ) : phone.status === 'oos' ? (
+                                                    <span className="text-orange-600">Out of Stock</span>
+                                                ) : (
+                                                    <span className="text-slate-400">Unknown</span>
+                                                )}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className={`inline-flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                                                        phone.status ===
-                                                        'Available'
-                                                            ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
-                                                            : phone.status ===
-                                                                'oos'
-                                                              ? 'bg-orange-100 text-orange-800 ring-1 ring-orange-200'
-                                                              : 'bg-red-100 text-red-800 ring-1 ring-red-200'
-                                                    }`}
-                                                >
-                                                    {phone.status ===
-                                                        'Available' && (
-                                                        <svg
-                                                            className="h-3.5 w-3.5"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M5 13l4 4L19 7"
-                                                            />
-                                                        </svg>
-                                                    )}
-                                                    {phone.status ===
-                                                    'Available'
-                                                        ? 'พร้อมขาย'
-                                                        : phone.status === 'oos'
-                                                          ? 'หมดสต็อก'
-                                                          : 'ไม่ระบุ'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-2">
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
                                                     <button
-                                                        onClick={() =>
-                                                            handleEdit(phone)
-                                                        }
-                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100"
+                                                        onClick={() => handleEdit(phone)}
+                                                        className="p-1 text-slate-400 transition-colors hover:text-blue-600"
                                                     >
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                            />
+                                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                         </svg>
-                                                        แก้ไข
                                                     </button>
-                                                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 transition-all duration-200 hover:bg-red-100">
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                            />
+                                                    <button 
+                                                        onClick={() => handleDelete(phone.prod_id)}
+                                                        className="p-1 text-slate-400 transition-colors hover:text-red-500"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
-                                                        ลบ
                                                     </button>
                                                 </div>
                                             </td>
@@ -494,9 +357,9 @@ export default function DashboardPage() {
                                     <tr>
                                         <td
                                             colSpan={6}
-                                            className="px-6 py-12 text-center text-gray-500"
+                                            className="px-6 py-12 text-center text-gray-500 font-medium"
                                         >
-                                            ไม่มีข้อมูลสินค้า
+                                            No products found
                                         </td>
                                     </tr>
                                 )}
@@ -505,87 +368,183 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Pagination Controls */}
-                    <div className="flex items-center justify-between border-t border-gray-200 bg-gradient-to-r from-gray-50 via-white to-gray-50 p-6 max-sm:flex-col">
-                        <div className="text-sm font-medium text-gray-600">
-                            <span className="text-gray-900">
-                                แสดงรายการที่ {(currentPage - 1) * pageSize + 1}
-                            </span>
-                            <span className="mx-2 text-gray-400">ถึง</span>
-                            <span className="text-gray-900">
-                                {Math.min(currentPage * pageSize, totalItems)}
-                            </span>
-                            <span className="mx-2 text-gray-400">
-                                จากทั้งหมด
-                            </span>
-                            <span className="text-gray-900">{totalItems}</span>
+                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/30 p-4 max-sm:flex-col gap-4">
+                        <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                            Showing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
                             <button
-                                onClick={() =>
-                                    setCurrentPage(Math.max(1, currentPage - 1))
-                                }
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:bg-white"
+                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
                             >
-                                ←
+                                PREV
                             </button>
 
-                            <div className="flex gap-1.5">
-                                {Array.from(
-                                    { length: totalPages },
-                                    (_, i) => i + 1
-                                ).map((page) => {
-                                    if (
-                                        totalPages <= 7 ||
-                                        page === 1 ||
-                                        page === totalPages ||
-                                        (page >= currentPage - 1 &&
-                                            page <= currentPage + 1)
-                                    ) {
+                            <div className="flex gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                    if (totalPages <= 5 || page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
                                         return (
                                             <button
                                                 key={page}
-                                                onClick={() =>
-                                                    setCurrentPage(page)
-                                                }
-                                                className={`rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`h-7 w-7 rounded text-xs font-bold transition-all ${
                                                     currentPage === page
-                                                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:from-blue-700 hover:to-blue-800 hover:shadow-lg'
-                                                        : 'border-2 border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-slate-400 hover:text-blue-600'
                                                 }`}
                                             >
                                                 {page}
                                             </button>
                                         )
-                                    } else if (
-                                        page === currentPage - 2 ||
-                                        page === currentPage + 2
-                                    ) {
-                                        return (
-                                            <span
-                                                key={page}
-                                                className="px-2 py-2 font-semibold text-gray-400"
-                                            >
-                                                ...
-                                            </span>
-                                        )
+                                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                                        return <span key={page} className="px-1 text-slate-300">...</span>
                                     }
                                     return null
                                 })}
                             </div>
 
                             <button
-                                onClick={() =>
-                                    setCurrentPage(
-                                        Math.min(totalPages, currentPage + 1)
-                                    )
-                                }
+                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:bg-white"
+                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
                             >
-                                →
+                                NEXT
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isModalOpen && selectedProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-slate-900">
+                                Edit Product Details
+                            </h2>
+                            <button
+                                onClick={handleCloseModal}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                            >
+                                <svg
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdate} className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        Product Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="prod_name"
+                                        value={formData.prod_name}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        Serial Number
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="serial_number"
+                                        value={formData.serial_number}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        IMEI
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="IMEI"
+                                        value={formData.IMEI}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        Sale Price (฿)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="sell_price"
+                                        value={formData.sell_price}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-bold"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        Status
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-semibold"
+                                    >
+                                        <option value="Available">Available</option>
+                                        <option value="oos">Out of Stock</option>
+                                        <option value="Sold">Sold</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                        Made In
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="made_in"
+                                        value={formData.made_in}
+                                        onChange={handleInputChange}
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseModal}
+                                    className="rounded-md px-4 py-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-md bg-blue-600 px-8 py-2 text-sm font-bold text-white shadow-lg shadow-blue-100 transition-all hover:bg-blue-700 hover:shadow-none active:scale-95"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
