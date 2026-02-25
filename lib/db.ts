@@ -1,4 +1,4 @@
-import mysql, { ResultSetHeader } from 'mysql2/promise'
+import mysql, { ResultSetHeader, Pool } from 'mysql2/promise'
 export type { ResultSetHeader }
 
 const requiredEnv = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'] as const
@@ -10,7 +10,7 @@ if (missing.length) {
     )
 }
 
-const pool = mysql.createPool({
+const dbConfig = {
     host: process.env.DB_HOST!,
     user: process.env.DB_USER!,
     password: process.env.DB_PASSWORD!,
@@ -20,10 +20,22 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
     ssl: {
         rejectUnauthorized: true,
     },
-})
+}
+
+const globalForMysql = globalThis as unknown as {
+    mysqlPool: Pool | undefined
+}
+
+const pool = globalForMysql.mysqlPool ?? mysql.createPool(dbConfig)
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForMysql.mysqlPool = pool
+}
 
 const checkLimitQuery = async (sql: string, params: QueryParams = []) => {
     if (/limit\s+\?/i.test(sql)) {
