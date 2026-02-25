@@ -9,11 +9,15 @@ export default function LoginPage() {
     const { showToast } = useToast()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const [usernameError, setUsernameError] = useState('')
+    const [passwordError, setPasswordError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
+        setUsernameError('')
+        setPasswordError('')
 
         try {
             const res = await fetch('/api/auth/login', {
@@ -27,6 +31,11 @@ export default function LoginPage() {
             const data = await res.json()
 
             if (!res.ok) {
+                if (data.message === 'ไม่พบชื่อผู้ใช้งานนี้ในระบบ') {
+                    setUsernameError(data.message)
+                } else if (data.message === 'รหัสผ่านไม่ถูกต้อง') {
+                    setPasswordError(data.message)
+                }
                 throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
             }
 
@@ -36,7 +45,10 @@ export default function LoginPage() {
             showToast('เข้าสู่ระบบสำเร็จ', 'success')
             router.push('/dashboard')
         } catch (error) {
-            showToast(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด', 'error')
+            showToast(
+                error instanceof Error ? error.message : 'เกิดข้อผิดพลาด',
+                'error'
+            )
         } finally {
             setIsLoading(false)
         }
@@ -65,11 +77,19 @@ export default function LoginPage() {
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                onChange={(e) => {
+                                    setUsername(e.target.value)
+                                    setUsernameError('')
+                                }}
                                 placeholder="กรอกชื่อผู้ใช้งานของคุณ"
                                 required
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className={`w-full rounded-lg border px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:outline-none ${usernameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                             />
+                            {usernameError && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    {usernameError}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -79,11 +99,19 @@ export default function LoginPage() {
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setPassword(e.target.value)
+                                    setPasswordError('')
+                                }}
                                 placeholder="กรอกรหัสผ่านของคุณ"
                                 required
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className={`w-full rounded-lg border px-3 py-2 text-black focus:border-transparent focus:ring-2 focus:outline-none ${passwordError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                             />
+                            {passwordError && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    {passwordError}
+                                </p>
+                            )}
                         </div>
 
                         <div className="flex items-center justify-between text-sm">
