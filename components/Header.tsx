@@ -7,9 +7,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
-
     const currentDate = useMemo(() => {
-        return new Intl.DateTimeFormat('en-US', {
+        return new Intl.DateTimeFormat('th-TH', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
@@ -42,7 +41,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                     <div>
                         <h1 className="text-xl font-bold text-gray-900 lg:text-3xl">
-                            Dashboard
+                            แดชบอร์ด
                         </h1>
                         <p className="mt-1 hidden items-center gap-2 text-sm text-gray-600 sm:flex">
                             <svg
@@ -58,13 +57,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                                 />
                             </svg>
-                            Inventory Management Overview
+                            ภาพรวมการจัดการสต็อก
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="mr-2 hidden text-right sm:block lg:mr-4">
-                        <p className="text-xs text-slate-500">Date</p>
+                        <p className="text-xs text-slate-500">วันที่</p>
                         <p className="text-sm font-medium text-gray-700">
                             {currentDate}
                         </p>

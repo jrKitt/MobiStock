@@ -46,7 +46,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
 
     const menuGroups = [
         {
-            title: 'Overview',
+            title: 'ภาพรวม',
             items: [
                 {
                     icon: (
@@ -64,13 +64,13 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Dashboard',
+                    label: 'แดชบอร์ด',
                     href: '/dashboard',
                 },
             ],
         },
         {
-            title: 'Inventory',
+            title: 'คลังสินค้า',
             items: [
                 // {
                 //     icon: (
@@ -107,7 +107,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Models',
+                    label: 'รุ่นสินค้า',
                     href: '/inventory/models',
                 },
                 {
@@ -126,7 +126,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Categories',
+                    label: 'หมวดหมู่',
                     href: '/base-tables/categories',
                 },
                 {
@@ -145,7 +145,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Stock',
+                    label: 'สต็อกสินค้า',
                     href: '/inventory/items',
                 },
                 {
@@ -170,13 +170,13 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Spare Parts',
+                    label: 'อะไหล่',
                     href: '/base-tables/spare-parts',
                 },
             ],
         },
         {
-            title: 'Management',
+            title: 'การจัดการ',
             items: [
                 {
                     icon: (
@@ -194,7 +194,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Brands',
+                    label: 'ยี่ห้อ',
                     href: '/base-tables/brands',
                 },
                 {
@@ -213,7 +213,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Suppliers',
+                    label: 'ซัพพลายเออร์',
                     href: '/base-tables/suppliers',
                 },
                 {
@@ -232,13 +232,13 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Customers',
+                    label: 'ลูกค้า',
                     href: '/base-tables/customers',
                 },
             ],
         },
         {
-            title: 'Transactions',
+            title: 'ธุรกรรม',
             items: [
                 {
                     icon: (
@@ -256,7 +256,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Purchase Orders',
+                    label: 'ใบสั่งซื้อ',
                     href: '/transactions/purchase-orders',
                 },
                 {
@@ -275,7 +275,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             />
                         </svg>
                     ),
-                    label: 'Sale Orders',
+                    label: 'ใบสั่งขาย',
                     href: '/transactions/sale-orders',
                 },
             ],
@@ -353,7 +353,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                                         MobiStock
                                     </h1>
                                     <p className="mt-0.5 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-                                        Inventory System
+                                        ระบบจัดการสต็อก
                                     </p>
                                 </div>
                             </div>
