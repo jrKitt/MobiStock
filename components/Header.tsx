@@ -1,12 +1,64 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 
 interface HeaderProps {
     onMenuClick?: () => void
 }
 
+const routeInfo: Record<string, { title: string; subtitle: string }> = {
+    '/dashboard': { title: 'แดชบอร์ด', subtitle: 'ภาพรวมการจัดการสต็อก' },
+    '/inventory/models': {
+        title: 'รุ่นสินค้า',
+        subtitle: 'จัดการข้อมูลรุ่นสินค้า',
+    },
+    '/inventory/items': {
+        title: 'สต็อกสินค้า',
+        subtitle: 'จัดการรายการสต็อกสินค้า',
+    },
+    '/base-tables/categories': {
+        title: 'หมวดหมู่',
+        subtitle: 'จัดการหมวดหมู่สินค้า',
+    },
+    '/base-tables/brands': {
+        title: 'ยี่ห้อ',
+        subtitle: 'จัดการข้อมูลยี่ห้อสินค้า',
+    },
+    '/base-tables/suppliers': {
+        title: 'ซัพพลายเออร์',
+        subtitle: 'จัดการข้อมูลซัพพลายเออร์',
+    },
+    '/base-tables/customers': {
+        title: 'ลูกค้า',
+        subtitle: 'จัดการข้อมูลลูกค้า',
+    },
+    '/base-tables/spare-parts': {
+        title: 'อะไหล่',
+        subtitle: 'จัดการข้อมูลอะไหล่',
+    },
+    '/transactions/sale-orders': {
+        title: 'ใบสั่งขาย',
+        subtitle: 'จัดการใบสั่งขายสินค้า',
+    },
+}
+
 export default function Header({ onMenuClick }: HeaderProps) {
+    const pathname = usePathname()
+
+    // Find the longest matching path prefix for dynamic routes
+    const currentRoute = useMemo(() => {
+        if (!pathname) return routeInfo['/dashboard']
+
+        const matchedKey = Object.keys(routeInfo)
+            .filter((key) => pathname.startsWith(key))
+            .sort((a, b) => b.length - a.length)[0]
+
+        return matchedKey
+            ? routeInfo[matchedKey]
+            : { title: 'ระบบจัดการสต็อก', subtitle: 'MobiStock' }
+    }, [pathname])
+
     const currentDate = useMemo(() => {
         return new Intl.DateTimeFormat('th-TH', {
             day: 'numeric',
@@ -41,7 +93,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                     <div>
                         <h1 className="text-xl font-bold text-gray-900 lg:text-3xl">
-                            แดชบอร์ด
+                            {currentRoute.title}
                         </h1>
                         <p className="mt-1 hidden items-center gap-2 text-sm text-gray-600 sm:flex">
                             <svg
@@ -57,7 +109,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                                 />
                             </svg>
-                            ภาพรวมการจัดการสต็อก
+                            {currentRoute.subtitle}
                         </p>
                     </div>
                 </div>
