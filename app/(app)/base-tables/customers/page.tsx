@@ -26,7 +26,7 @@ export default function CustomersPage() {
             const result = await response.json()
             setCustomers(result.data)
         } catch (err) {
-            showToast('Failed to load customers', 'error')
+            showToast('ไม่สามารถโหลดลูกค้า', 'error')
         } finally {
             setLoading(false)
         }
@@ -49,14 +49,14 @@ export default function CustomersPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this customer?')) return
+        if (!confirm('คุณแน่ใจหรือว่าต้องการลบลูกค้านี้?')) return
         try {
             const response = await fetch(`/api/customers/${id}`, { method: 'DELETE' })
             if (!response.ok) throw new Error('Failed to delete customer')
-            showToast('Customer deleted successfully', 'success')
+            showToast('ลูกค้าถูกลบสำเร็จ', 'success')
             fetchCustomers()
         } catch (err) {
-            showToast('Failed to delete customer', 'error')
+            showToast('ไม่สามารถลบลูกค้า', 'error')
         }
     }
 
@@ -72,7 +72,7 @@ export default function CustomersPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save customer')
-            showToast(`Customer ${selectedCustomer ? 'updated' : 'created'} successfully`, 'success')
+            showToast(`ลูกค้า${selectedCustomer ? 'อัพเดต' : 'สร้าง'}สำเร็จ`, 'success')
             setIsModalOpen(false)
             setSelectedCustomer(null)
             setFormData({
@@ -84,7 +84,7 @@ export default function CustomersPage() {
             })
             fetchCustomers()
         } catch (err) {
-            showToast('Failed to save customer', 'error')
+            showToast('ไม่สามารถบันทึกลูกค้า', 'error')
         }
     }
 
@@ -92,8 +92,7 @@ export default function CustomersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Customers</h1>
-                    <p className="text-sm text-slate-500">Manage your customer database and info</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">ลูกค้า</h1>
                 </div>
                 <button
                     onClick={() => {
@@ -109,7 +108,7 @@ export default function CustomersPage() {
                     }}
                     className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                 >
-                    Add Customer
+                    เพิ่มลูกค้า
                 </button>
             </div>
 
@@ -122,10 +121,10 @@ export default function CustomersPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Customer Name</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Tax ID / Phone</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Address</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">ชื่อลูกค้า</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">เลขประจำตัวผู้เสียภาษี / โทรศัพท์</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">ที่อยู่</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">การดำเนินการ</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -138,7 +137,7 @@ export default function CustomersPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm text-slate-900">{customer.customer_phone || '-'}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{customer.customer_tax_number || 'No Tax ID'}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{customer.customer_tax_number || 'ไม่มีเลขประจำตัวผู้เสียภาษี'}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm text-slate-600 truncate max-w-xs">{customer.customer_address || '-'}</div>
@@ -149,13 +148,13 @@ export default function CustomersPage() {
                                                 onClick={() => handleEdit(customer)}
                                                 className="text-slate-400 hover:text-blue-600 transition-colors"
                                             >
-                                                Edit
+                                                แก้ไข
                                             </button>
                                             <button
                                                 onClick={() => customer.customer_id && handleDelete(customer.customer_id)}
                                                 className="text-slate-400 hover:text-red-600 transition-colors"
                                             >
-                                                Delete
+                                                ลบ
                                             </button>
                                         </div>
                                     </td>
@@ -169,10 +168,10 @@ export default function CustomersPage() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
                     <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</h2>
+                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedCustomer ? 'แก้ไขลูกค้า' : 'เพิ่มลูกค้าใหม่'}</h2>
                         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">First Name</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">ชื่อจริง</label>
                                 <input
                                     type="text"
                                     required
@@ -182,7 +181,7 @@ export default function CustomersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Last Name</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">นามสกุล</label>
                                 <input
                                     type="text"
                                     value={formData.customer_lname}
@@ -191,7 +190,7 @@ export default function CustomersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">โทรศัพท์</label>
                                 <input
                                     type="text"
                                     value={formData.customer_phone}
@@ -200,7 +199,7 @@ export default function CustomersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tax Number</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">เลขประจำตัวผู้เสียภาษี</label>
                                 <input
                                     type="text"
                                     value={formData.customer_tax_number}
@@ -209,7 +208,7 @@ export default function CustomersPage() {
                                 />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Address</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">ที่อยู่</label>
                                 <textarea
                                     value={formData.customer_address}
                                     onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
@@ -223,13 +222,13 @@ export default function CustomersPage() {
                                     onClick={() => setIsModalOpen(false)}
                                     className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-blue-600"
                                 >
-                                    Cancel
+                                    ยกเลิก
                                 </button>
                                 <button
                                     type="submit"
                                     className="rounded-md bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                                 >
-                                    {selectedCustomer ? 'Update' : 'Create'}
+                                    {selectedCustomer ? 'อัพเดต' : 'สร้าง'}
                                 </button>
                             </div>
                         </form>
