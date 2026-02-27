@@ -1,651 +1,364 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { ProductRow } from '../../api/products/route'
+import {
+    FiBox,
+    FiShoppingCart,
+    FiAlertCircle,
+    FiTrendingUp,
+    FiPlus,
+    FiArrowRight,
+    FiDollarSign,
+    FiTag,
+} from 'react-icons/fi'
 import { useToast } from '@/components/ui/Toast'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 
-interface PhoneData extends ProductRow {
-    id: number
-    status: string
+interface DashboardStats {
+    totalProducts: number
+    availableProducts: number
+    totalSales: number
+    totalRevenue: number
+    lowStockCount: number
+    totalCategories: number
+    totalBrands: number
 }
 
-interface PaginationData {
-    data: ProductRow[]
-    pagination: {
-        page: number
-        pageSize: number
-        total: number
-        totalPages: number
-    }
+interface RecentSale {
+    sale_id: number
+    sale_code: string
+    sale_date: string
+    sale_total_amount: number
+    sale_status: string
+}
+
+interface Product {
+    prod_id: number
+    prod_name: string
+    status: string
+    sell_price: number
 }
 
 export default function DashboardPage() {
     const { showToast } = useToast()
-    const [phones, setPhones] = useState<PhoneData[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [currentPage, setCurrentPage] = useState(1)
-    const [pageSize, setPageSize] = useState(10)
-    const [totalPages, setTotalPages] = useState(1)
-    const [totalItems, setTotalItems] = useState(0)
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedProduct, setSelectedProduct] = useState<PhoneData | null>(
-        null
-    )
-    const [formData, setFormData] = useState({
-        prod_name: '',
-        serial_number: '',
-        IMEI: '',
-        sell_price: 0,
-        status: 'Available',
-        made_in: '',
+    const [stats, setStats] = useState<DashboardStats>({
+        totalProducts: 0,
+        availableProducts: 0,
+        totalSales: 0,
+        totalRevenue: 0,
+        lowStockCount: 0,
+        totalCategories: 0,
+        totalBrands: 0,
     })
+    const [recentSales, setRecentSales] = useState<RecentSale[]>([])
+    const [recentProducts, setRecentProducts] = useState<Product[]>([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchDashboardData = async () => {
             try {
                 setLoading(true)
-                const response = await fetch(
-                    `/api/products?page=${currentPage}&pageSize=${pageSize}`
-                )
-                if (!response.ok) throw new Error('Failed to fetch products')
+                // Fetch Products for stats
+                const prodRes = await fetch('/api/products?pageSize=1000')
+                const prodData = await prodRes.json()
+                const products = prodData.data || []
 
-                const data: PaginationData = await response.json()
-                const formattedPhones = (data.data as ProductRow[]).map(
-                    (product) => {
-                        let status = 'Available'
-                        if (product.status) {
-                            status = product.status
-                        }
+                // Fetch Sales
+                const saleRes = await fetch('/api/sale-orders?limit=5')
+                const saleData = await saleRes.json()
+                const sales = saleData.data || []
 
-                        return {
-                            ...product,
-                            id: product.prod_id,
-                            status,
-                            brand:
-                                product.prod_name?.split(' ')[0] || 'Unknown',
-                            model:
-                                product.prod_name
-                                    ?.split(' ')
-                                    .slice(1)
-                                    .join(' ') || '',
-                            color: product.made_in || 'N/A',
-                            storage: 'N/A',
-                            price: product.sell_price || 0,
-                            stock: 0,
-                        }
-                    }
+                // Fetch Categories/Brands
+                const [catRes, brandRes] = await Promise.all([
+                    fetch('/api/categories?limit=1'),
+                    fetch('/api/brands?limit=1'),
+                ])
+                const catData = await catRes.json()
+                const brandData = await brandRes.json()
+
+                const availableCount = products.filter(
+                    (p: any) => p.status === 'Available'
+                ).length
+                const totalRevenue = sales.reduce(
+                    (acc: number, s: any) => acc + (s.sale_total_amount || 0),
+                    0
                 )
 
-                setPhones(formattedPhones)
-                setTotalPages(data.pagination.totalPages)
-                setTotalItems(data.pagination.total)
+                setStats({
+                    totalProducts: prodData.pagination?.total || 0,
+                    availableProducts: availableCount,
+                    totalSales: saleData.pagination?.total || 0,
+                    totalRevenue: totalRevenue,
+                    lowStockCount: products.filter((p: any) => p.status === 'oos')
+                        .length,
+                    totalCategories: catData.pagination?.total || 0,
+                    totalBrands: brandData.pagination?.total || 0,
+                })
+
+                setRecentSales(sales)
+                setRecentProducts(products.slice(0, 5))
             } catch (err) {
-                const message =
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to load products'
-                setError(message)
-                showToast(message, 'error')
+                showToast('ไม่สามารถโหลดข้อมูล Dashboard ได้', 'error')
             } finally {
                 setLoading(false)
             }
         }
 
-        fetchProducts()
-    }, [currentPage, pageSize])
+        fetchDashboardData()
+    }, [])
 
-    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPageSize = parseInt(e.target.value, 10)
-        setPageSize(newPageSize)
-        setCurrentPage(1)
-    }
-
-    const handleEdit = (product: PhoneData) => {
-        setSelectedProduct(product)
-        setFormData({
-            prod_name: product.prod_name || '',
-            serial_number: product.serial_number || '',
-            IMEI: product.IMEI || '',
-            sell_price: product.sell_price || 0,
-            status: product.status || 'Available',
-            made_in: product.made_in || '',
-        })
-        setIsModalOpen(true)
-    }
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false)
-        setSelectedProduct(null)
-        setFormData({
-            prod_name: '',
-            serial_number: '',
-            IMEI: '',
-            sell_price: 0,
-            status: 'Available',
-            made_in: '',
-        })
-    }
-
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-        const { name, value } = e.target
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === 'sell_price' ? parseFloat(value) || 0 : value,
-        }))
-    }
-
-    const handleUpdate = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!selectedProduct) return
-
-        try {
-            const response = await fetch(
-                `/api/products/${selectedProduct.prod_id}`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData),
-                }
-            )
-
-            if (!response.ok)
-                throw new Error('เกิดข้อผิดพลาดในการอัปเดตข้อมูลสินค้า')
-            showToast('อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว', 'success')
-            handleCloseModal()
-
-            // Refresh data
-            const updatedResponse = await fetch(
-                `/api/products?page=${currentPage}&pageSize=${pageSize}`
-            )
-            if (updatedResponse.ok) {
-                const data: PaginationData = await updatedResponse.json()
-                const formattedPhones = (data.data as ProductRow[]).map(
-                    (product) => {
-                        let status = 'Available'
-                        if (product.status) {
-                            status = product.status
-                        }
-
-                        return {
-                            ...product,
-                            id: product.prod_id,
-                            status,
-                            brand:
-                                product.prod_name?.split(' ')[0] || 'Unknown',
-                            model:
-                                product.prod_name
-                                    ?.split(' ')
-                                    .slice(1)
-                                    .join(' ') || '',
-                            color: product.made_in || 'N/A',
-                            storage: 'N/A',
-                            price: product.sell_price || 0,
-                            stock: 0,
-                        }
-                    }
-                )
-                setPhones(formattedPhones)
-            }
-        } catch (err) {
-            const message =
-                err instanceof Error
-                    ? err.message
-                    : 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลสินค้า'
-            showToast(message, 'error')
-        }
-    }
-
-    const handleDelete = async (id: number) => {
-        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้?')) return
-        try {
-            const response = await fetch(`/api/products/${id}`, {
-                method: 'DELETE',
-            })
-            if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการลบสินค้า')
-            showToast('ลบสินค้าเรียบร้อยแล้ว', 'success')
-
-            // Refresh local state or re-fetch
-            setPhones(phones.filter((p) => p.prod_id !== id))
-            setTotalItems((prev) => prev - 1)
-        } catch (err) {
-            showToast('เกิดข้อผิดพลาดในการลบสินค้า', 'error')
-        }
+    if (loading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+                    <p className="text-slate-500">กำลังเตรียมข้อมูล Dashboard...</p>
+                </div>
+            </div>
+        )
     }
 
     return (
-        <>
-            {error && (
-                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                    Error: {error}
+        <div className="space-y-6 pb-10">
+            {/* Header section with Greeting */}
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">แผงควบคุมหลัก</h1>
+                    <p className="text-slate-500">ยินดีต้อนรับสู่ระบบจัดการคลังสินค้า Mobi Stock</p>
                 </div>
-            )}
+                <div className="flex gap-3">
+                    <Link
+                        href="/inventory/items"
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                        ดูสต็อกทั้งหมด
+                    </Link>
+                    <Link
+                        href="/transactions/sale-orders"
+                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200"
+                    >
+                        <FiPlus />
+                        สร้างรายการขาย
+                    </Link>
+                </div>
+            </div>
 
-            {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
-                    <div className="text-center">
-                        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
-                        <p className="text-sm text-slate-500">
-                            กำลังโหลดข้อมูลสินค้า...
-                        </p>
-                    </div>
-                </div>
-            ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-                    <div className="border-b border-slate-100 bg-white p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex w-full items-center gap-6 max-sm:flex-col">
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900">
-                                        คลังสินค้า
-                                    </h2>
-                                    <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                                        <span className="flex h-1.5 w-1.5 rounded-full bg-blue-600"></span>
-                                        <span>ทั้งหมด {totalItems} รายการ</span>
-                                        <span className="text-slate-300">
-                                            •
-                                        </span>
-                                        <span>
-                                            หน้า {currentPage} จาก {totalPages}
-                                        </span>
-                                    </p>
-                                </div>
-                                <div className="h-10 w-px bg-slate-100 max-sm:hidden"></div>
-                                <div className="flex items-center gap-3">
-                                    <label className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                                        แสดง
-                                    </label>
-                                    <select
-                                        value={pageSize}
-                                        onChange={handlePageSizeChange}
-                                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                    >
-                                        <option value={5}>
-                                            5 รายการต่อหน้า
-                                        </option>
-                                        <option value={10}>
-                                            10 รายการต่อหน้า
-                                        </option>
-                                        <option value={25}>
-                                            25 รายการต่อหน้า
-                                        </option>
-                                        <option value={50}>
-                                            50 รายการต่อหน้า
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="จำนวนสินค้าทั้งหมด"
+                    value={stats.totalProducts.toLocaleString()}
+                    icon={<FiBox className="h-6 w-6 text-blue-600" />}
+                    trend="+2.5% จากเดือนที่แล้ว"
+                    color="blue"
+                />
+                <StatCard
+                    title="สินค้าพร้อมจำหน่าย"
+                    value={stats.availableProducts.toLocaleString()}
+                    icon={<FiTrendingUp className="h-6 w-6 text-green-600" />}
+                    trend={`${Math.round((stats.availableProducts / stats.totalProducts) * 100)}% ของสต็อก`}
+                    color="green"
+                />
+                <StatCard
+                    title="คำสั่งซื้อทั้งหมด"
+                    value={stats.totalSales.toLocaleString()}
+                    icon={<FiShoppingCart className="h-6 w-6 text-purple-600" />}
+                    trend="5 รายการวันนี้"
+                    color="purple"
+                />
+                <StatCard
+                    title="สินค้าใกล้หมด"
+                    value={stats.lowStockCount.toLocaleString()}
+                    icon={<FiAlertCircle className="h-6 w-6 text-orange-600" />}
+                    trend="ต้องการการตรวจสอบ"
+                    color="orange"
+                    isAlert={stats.lowStockCount > 0}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Recent Sales Table */}
+                <div className="lg:col-span-2">
+                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                            <h3 className="font-bold text-slate-900">รายการขายล่าสุด</h3>
+                            <Link
+                                href="/transactions/sale-orders"
+                                className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                            >
+                                ดูทั้งหมด <FiArrowRight />
+                            </Link>
                         </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/50">
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        ข้อมูลสินค้า
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        Serial / IMEI
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        ราคา
-                                    </th>
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        สถานะ
-                                    </th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        การจัดการ
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {phones.length > 0 ? (
-                                    phones.map((phone) => (
-                                        <tr
-                                            key={phone.prod_id}
-                                            className="transition-colors hover:bg-gray-50"
-                                        >
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-100 text-slate-500">
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-slate-900">
-                                                            {phone.prod_name}
-                                                        </p>
-                                                        <p className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-                                                            {phone.made_in ||
-                                                                'N/A'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-xs font-medium text-slate-600">
-                                                    SN:{' '}
-                                                    {phone.serial_number || '-'}
-                                                </div>
-                                                <div className="mt-0.5 text-[10px] text-slate-400">
-                                                    IMEI: {phone.IMEI || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                                                ฿
-                                                {phone.sell_price?.toLocaleString() ||
-                                                    '0'}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs font-semibold">
-                                                {phone.status ===
-                                                'Available' ? (
-                                                    <span className="text-green-600">
-                                                        พร้อมขาย
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50/50">
+                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            รหัสคำสั่งซื้อ
+                                        </th>
+                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            วันที่
+                                        </th>
+                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            จำนวนเงิน
+                                        </th>
+                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            สถานะ
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {recentSales.length > 0 ? (
+                                        recentSales.map((sale) => (
+                                            <tr key={sale.sale_id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-5 py-4 text-sm font-medium text-slate-900">
+                                                    #{sale.sale_code}
+                                                </td>
+                                                <td className="px-5 py-4 text-sm text-slate-600">
+                                                    {new Date(sale.sale_date).toLocaleDateString('th-TH')}
+                                                </td>
+                                                <td className="px-5 py-4 text-sm font-bold text-slate-900">
+                                                    ฿{sale.sale_total_amount?.toLocaleString()}
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                                                        sale.sale_status === 'Paid' 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                        {sale.sale_status === 'Paid' ? 'ชำระแล้ว' : 'รอชำระ'}
                                                     </span>
-                                                ) : phone.status === 'oos' ? (
-                                                    <span className="text-orange-600">
-                                                        สินค้าหมด
-                                                    </span>
-                                                ) : phone.status === 'Sold' ? (
-                                                    <span className="text-gray-600">
-                                                        ขายแล้ว
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-400">
-                                                        ไม่ทราบสถานะ
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleEdit(phone)
-                                                        }
-                                                        className="p-1 text-slate-400 transition-colors hover:text-blue-600"
-                                                    >
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                            />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                phone.prod_id
-                                                            )
-                                                        }
-                                                        className="p-1 text-slate-400 transition-colors hover:text-red-500"
-                                                    >
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                            />
-                                                        </svg>
-                                                    </button>
-                                                </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={4} className="px-5 py-10 text-center text-slate-400">
+                                                ยังไม่มีรายการขาย
                                             </td>
                                         </tr>
-                                    ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Categories & Brands Overview */}
+                <div className="space-y-6">
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <h3 className="mb-4 font-bold text-slate-900">ภาพรวมสต็อก</h3>
+                        <div className="space-y-4">
+                            <OverviewItem 
+                                label="หมวดหมู่สินค้า" 
+                                count={stats.totalCategories} 
+                                icon={<FiTag className="text-blue-500" />}
+                                color="blue"
+                            />
+                            <OverviewItem 
+                                label="แบรนด์สินค้า" 
+                                count={stats.totalBrands} 
+                                icon={<FiBox className="text-purple-500" />}
+                                color="purple"
+                            />
+                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">การแจ้งเตือน</h4>
+                                {stats.lowStockCount > 0 ? (
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100 text-orange-800">
+                                        <FiAlertCircle className="shrink-0" />
+                                        <p className="text-xs font-medium">มีสินค้า {stats.lowStockCount} รายการที่ใกล้หมดสต็อก</p>
+                                    </div>
                                 ) : (
-                                    <tr>
-                                        <td
-                                            colSpan={6}
-                                            className="px-6 py-12 text-center font-medium text-gray-500"
-                                        >
-                                            ไม่พบข้อมูลสินค้า
-                                        </td>
-                                    </tr>
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100 text-green-800">
+                                        <FiTrendingUp className="shrink-0" />
+                                        <p className="text-xs font-medium">ระดับสต็อกสินค้าปกติ</p>
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination Controls */}
-                    <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/30 p-4 max-sm:flex-col">
-                        <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                            แสดง {(currentPage - 1) * pageSize + 1} -{' '}
-                            {Math.min(currentPage * pageSize, totalItems)} จาก{' '}
-                            {totalItems}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() =>
-                                    setCurrentPage(Math.max(1, currentPage - 1))
-                                }
-                                disabled={currentPage === 1}
-                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
-                            >
-                                ก่อนหน้า
-                            </button>
-
-                            <div className="flex gap-1">
-                                {Array.from(
-                                    { length: totalPages },
-                                    (_, i) => i + 1
-                                ).map((page) => {
-                                    if (
-                                        totalPages <= 5 ||
-                                        page === 1 ||
-                                        page === totalPages ||
-                                        (page >= currentPage - 1 &&
-                                            page <= currentPage + 1)
-                                    ) {
-                                        return (
-                                            <button
-                                                key={page}
-                                                onClick={() =>
-                                                    setCurrentPage(page)
-                                                }
-                                                className={`h-7 w-7 rounded text-xs font-bold transition-all ${
-                                                    currentPage === page
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-slate-400 hover:text-blue-600'
-                                                }`}
-                                            >
-                                                {page}
-                                            </button>
-                                        )
-                                    } else if (
-                                        page === currentPage - 2 ||
-                                        page === currentPage + 2
-                                    ) {
-                                        return (
-                                            <span
-                                                key={page}
-                                                className="px-1 text-slate-300"
-                                            >
-                                                ...
-                                            </span>
-                                        )
-                                    }
-                                    return null
-                                })}
                             </div>
-
-                            <button
-                                onClick={() =>
-                                    setCurrentPage(
-                                        Math.min(totalPages, currentPage + 1)
-                                    )
-                                }
-                                disabled={currentPage === totalPages}
-                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
-                            >
-                                ถัดไป
-                            </button>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {isModalOpen && selectedProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <div className="mb-6 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900">
-                                แก้ไขข้อมูลสินค้า
-                            </h2>
-                            <button
-                                onClick={handleCloseModal}
-                                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
-                            >
-                                <svg
-                                    className="h-5 w-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleUpdate} className="space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2">
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        ชื่อสินค้า
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="prod_name"
-                                        value={formData.prod_name}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-medium transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        หมายเลขซีเรียล
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="serial_number"
-                                        value={formData.serial_number}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-medium transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        IMEI
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="IMEI"
-                                        value={formData.IMEI}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-medium transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        ราคาขาย (฿)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="sell_price"
-                                        value={formData.sell_price}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-bold transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        สถานะ
-                                    </label>
-                                    <select
-                                        name="status"
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    >
-                                        <option value="Available">
-                                            พร้อมขาย
-                                        </option>
-                                        <option value="oos">สินค้าหมด</option>
-                                        <option value="Sold">ขายแล้ว</option>
-                                    </select>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        สถานที่ผลิต
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="made_in"
-                                        value={formData.made_in}
-                                        onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-medium transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="rounded-md px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-600"
-                                >
-                                    ยกเลิก
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="rounded-md bg-blue-600 px-8 py-2 text-sm font-bold text-white shadow-lg shadow-blue-100 transition-all hover:bg-blue-700 hover:shadow-none active:scale-95"
-                                >
-                                    บันทึกข้อมูล
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+            {/* Recent Products Grid */}
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                    <h3 className="font-bold text-slate-900">สินค้าเข้าใหม่</h3>
+                    <Link
+                        href="/inventory/items"
+                        className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                    >
+                        จัดการสต็อก <FiArrowRight />
+                    </Link>
                 </div>
-            )}
-        </>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 divide-x divide-slate-100">
+                    {recentProducts.map((product) => (
+                        <div key={product.prod_id} className="p-5 hover:bg-slate-50 transition-colors">
+                            <div className="mb-2 h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                                <FiBox />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-900 truncate">{product.prod_name}</h4>
+                            <p className="text-xs text-slate-500 mb-2">ID: {product.prod_id}</p>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-blue-600">฿{product.sell_price?.toLocaleString()}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                    product.status === 'Available' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                    {product.status === 'Available' ? 'พร้อม' : product.status}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function StatCard({ title, value, icon, trend, color, isAlert }: any) {
+    const colorClasses: any = {
+        blue: 'border-blue-100 bg-blue-50/30',
+        green: 'border-green-100 bg-green-50/30',
+        purple: 'border-purple-100 bg-purple-50/30',
+        orange: 'border-orange-100 bg-orange-50/30',
+    }
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-xl border p-5 shadow-sm transition-all hover:shadow-md ${colorClasses[color]} ${isAlert ? 'ring-2 ring-orange-500 ring-offset-2' : ''}`}
+        >
+            <div className="mb-4 flex items-center justify-between">
+                <div className="rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-slate-100">
+                    {icon}
+                </div>
+                {isAlert && (
+                    <span className="flex h-2 w-2 rounded-full bg-orange-600 animate-ping"></span>
+                )}
+            </div>
+            <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{title}</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-900">{value}</h2>
+                <p className={`mt-2 text-xs font-medium ${isAlert ? 'text-orange-600' : 'text-slate-400'}`}>
+                    {trend}
+                </p>
+            </div>
+        </motion.div>
+    )
+}
+
+function OverviewItem({ label, count, icon, color }: any) {
+    return (
+        <div className="flex items-center justify-between group cursor-pointer">
+            <div className="flex items-center gap-3">
+                <div className="h-8 w-8 flex items-center justify-center rounded bg-slate-50 text-slate-600 group-hover:bg-white group-hover:shadow-sm transition-all">
+                    {icon}
+                </div>
+                <span className="text-sm font-medium text-slate-600">{label}</span>
+            </div>
+            <span className="text-sm font-bold text-slate-900">{count}</span>
+        </div>
     )
 }
