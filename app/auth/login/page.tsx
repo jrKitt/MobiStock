@@ -1,8 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import { FaGithub } from 'react-icons/fa'
+
+interface Developer {
+    name: string
+    github: string
+}
+
+interface AppConfig {
+    app: {
+        name: string
+        version: string
+        description: string
+    }
+    developers: Developer[]
+    lastUpdated: string
+}
 
 export default function LoginPage() {
     const router = useRouter()
@@ -12,6 +28,15 @@ export default function LoginPage() {
     const [usernameError, setUsernameError] = useState('')
     const [passwordError, setPasswordError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [config, setConfig] = useState<AppConfig | null>(null)
+
+    useEffect(() => {
+        // Load config.json
+        fetch('/config.json')
+            .then(res => res.json())
+            .then(data => setConfig(data))
+            .catch(err => console.error('Failed to load config:', err))
+    }, [])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -149,6 +174,35 @@ export default function LoginPage() {
                         </a>
                     </div>
                 </div>
+
+                {/* Footer with Build Info */}
+                {config && (
+                    <div className="mt-8 text-center">
+                        <div className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs text-gray-500 shadow-sm border border-gray-200">
+                            <span className="flex items-center gap-1.5">
+                                Built by
+                                {config.developers.map((dev, index) => (
+                                    <span key={dev.name} className="inline-flex items-center">
+                                        {index > 0 && <span className="mx-1">·</span>}
+                                        <a
+                                            href={dev.github}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                                        >
+                                            <FaGithub className="h-3 w-3" />
+                                            {dev.name}
+                                        </a>
+                                    </span>
+                                ))}
+                            </span>
+                            <span className="text-gray-300">|</span>
+                            <span>
+                                Last updated: {config.lastUpdated}
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

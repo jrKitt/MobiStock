@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "MobiStock",
+    "version": "1.0.0",
+    "description": "ระบบจัดการสต็อกร้านโทรศัพท์"
+  },
+  "developers": [
+    {
+      "name": "BB",
+      "github": "https://github.com/B-bsw"
+    },
+    {
+      "name": "jrKitt",
+      "github": "https://github.com/jrKitt"
+    },
+    {
+      "name": "AekkarinDEV",
+      "github": "https://github.com/AekkarinDEV"
+    }
+  ],
+  "lastUpdated": "2026-02-27 21:39"
+}
