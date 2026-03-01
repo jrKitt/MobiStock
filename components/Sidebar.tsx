@@ -33,6 +33,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const [storeName, setStoreName] = useState('MobiStock')
     const menuRef = useRef<HTMLDivElement>(null)
     const pathname = usePathname()
     const router = useRouter()
@@ -51,6 +52,22 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside)
         }
+    }, [])
+
+    useEffect(() => {
+        const fetchStoreConfig = async () => {
+            try {
+                const res = await fetch('/api/config', { cache: 'no-store' })
+                if (!res.ok) return
+                const data = await res.json()
+                const name = data?.data?.storeName
+                if (typeof name === 'string' && name.trim()) {
+                    setStoreName(name)
+                }
+            } catch {}
+        }
+
+        fetchStoreConfig()
     }, [])
 
     const handleLogout = async () => {
@@ -162,6 +179,16 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                 },
             ],
         },
+        {
+            title: 'ระบบ',
+            items: [
+                {
+                    icon: <HiCog6Tooth className="h-4 w-4" />,
+                    label: 'ตั้งค่า',
+                    href: '/settings',
+                },
+            ],
+        },
         // {
         //     title: 'System',
         //     items: [
@@ -232,7 +259,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                             <div className="flex items-center gap-3">
                                 <div>
                                     <h1 className="text-lg font-bold tracking-tight text-slate-900">
-                                        MobiStock
+                                        {storeName}
                                     </h1>
                                     <p className="mt-0.5 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
                                         ระบบจัดการสต็อก

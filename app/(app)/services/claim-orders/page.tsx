@@ -7,6 +7,7 @@ import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
 
 export default function ClaimOrdersPage() {
     const { showToast } = useToast()
+    const [storeName, setStoreName] = useState('MobiStock')
     const [claims, setClaims] = useState<ClaimOrder[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -69,6 +70,22 @@ export default function ClaimOrdersPage() {
     useEffect(() => {
         fetchData()
     }, [fetchData])
+
+    useEffect(() => {
+        const fetchStoreConfig = async () => {
+            try {
+                const res = await fetch('/api/config', { cache: 'no-store' })
+                if (!res.ok) return
+                const data = await res.json()
+                const name = data?.data?.storeName
+                if (typeof name === 'string' && name.trim()) {
+                    setStoreName(name)
+                }
+            } catch {}
+        }
+
+        fetchStoreConfig()
+    }, [])
 
     const handleEdit = (claim: ClaimOrder) => {
         setSelectedClaim(claim)
@@ -570,7 +587,7 @@ export default function ClaimOrdersPage() {
 
                             <div className="mb-8 border-b-2 border-slate-200 pb-8">
                                 <h2 className="text-2xl font-bold text-slate-900">
-                                    MobiStock
+                                    {storeName}
                                 </h2>
                                 <p className="text-sm text-slate-600">
                                     ระบบจัดการสต็อก - ใบรับเคลมสินค้า

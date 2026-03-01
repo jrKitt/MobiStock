@@ -41,6 +41,10 @@ const routeInfo: Record<string, { title: string; subtitle: string }> = {
         title: 'ใบสั่งขาย',
         subtitle: 'จัดการใบสั่งขายสินค้า',
     },
+    '/settings': {
+        title: 'ตั้งค่า',
+        subtitle: 'จัดการค่าพื้นฐานของร้าน',
+    },
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {

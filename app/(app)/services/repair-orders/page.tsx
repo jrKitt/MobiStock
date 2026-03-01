@@ -13,6 +13,7 @@ import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
 
 export default function RepairOrdersPage() {
     const { showToast } = useToast()
+    const [storeName, setStoreName] = useState('MobiStock')
     const [repairs, setRepairs] = useState<
         (RepairOrder & { parts?: RepairOrderPart[] })[]
     >([])
@@ -101,6 +102,22 @@ export default function RepairOrdersPage() {
 
     useEffect(() => {
         fetchData()
+    }, [])
+
+    useEffect(() => {
+        const fetchStoreConfig = async () => {
+            try {
+                const res = await fetch('/api/config', { cache: 'no-store' })
+                if (!res.ok) return
+                const data = await res.json()
+                const name = data?.data?.storeName
+                if (typeof name === 'string' && name.trim()) {
+                    setStoreName(name)
+                }
+            } catch {}
+        }
+
+        fetchStoreConfig()
     }, [])
 
     const handleEdit = (repair: RepairOrder) => {
@@ -880,7 +897,7 @@ export default function RepairOrdersPage() {
 
                             <div className="mb-8 border-b-2 border-slate-200 pb-8">
                                 <h2 className="text-2xl font-bold text-slate-900">
-                                    MobiStock
+                                    {storeName}
                                 </h2>
                                 <p className="text-sm text-slate-600">
                                     ระบบจัดเก็บสินค้า - ใบซ่อม
