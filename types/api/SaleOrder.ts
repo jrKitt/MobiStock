@@ -3,7 +3,7 @@ export interface SaleOrder {
     sale_code: string
     sale_date: Date
     sale_total_amount: number
-    sale_status: string
+    sale_status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled'
     customer_id: number
     create_at?: Date
     update_at?: Date

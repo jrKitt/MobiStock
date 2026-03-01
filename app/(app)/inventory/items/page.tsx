@@ -4,16 +4,6 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ProductItem, ProductModel, Brand, Category } from '@/types/api'
 
-interface PaginationData {
-    data: ProductItem[]
-    pagination: {
-        page: number
-        limit: number
-        total: number
-        totalPages: number
-    }
-}
-
 export default function ProductItemsPage() {
     const { showToast } = useToast()
     const [items, setItems] = useState<ProductItem[]>([])
@@ -222,7 +212,7 @@ export default function ProductItemsPage() {
 
             // Refresh data
             fetchData(currentPage, pageSize)
-        } catch (err) {
+        } catch {
             showToast('ไม่สามารถอัปเดตรายการได้', 'error')
         }
     }
@@ -246,7 +236,7 @@ export default function ProductItemsPage() {
             // Refresh data
             setCurrentPage(1)
             fetchData(1, pageSize)
-        } catch (err) {
+        } catch {
             showToast('ไม่สามารถสร้างรายการได้', 'error')
         }
     }
@@ -270,7 +260,7 @@ export default function ProductItemsPage() {
 
             setItems(items.filter((i) => i.item_id !== id))
             setTotalItems((prev) => prev - 1)
-        } catch (err) {
+        } catch {
             showToast('ไม่สามารถลบรายการได้', 'error')
         }
     }
@@ -461,6 +451,26 @@ export default function ProductItemsPage() {
                                             จองแล้ว
                                         </option>
                                     </select>
+                                    {(search !== '' ||
+                                        filterBrandId !== 0 ||
+                                        filterCategoryId !== 0 ||
+                                        filterModelId !== 0 ||
+                                        filterStatus !== 'All') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearch('')
+                                                setFilterBrandId(0)
+                                                setFilterCategoryId(0)
+                                                setFilterModelId(0)
+                                                setFilterStatus('All')
+                                                setCurrentPage(1)
+                                            }}
+                                            className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 outline-hidden transition-colors hover:bg-rose-100 hover:text-rose-700"
+                                        >
+                                            ล้างตัวกรอง
+                                        </button>
+                                    )}
                                 </form>
 
                                 <div className="h-10 w-px bg-slate-100 max-sm:hidden"></div>
