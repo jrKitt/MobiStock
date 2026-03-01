@@ -64,9 +64,6 @@ export default function LoginPage() {
                 throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
             }
 
-            // In a real app, you might store the user data/token here
-            // localStorage.setItem('user', JSON.stringify(data.user))
-
             showToast('เข้าสู่ระบบสำเร็จ', 'success')
             router.push('/dashboard')
         } catch (error) {
@@ -80,7 +77,17 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <div 
+            className="flex min-h-screen items-center justify-center px-4"
+            style={{
+                backgroundImage: `
+                  linear-gradient(0deg, transparent 24%, rgba(100, 150, 255, 0.08) 25%, rgba(100, 150, 255, 0.08) 26%, transparent 27%, transparent 74%, rgba(100, 150, 255, 0.08) 75%, rgba(100, 150, 255, 0.08) 76%, transparent 77%, transparent),
+                  linear-gradient(90deg, transparent 24%, rgba(100, 150, 255, 0.08) 25%, rgba(100, 150, 255, 0.08) 26%, transparent 27%, transparent 74%, rgba(100, 150, 255, 0.08) 75%, rgba(100, 150, 255, 0.08) 76%, transparent 77%, transparent)
+                `,
+                backgroundSize: '40px 40px',
+                backgroundColor: '#ffffff'
+            }}
+        >
             <div className="w-full max-w-md">
                 <div className="mb-8 text-center">
                     <h1 className="mb-2 text-3xl font-semibold text-gray-800">
@@ -89,7 +96,7 @@ export default function LoginPage() {
                     <p className="text-gray-600">ระบบจัดการสต็อกร้านโทรศัพท์</p>
                 </div>
 
-                <div className="bg-bg rounded-xl border border-gray-200 p-8">
+                <div className="bg-white rounded-xl border border-gray-200 p-8">
                     <h2 className="mb-6 text-xl font-semibold text-gray-800">
                         เข้าสู่ระบบ
                     </h2>
@@ -178,7 +185,7 @@ export default function LoginPage() {
                 {/* Footer with Build Info */}
                 {config && (
                     <div className="mt-8 text-center">
-                        <div className="bg-bg inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-xs text-gray-500 shadow-sm">
+                        <div className="bg-white inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-xs text-gray-500 shadow-sm">
                             <span className="flex items-center gap-1.5">
                                 Built by
                                 {config.developers.map((dev, index) => (
