@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { ProductItem, ProductModel } from '@/types/api'
+import { ProductItem, ProductModel, Brand, Category } from '@/types/api'
 
 interface PaginationData {
     data: ProductItem[]
@@ -18,6 +18,8 @@ export default function ProductItemsPage() {
     const { showToast } = useToast()
     const [items, setItems] = useState<ProductItem[]>([])
     const [models, setModels] = useState<ProductModel[]>([])
+    const [brands, setBrands] = useState<Brand[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null)
@@ -25,6 +27,14 @@ export default function ProductItemsPage() {
     const [pageSize, setPageSize] = useState(10)
     const [totalPages, setTotalPages] = useState(1)
     const [totalItems, setTotalItems] = useState(0)
+
+    // Filters state
+    const [search, setSearch] = useState('')
+    const [filterBrandId, setFilterBrandId] = useState(0)
+    const [filterCategoryId, setFilterCategoryId] = useState(0)
+    const [filterModelId, setFilterModelId] = useState(0)
+    const [filterStatus, setFilterStatus] = useState('All')
+
     const [formData, setFormData] = useState({
         item_serial_number: '',
         item_imei: '',
@@ -33,27 +43,68 @@ export default function ProductItemsPage() {
         model_id: 0,
     })
 
-    const fetchData = async (page: number = 1, limit: number = 10) => {
+    const fetchData = async (
+        page: number = 1,
+        limit: number = 10,
+        tempSearch: string = search,
+        tempBrandId: number = filterBrandId,
+        tempCategoryId: number = filterCategoryId,
+        tempModelId: number = filterModelId,
+        tempStatus: string = filterStatus
+    ) => {
         try {
             setLoading(true)
-            const [itemsRes, modelsRes] = await Promise.all([
-                fetch(`/api/product-items?page=${page}&limit=${limit}`),
-                fetch('/api/product-models?page=1&limit=100'),
-            ])
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString(),
+            })
 
-            if (!itemsRes.ok || !modelsRes.ok)
+            if (tempSearch) queryParams.append('search', tempSearch)
+            if (tempBrandId > 0)
+                queryParams.append('brand_id', tempBrandId.toString())
+            if (tempCategoryId > 0)
+                queryParams.append('category_id', tempCategoryId.toString())
+            if (tempModelId > 0)
+                queryParams.append('model_id', tempModelId.toString())
+            if (tempStatus !== 'All') queryParams.append('status', tempStatus)
+
+            const modelsQueryStr =
+                tempBrandId > 0
+                    ? `?brand_id=${tempBrandId}&page=1&limit=100`
+                    : '?page=1&limit=100'
+
+            const [itemsRes, modelsRes, brandsRes, categoriesRes] =
+                await Promise.all([
+                    fetch(`/api/product-items?${queryParams.toString()}`),
+                    fetch(`/api/product-models${modelsQueryStr}`),
+                    fetch('/api/brands?page=1&limit=100'),
+                    fetch('/api/categories?page=1&limit=100'),
+                ])
+
+            if (
+                !itemsRes.ok ||
+                !modelsRes.ok ||
+                !brandsRes.ok ||
+                !categoriesRes.ok
+            )
                 throw new Error('Failed to fetch data')
 
-            const [itemsData, modelsData] = await Promise.all([
-                itemsRes.json(),
-                modelsRes.json(),
-            ])
+            const [itemsData, modelsData, brandsData, categoriesData] =
+                await Promise.all([
+                    itemsRes.json(),
+                    modelsRes.json(),
+                    brandsRes.json(),
+                    categoriesRes.json(),
+                ])
 
             setItems(itemsData.data)
             setModels(modelsData.data)
+            setBrands(brandsData.data)
+            setCategories(categoriesData.data)
             setTotalPages(itemsData.pagination?.totalPages || 1)
             setTotalItems(itemsData.pagination?.total || 0)
         } catch (err) {
+            console.error(err)
             showToast('ไม่สามารถโหลดข้อมูลสินค้าได้', 'error')
         } finally {
             setLoading(false)
@@ -61,8 +112,53 @@ export default function ProductItemsPage() {
     }
 
     useEffect(() => {
-        fetchData(currentPage, pageSize)
-    }, [currentPage, pageSize])
+        fetchData(
+            currentPage,
+            pageSize,
+            search,
+            filterBrandId,
+            filterCategoryId,
+            filterModelId,
+            filterStatus
+        )
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        currentPage,
+        pageSize,
+        filterBrandId,
+        filterCategoryId,
+        filterModelId,
+        filterStatus,
+    ])
+
+    // Searching is triggered onSubmit or wait for typing
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        setCurrentPage(1)
+        fetchData(
+            1,
+            pageSize,
+            search,
+            filterBrandId,
+            filterCategoryId,
+            filterModelId,
+            filterStatus
+        )
+    }
+
+    const handleClearSearch = () => {
+        setSearch('')
+        setCurrentPage(1)
+        fetchData(
+            1,
+            pageSize,
+            '',
+            filterBrandId,
+            filterCategoryId,
+            filterModelId,
+            filterStatus
+        )
+    }
 
     const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPageSize = parseInt(e.target.value, 10)
@@ -234,6 +330,139 @@ export default function ProductItemsPage() {
                                         </span>
                                     </p>
                                 </div>
+
+                                {/* Filters */}
+                                <form
+                                    onSubmit={handleSearchSubmit}
+                                    className="flex flex-1 items-center gap-3"
+                                >
+                                    <div className="relative max-w-sm flex-1">
+                                        <svg
+                                            className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                            />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            placeholder="ค้นหา (SN, IMEI)..."
+                                            value={search}
+                                            onChange={(e) =>
+                                                setSearch(e.target.value)
+                                            }
+                                            className="w-full rounded-md border border-slate-200 py-1.5 pr-8 pl-9 text-sm outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                        />
+                                        {search && (
+                                            <button
+                                                type="button"
+                                                onClick={handleClearSearch}
+                                                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                            >
+                                                <svg
+                                                    className="h-4 w-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M6 18L18 6M6 6l12 12"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <select
+                                        value={filterCategoryId}
+                                        onChange={(e) => {
+                                            setFilterCategoryId(
+                                                parseInt(e.target.value)
+                                            )
+                                            setCurrentPage(1)
+                                        }}
+                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                    >
+                                        <option value={0}>ทุกหมวดหมู่</option>
+                                        {categories.map((cat) => (
+                                            <option
+                                                key={cat.category_id}
+                                                value={cat.category_id}
+                                            >
+                                                {cat.category_name_th}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={filterBrandId}
+                                        onChange={(e) => {
+                                            setFilterBrandId(
+                                                parseInt(e.target.value)
+                                            )
+                                            setFilterModelId(0)
+                                            setCurrentPage(1)
+                                        }}
+                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                    >
+                                        <option value={0}>ทุกยี่ห้อ</option>
+                                        {brands.map((brand) => (
+                                            <option
+                                                key={brand.brand_id}
+                                                value={brand.brand_id}
+                                            >
+                                                {brand.brand_name}
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <select
+                                        value={filterModelId}
+                                        onChange={(e) => {
+                                            setFilterModelId(
+                                                parseInt(e.target.value)
+                                            )
+                                            setCurrentPage(1)
+                                        }}
+                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                    >
+                                        <option value={0}>ทุกรุ่น</option>
+                                        {models.map((model) => (
+                                            <option
+                                                key={model.model_id}
+                                                value={model.model_id}
+                                            >
+                                                {model.model_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={filterStatus}
+                                        onChange={(e) => {
+                                            setFilterStatus(e.target.value)
+                                            setCurrentPage(1)
+                                        }}
+                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                    >
+                                        <option value="All">ทุกสถานะ</option>
+                                        <option value="Available">
+                                            พร้อมใช้
+                                        </option>
+                                        <option value="Sold">ขายแล้ว</option>
+                                        <option value="Damaged">เสียหาย</option>
+                                        <option value="Reserved">
+                                            จองแล้ว
+                                        </option>
+                                    </select>
+                                </form>
+
                                 <div className="h-10 w-px bg-slate-100 max-sm:hidden"></div>
                                 <div className="flex items-center gap-3">
                                     <label className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
@@ -289,21 +518,29 @@ export default function ProductItemsPage() {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-100 text-slate-500">
-                                                        <svg
-                                                            className="h-4 w-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                            />
-                                                        </svg>
-                                                    </div>
+                                                    {models.find(
+                                                        (m) =>
+                                                            m.model_id ===
+                                                            item.model_id
+                                                    )?.image_url ? (
+                                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                                        <img
+                                                            src={
+                                                                models.find(
+                                                                    (m) =>
+                                                                        m.model_id ===
+                                                                        item.model_id
+                                                                )
+                                                                    ?.image_url as string
+                                                            }
+                                                            alt="Model"
+                                                            className="h-10 w-10 shrink-0 rounded-md border border-slate-200 bg-white object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-400">
+                                                            N/A
+                                                        </div>
+                                                    )}
                                                     <div>
                                                         <div className="text-sm font-semibold text-slate-900">
                                                             {models.find(
@@ -501,8 +738,9 @@ export default function ProductItemsPage() {
                                     : 'สร้างรายการใหม่'}
                             </h2>
                             <button
+                                type="button"
                                 onClick={handleCloseModal}
-                                className="hover:bg-slate-50rounded-full p-1 text-slate-400 transition-colors hover:text-blue-600"
+                                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
                             >
                                 <svg
                                     className="h-5 w-5"

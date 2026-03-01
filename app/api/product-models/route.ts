@@ -9,17 +9,28 @@ export async function GET(req: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
+        const brandId = searchParams.get('brand_id')
 
+        let whereClause = ''
+        const queryParams: (string | number)[] = []
+
+        if (brandId && parseInt(brandId) > 0) {
+            whereClause = 'WHERE brand_id = ?'
+            queryParams.push(brandId)
+        }
+
+        const countQuery = `SELECT COUNT(*) as total FROM PRODUCT_MODEL ${whereClause}`
         const countResult = await query<{ total: number }[]>(
-            'SELECT COUNT(*) as total FROM PRODUCT_MODEL'
+            countQuery,
+            queryParams
         )
         const total = countResult[0].total
         const totalPages = Math.ceil(total / limit)
 
-        const rows = (await query(
-            'SELECT * FROM PRODUCT_MODEL ORDER BY model_id DESC LIMIT ? OFFSET ?',
-            [limit, offset]
-        )) as ProductModel[]
+        const itemsQuery = `SELECT * FROM PRODUCT_MODEL ${whereClause} ORDER BY model_id DESC LIMIT ? OFFSET ?`
+        const itemsParams = [...queryParams, limit, offset]
+
+        const rows = (await query(itemsQuery, itemsParams)) as ProductModel[]
 
         return successResponse(rows, 'Success', 200, {
             page,

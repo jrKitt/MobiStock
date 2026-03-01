@@ -8,32 +8,7 @@ import { dirname } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-async function addColumnIfNotExists(
-    connection,
-    tableName,
-    columnName,
-    columnDefinition
-) {
-    const [rows] = await connection.query(
-        `
-        SELECT COUNT(*) as count 
-        FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = ? 
-        AND COLUMN_NAME = ?
-    `,
-        [tableName, columnName]
-    )
-
-    if (rows[0].count === 0) {
-        console.log(`Adding column ${columnName} to ${tableName}...`)
-        await connection.query(
-            `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`
-        )
-    } else {
-        console.log(`Column ${columnName} already exists in ${tableName}.`)
-    }
-}
+// addColumnIfNotExists removed as we drop tables now
 
 async function runMigration() {
     console.log('Starting migration...')
@@ -51,37 +26,34 @@ async function runMigration() {
     })
 
     try {
+        console.log('Dropping tables (except User)...')
+        const tablesToDrop = [
+            'CLAIM_ORDER',
+            'REPAIR_ORDER_PART',
+            'REPAIR_ORDER',
+            'SUPPLIER_SPARE_PART',
+            'SPARE_PART',
+            'SALE_ORDER_ITEM',
+            'SALE_ORDER',
+            'PRODUCT_ITEM',
+            'PRODUCT_MODEL',
+            'CUSTOMER',
+            'SUPPLIER',
+            'CATEGORY',
+            'BRAND',
+        ]
+
+        await connection.query('SET FOREIGN_KEY_CHECKS = 0')
+        for (const table of tablesToDrop) {
+            await connection.query(`DROP TABLE IF EXISTS ${table}`)
+        }
+        await connection.query('SET FOREIGN_KEY_CHECKS = 1')
+
         const schemaPath = path.join(__dirname, '../database/schema.sql')
         const schemaSql = fs.readFileSync(schemaPath, 'utf8')
 
         console.log('Executing schema.sql...')
         await connection.query(schemaSql)
-
-        console.log('Ensuring all image_url columns exist...')
-        await addColumnIfNotExists(
-            connection,
-            'BRAND',
-            'image_url',
-            'VARCHAR(255) NULL'
-        )
-        await addColumnIfNotExists(
-            connection,
-            'PRODUCT_MODEL',
-            'image_url',
-            'VARCHAR(255) NULL'
-        )
-        await addColumnIfNotExists(
-            connection,
-            'SPARE_PART',
-            'image_url',
-            'VARCHAR(255) NULL'
-        )
-        await addColumnIfNotExists(
-            connection,
-            'SUPPLIER',
-            'image_url',
-            'VARCHAR(255) NULL'
-        )
 
         console.log('Migration completed successfully.')
     } catch (error) {
