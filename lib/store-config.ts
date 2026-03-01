@@ -10,7 +10,11 @@ const defaultStoreConfig: StoreConfig = {
 }
 
 const configDir = path.join(process.cwd(), 'config')
-const configPath = path.join(configDir, 'config.json')
+const bundledConfigPath = path.join(configDir, 'config.json')
+const runtimeConfigPath =
+    process.env.NODE_ENV === 'production'
+        ? '/tmp/mobistock-config.json'
+        : bundledConfigPath
 
 function normalizeStoreConfig(value: unknown): StoreConfig {
     if (!value || typeof value !== 'object') {
@@ -27,35 +31,36 @@ function normalizeStoreConfig(value: unknown): StoreConfig {
     }
 }
 
-async function ensureConfigFile() {
-    await mkdir(configDir, { recursive: true })
-    try {
-        await readFile(configPath, 'utf-8')
-    } catch {
-        await writeFile(
-            configPath,
-            JSON.stringify(defaultStoreConfig, null, 4),
-            'utf-8'
-        )
-    }
-}
-
 export async function readStoreConfig(): Promise<StoreConfig> {
-    await ensureConfigFile()
-    const fileContent = await readFile(configPath, 'utf-8')
-    const parsed = JSON.parse(fileContent) as unknown
-    return normalizeStoreConfig(parsed)
+    try {
+        const runtimeContent = await readFile(runtimeConfigPath, 'utf-8')
+        const runtimeParsed = JSON.parse(runtimeContent) as unknown
+        return normalizeStoreConfig(runtimeParsed)
+    } catch {
+        try {
+            const bundledContent = await readFile(bundledConfigPath, 'utf-8')
+            const bundledParsed = JSON.parse(bundledContent) as unknown
+            return normalizeStoreConfig(bundledParsed)
+        } catch {
+            return defaultStoreConfig
+        }
+    }
 }
 
 export async function writeStoreConfig(
     input: Partial<StoreConfig>
 ): Promise<StoreConfig> {
-    await ensureConfigFile()
     const current = await readStoreConfig()
     const merged = normalizeStoreConfig({
         ...current,
         ...input,
     })
-    await writeFile(configPath, JSON.stringify(merged, null, 4), 'utf-8')
+
+    if (runtimeConfigPath === bundledConfigPath) {
+        await mkdir(configDir, { recursive: true })
+    }
+
+    await writeFile(runtimeConfigPath, JSON.stringify(merged, null, 4), 'utf-8')
+
     return merged
 }
