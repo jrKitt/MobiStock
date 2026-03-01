@@ -5,6 +5,7 @@ export interface ProductModel {
     model_warranty_duration: number
     brand_id: number
     category_id: number
+    image_url?: string | null
     create_at?: Date
     update_at?: Date
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { Brand } from '@/types/api'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function BrandsPage() {
     const { showToast } = useToast()
@@ -13,6 +14,7 @@ export default function BrandsPage() {
     const [formData, setFormData] = useState({
         brand_name: '',
         brand_country: '',
+        image_url: '' as string | null,
     })
 
     const fetchBrands = async () => {
@@ -38,6 +40,7 @@ export default function BrandsPage() {
         setFormData({
             brand_name: brand.brand_name,
             brand_country: brand.brand_country || '',
+            image_url: brand.image_url || null,
         })
         setIsModalOpen(true)
     }
@@ -76,7 +79,7 @@ export default function BrandsPage() {
             )
             setIsModalOpen(false)
             setSelectedBrand(null)
-            setFormData({ brand_name: '', brand_country: '' })
+            setFormData({ brand_name: '', brand_country: '', image_url: null })
             fetchBrands()
         } catch (err) {
             showToast('Failed to save brand', 'error')
@@ -97,7 +100,11 @@ export default function BrandsPage() {
                 <button
                     onClick={() => {
                         setSelectedBrand(null)
-                        setFormData({ brand_name: '', brand_country: '' })
+                        setFormData({
+                            brand_name: '',
+                            brand_country: '',
+                            image_url: null,
+                        })
                         setIsModalOpen(true)
                     }}
                     className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
@@ -115,6 +122,9 @@ export default function BrandsPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="w-20 px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Logo
+                                </th>
                                 <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                     Brand Name
                                 </th>
@@ -132,6 +142,20 @@ export default function BrandsPage() {
                                     key={brand.brand_id}
                                     className="transition-colors hover:bg-slate-50/50"
                                 >
+                                    <td className="px-6 py-4">
+                                        {brand.image_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={brand.image_url}
+                                                alt={brand.brand_name}
+                                                className="h-10 w-10 rounded-full border border-slate-200 bg-white object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-medium text-slate-400">
+                                                N/A
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">
                                         {brand.brand_name}
                                     </td>
@@ -204,6 +228,20 @@ export default function BrandsPage() {
                                         })
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Logo / Image
+                                </label>
+                                <ImageUpload
+                                    value={formData.image_url}
+                                    onChange={(url) =>
+                                        setFormData({
+                                            ...formData,
+                                            image_url: url,
+                                        })
+                                    }
                                 />
                             </div>
                             <div className="flex justify-end gap-3 pt-4">

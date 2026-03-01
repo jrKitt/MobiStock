@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM SUPPLIER WHERE supplier_id = ?', [id])) as Supplier[]
+        const rows = (await query(
+            'SELECT * FROM SUPPLIER WHERE supplier_id = ?',
+            [id]
+        )) as Supplier[]
         if (rows.length === 0) {
             return errorResponse('Supplier not found', null, 404)
         }
@@ -33,15 +36,17 @@ export async function PUT(
             supplier_email,
             supplier_address,
             supplier_contact_person,
+            image_url,
         } = body
         await query(
-            'UPDATE SUPPLIER SET supplier_name = ?, supplier_phone = ?, supplier_email = ?, supplier_address = ?, supplier_contact_person = ? WHERE supplier_id = ?',
+            'UPDATE SUPPLIER SET supplier_name = ?, supplier_phone = ?, supplier_email = ?, supplier_address = ?, supplier_contact_person = ?, image_url = ? WHERE supplier_id = ?',
             [
                 supplier_name,
                 supplier_phone,
                 supplier_email,
                 supplier_address,
                 supplier_contact_person,
+                image_url || null,
                 id,
             ]
         )

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { Supplier } from '@/types/api'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function SuppliersPage() {
     const { showToast } = useToast()
@@ -18,6 +19,7 @@ export default function SuppliersPage() {
         supplier_email: '',
         supplier_address: '',
         supplier_contact_person: '',
+        image_url: '' as string | null,
     })
 
     const fetchSuppliers = async () => {
@@ -46,6 +48,7 @@ export default function SuppliersPage() {
             supplier_email: supplier.supplier_email || '',
             supplier_address: supplier.supplier_address || '',
             supplier_contact_person: supplier.supplier_contact_person || '',
+            image_url: supplier.image_url || null,
         })
         setIsModalOpen(true)
     }
@@ -90,6 +93,7 @@ export default function SuppliersPage() {
                 supplier_email: '',
                 supplier_address: '',
                 supplier_contact_person: '',
+                image_url: null,
             })
             fetchSuppliers()
         } catch (err) {
@@ -117,6 +121,7 @@ export default function SuppliersPage() {
                             supplier_email: '',
                             supplier_address: '',
                             supplier_contact_person: '',
+                            image_url: null,
                         })
                         setIsModalOpen(true)
                     }}
@@ -135,6 +140,9 @@ export default function SuppliersPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="w-20 px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Logo
+                                </th>
                                 <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                     Supplier
                                 </th>
@@ -155,6 +163,20 @@ export default function SuppliersPage() {
                                     key={supplier.supplier_id}
                                     className="transition-colors hover:bg-slate-50/50"
                                 >
+                                    <td className="px-6 py-4">
+                                        {supplier.image_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={supplier.image_url}
+                                                alt={supplier.supplier_name}
+                                                className="h-10 w-10 rounded-lg border border-slate-200 bg-white object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-[10px] font-medium text-slate-400">
+                                                N/A
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-semibold text-slate-900">
                                             {supplier.supplier_name}
@@ -298,6 +320,20 @@ export default function SuppliersPage() {
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                                     rows={3}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Supplier Logo
+                                </label>
+                                <ImageUpload
+                                    value={formData.image_url}
+                                    onChange={(url) =>
+                                        setFormData({
+                                            ...formData,
+                                            image_url: url,
+                                        })
+                                    }
                                 />
                             </div>
                             <div className="col-span-2 flex justify-end gap-3 pt-4">

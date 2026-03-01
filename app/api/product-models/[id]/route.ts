@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM PRODUCT_MODEL WHERE model_id = ?', [id])) as ProductModel[]
+        const rows = (await query(
+            'SELECT * FROM PRODUCT_MODEL WHERE model_id = ?',
+            [id]
+        )) as ProductModel[]
         if (rows.length === 0) {
             return errorResponse('Product model not found', null, 404)
         }
@@ -33,19 +36,24 @@ export async function PUT(
             model_warranty_duration,
             brand_id,
             category_id,
+            image_url,
         } = body
         await query(
-            'UPDATE PRODUCT_MODEL SET model_name = ?, model_made_in = ?, model_warranty_duration = ?, brand_id = ?, category_id = ? WHERE model_id = ?',
+            'UPDATE PRODUCT_MODEL SET model_name = ?, model_made_in = ?, model_warranty_duration = ?, brand_id = ?, category_id = ?, image_url = ? WHERE model_id = ?',
             [
                 model_name,
                 model_made_in,
                 model_warranty_duration,
                 brand_id,
                 category_id,
+                image_url || null,
                 id,
             ]
         )
-        return successResponse({ id, ...body }, 'Product model updated successfully')
+        return successResponse(
+            { id, ...body },
+            'Product model updated successfully'
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error updating product model', error)

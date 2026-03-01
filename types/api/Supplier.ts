@@ -5,6 +5,7 @@ export interface Supplier {
     supplier_email: string
     supplier_address: string
     supplier_contact_person: string
+    image_url?: string | null
     create_at?: Date
     update_at?: Date
 }

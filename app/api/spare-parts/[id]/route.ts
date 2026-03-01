@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM SPARE_PART WHERE part_id = ?', [id])) as SparePart[]
+        const rows = (await query(
+            'SELECT * FROM SPARE_PART WHERE part_id = ?',
+            [id]
+        )) as SparePart[]
         if (rows.length === 0) {
             return errorResponse('Spare part not found', null, 404)
         }
@@ -27,12 +30,15 @@ export async function PUT(
     try {
         const { id } = await params
         const body = (await req.json()) as SparePart
-        const { part_name, part_status } = body
+        const { part_name, part_status, image_url } = body
         await query(
-            'UPDATE SPARE_PART SET part_name = ?, part_status = ? WHERE part_id = ?',
-            [part_name, part_status, id]
+            'UPDATE SPARE_PART SET part_name = ?, part_status = ?, image_url = ? WHERE part_id = ?',
+            [part_name, part_status, image_url || null, id]
         )
-        return successResponse({ id, ...body }, 'Spare part updated successfully')
+        return successResponse(
+            { id, ...body },
+            'Spare part updated successfully'
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error updating spare part', error)

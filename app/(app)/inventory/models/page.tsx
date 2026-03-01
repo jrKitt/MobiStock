@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ProductModel, Brand, Category } from '@/types/api'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function ProductModelsPage() {
     const { showToast } = useToast()
@@ -20,6 +21,7 @@ export default function ProductModelsPage() {
         model_warranty_duration: 12,
         brand_id: 0,
         category_id: 0,
+        image_url: '' as string | null,
     })
 
     const fetchData = async () => {
@@ -62,6 +64,7 @@ export default function ProductModelsPage() {
             model_warranty_duration: model.model_warranty_duration || 12,
             brand_id: model.brand_id || 0,
             category_id: model.category_id || 0,
+            image_url: model.image_url || null,
         })
         setIsModalOpen(true)
     }
@@ -126,6 +129,7 @@ export default function ProductModelsPage() {
                             model_warranty_duration: 12,
                             brand_id: brands[0]?.brand_id || 0,
                             category_id: categories[0]?.category_id || 0,
+                            image_url: null,
                         })
                         setIsModalOpen(true)
                     }}
@@ -144,6 +148,9 @@ export default function ProductModelsPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="w-20 px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Image
+                                </th>
                                 <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                     Model Name
                                 </th>
@@ -164,6 +171,20 @@ export default function ProductModelsPage() {
                                     key={model.model_id}
                                     className="transition-colors hover:bg-slate-50/50"
                                 >
+                                    <td className="px-6 py-4">
+                                        {model.image_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={model.image_url}
+                                                alt={model.model_name}
+                                                className="h-10 w-10 rounded-full border border-slate-200 bg-white object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-medium text-slate-400">
+                                                N/A
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-semibold text-slate-900">
                                             {model.model_name}
@@ -333,6 +354,20 @@ export default function ProductModelsPage() {
                                         })
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Product Image
+                                </label>
+                                <ImageUpload
+                                    value={formData.image_url}
+                                    onChange={(url) =>
+                                        setFormData({
+                                            ...formData,
+                                            image_url: url,
+                                        })
+                                    }
                                 />
                             </div>
                             <div className="col-span-2 flex justify-end gap-3 pt-4">

@@ -9,7 +9,9 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM BRAND WHERE brand_id = ?', [id])) as Brand[]
+        const rows = (await query('SELECT * FROM BRAND WHERE brand_id = ?', [
+            id,
+        ])) as Brand[]
         if (rows.length === 0) {
             return errorResponse('Brand not found', null, 404)
         }
@@ -27,10 +29,10 @@ export async function PUT(
     try {
         const { id } = await params
         const body = (await req.json()) as Brand
-        const { brand_name, brand_country } = body
+        const { brand_name, brand_country, image_url } = body
         await query(
-            'UPDATE BRAND SET brand_name = ?, brand_country = ? WHERE brand_id = ?',
-            [brand_name, brand_country, id]
+            'UPDATE BRAND SET brand_name = ?, brand_country = ?, image_url = ? WHERE brand_id = ?',
+            [brand_name, brand_country, image_url || null, id]
         )
         return successResponse({ id, ...body }, 'Brand updated successfully')
     } catch (error) {

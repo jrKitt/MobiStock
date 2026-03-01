@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { SparePart } from '@/types/api'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function SparePartsPage() {
     const { showToast } = useToast()
@@ -13,6 +14,7 @@ export default function SparePartsPage() {
     const [formData, setFormData] = useState({
         part_name: '',
         part_status: 'Available',
+        image_url: '' as string | null,
     })
 
     const fetchParts = async () => {
@@ -38,6 +40,7 @@ export default function SparePartsPage() {
         setFormData({
             part_name: part.part_name,
             part_status: part.part_status || 'Available',
+            image_url: part.image_url || null,
         })
         setIsModalOpen(true)
     }
@@ -76,7 +79,11 @@ export default function SparePartsPage() {
             )
             setIsModalOpen(false)
             setSelectedPart(null)
-            setFormData({ part_name: '', part_status: 'Available' })
+            setFormData({
+                part_name: '',
+                part_status: 'Available',
+                image_url: null,
+            })
             fetchParts()
         } catch (err) {
             showToast('Failed to save spare part', 'error')
@@ -97,7 +104,11 @@ export default function SparePartsPage() {
                 <button
                     onClick={() => {
                         setSelectedPart(null)
-                        setFormData({ part_name: '', part_status: 'Available' })
+                        setFormData({
+                            part_name: '',
+                            part_status: 'Available',
+                            image_url: null,
+                        })
                         setIsModalOpen(true)
                     }}
                     className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
@@ -115,6 +126,9 @@ export default function SparePartsPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="w-20 px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Image
+                                </th>
                                 <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                     Part Name
                                 </th>
@@ -132,6 +146,20 @@ export default function SparePartsPage() {
                                     key={part.part_id}
                                     className="transition-colors hover:bg-slate-50/50"
                                 >
+                                    <td className="px-6 py-4">
+                                        {part.image_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={part.image_url}
+                                                alt={part.part_name}
+                                                className="h-10 w-10 rounded-full border border-slate-200 bg-white object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-medium text-slate-400">
+                                                N/A
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">
                                         {part.part_name}
                                     </td>
@@ -214,6 +242,20 @@ export default function SparePartsPage() {
                                         Discontinued
                                     </option>
                                 </select>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Part Image
+                                </label>
+                                <ImageUpload
+                                    value={formData.image_url}
+                                    onChange={(url) =>
+                                        setFormData({
+                                            ...formData,
+                                            image_url: url,
+                                        })
+                                    }
+                                />
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
                                 <button

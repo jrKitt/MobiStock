@@ -10,13 +10,23 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
 
-        const countResult = await query<{ total: number }[]>('SELECT COUNT(*) as total FROM SPARE_PART')
+        const countResult = await query<{ total: number }[]>(
+            'SELECT COUNT(*) as total FROM SPARE_PART'
+        )
         const total = countResult[0].total
         const totalPages = Math.ceil(total / limit)
 
-        const rows = (await query('SELECT * FROM SPARE_PART ORDER BY part_id DESC LIMIT ? OFFSET ?', [limit, offset])) as SparePart[]
-        
-        return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
+        const rows = (await query(
+            'SELECT * FROM SPARE_PART ORDER BY part_id DESC LIMIT ? OFFSET ?',
+            [limit, offset]
+        )) as SparePart[]
+
+        return successResponse(rows, 'Success', 200, {
+            page,
+            limit,
+            total,
+            totalPages,
+        })
     } catch (error) {
         console.error(error)
         return errorResponse('Error fetching spare parts', error)
@@ -26,12 +36,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = (await req.json()) as SparePart
-        const { part_name, part_status } = body
+        const { part_name, part_status, image_url } = body
         const result = await query(
-            'INSERT INTO SPARE_PART (part_name, part_status) VALUES (?, ?)',
-            [part_name, part_status]
+            'INSERT INTO SPARE_PART (part_name, part_status, image_url) VALUES (?, ?, ?)',
+            [part_name, part_status, image_url || null]
         )
-        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Spare part created successfully', 201)
+        return successResponse(
+            { id: (result as ResultSetHeader).insertId, ...body },
+            'Spare part created successfully',
+            201
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error creating spare part', error)
