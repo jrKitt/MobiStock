@@ -9,7 +9,9 @@ export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+        null
+    )
     const [formData, setFormData] = useState({
         supplier_name: '',
         supplier_phone: '',
@@ -51,7 +53,9 @@ export default function SuppliersPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this supplier?')) return
         try {
-            const response = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' })
+            const response = await fetch(`/api/suppliers/${id}`, {
+                method: 'DELETE',
+            })
             if (!response.ok) throw new Error('Failed to delete supplier')
             showToast('Supplier deleted successfully', 'success')
             fetchSuppliers()
@@ -63,7 +67,9 @@ export default function SuppliersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const url = selectedSupplier ? `/api/suppliers/${selectedSupplier.supplier_id}` : '/api/suppliers'
+            const url = selectedSupplier
+                ? `/api/suppliers/${selectedSupplier.supplier_id}`
+                : '/api/suppliers'
             const method = selectedSupplier ? 'PUT' : 'POST'
             const response = await fetch(url, {
                 method,
@@ -72,7 +78,10 @@ export default function SuppliersPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save supplier')
-            showToast(`Supplier ${selectedSupplier ? 'updated' : 'created'} successfully`, 'success')
+            showToast(
+                `Supplier ${selectedSupplier ? 'updated' : 'created'} successfully`,
+                'success'
+            )
             setIsModalOpen(false)
             setSelectedSupplier(null)
             setFormData({
@@ -92,8 +101,12 @@ export default function SuppliersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Suppliers</h1>
-                    <p className="text-sm text-slate-500">Manage your product vendors and partners</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                        Suppliers
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                        Manage your product vendors and partners
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -114,43 +127,73 @@ export default function SuppliersPage() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
-                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Supplier</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Contact</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Email / Phone</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Supplier
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Contact
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Email / Phone
+                                </th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {suppliers.map((supplier) => (
-                                <tr key={supplier.supplier_id} className="hover:bg-slate-50/50 transition-colors">
+                                <tr
+                                    key={supplier.supplier_id}
+                                    className="transition-colors hover:bg-slate-50/50"
+                                >
                                     <td className="px-6 py-4">
-                                        <div className="text-sm font-semibold text-slate-900">{supplier.supplier_name}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium uppercase truncate max-w-xs">{supplier.supplier_address || 'No Address'}</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {supplier.supplier_name}
+                                        </div>
+                                        <div className="max-w-xs truncate text-[10px] font-medium text-slate-400 uppercase">
+                                            {supplier.supplier_address ||
+                                                'No Address'}
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 font-medium">{supplier.supplier_contact_person || '-'}</td>
+                                    <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                                        {supplier.supplier_contact_person ||
+                                            '-'}
+                                    </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-sm text-slate-900">{supplier.supplier_email || '-'}</div>
-                                        <div className="text-xs text-slate-400">{supplier.supplier_phone || '-'}</div>
+                                        <div className="text-sm text-slate-900">
+                                            {supplier.supplier_email || '-'}
+                                        </div>
+                                        <div className="text-xs text-slate-400">
+                                            {supplier.supplier_phone || '-'}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-3">
                                             <button
-                                                onClick={() => handleEdit(supplier)}
-                                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                onClick={() =>
+                                                    handleEdit(supplier)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-blue-600"
                                             >
                                                 Edit
                                             </button>
                                             <button
-                                                onClick={() => supplier.supplier_id && handleDelete(supplier.supplier_id)}
-                                                className="text-slate-400 hover:text-red-600 transition-colors"
+                                                onClick={() =>
+                                                    supplier.supplier_id &&
+                                                    handleDelete(
+                                                        supplier.supplier_id
+                                                    )
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-red-600"
                                             >
                                                 Delete
                                             </button>
@@ -165,52 +208,95 @@ export default function SuppliersPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}</h2>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                    <div className="bg-bg w-full max-w-lg rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="mb-6 text-xl font-bold text-slate-900">
+                            {selectedSupplier
+                                ? 'Edit Supplier'
+                                : 'Add New Supplier'}
+                        </h2>
+                        <form
+                            onSubmit={handleSubmit}
+                            className="grid grid-cols-2 gap-4"
+                        >
                             <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Supplier Name</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Supplier Name
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.supplier_name}
-                                    onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            supplier_name: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Contact Person</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Contact Person
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.supplier_contact_person}
-                                    onChange={(e) => setFormData({ ...formData, supplier_contact_person: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            supplier_contact_person:
+                                                e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Phone
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.supplier_phone}
-                                    onChange={(e) => setFormData({ ...formData, supplier_phone: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            supplier_phone: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Email</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Email
+                                </label>
                                 <input
                                     type="email"
                                     value={formData.supplier_email}
-                                    onChange={(e) => setFormData({ ...formData, supplier_email: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            supplier_email: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Address</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Address
+                                </label>
                                 <textarea
                                     value={formData.supplier_address}
-                                    onChange={(e) => setFormData({ ...formData, supplier_address: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            supplier_address: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                                     rows={3}
                                 />
                             </div>

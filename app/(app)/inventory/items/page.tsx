@@ -41,7 +41,8 @@ export default function ProductItemsPage() {
                 fetch('/api/product-models?page=1&limit=100'),
             ])
 
-            if (!itemsRes.ok || !modelsRes.ok) throw new Error('Failed to fetch data')
+            if (!itemsRes.ok || !modelsRes.ok)
+                throw new Error('Failed to fetch data')
 
             const [itemsData, modelsData] = await Promise.all([
                 itemsRes.json(),
@@ -182,7 +183,9 @@ export default function ProductItemsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">รายการสินค้า</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                        รายการสินค้า
+                    </h1>
                 </div>
                 <button
                     onClick={() => {
@@ -203,15 +206,17 @@ export default function ProductItemsPage() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
+                <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
                     <div className="text-center">
                         <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
-                        <p className="text-sm text-slate-500">กำลังโหลดรายการ...</p>
+                        <p className="text-sm text-slate-500">
+                            กำลังโหลดรายการ...
+                        </p>
                     </div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-                    <div className="border-b border-slate-100 bg-white p-6">
+                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
+                    <div className="bg-bg border-b border-slate-100 p-6">
                         <div className="flex items-center justify-between">
                             <div className="flex w-full items-center gap-6 max-sm:flex-col">
                                 <div>
@@ -237,7 +242,7 @@ export default function ProductItemsPage() {
                                     <select
                                         value={pageSize}
                                         onChange={handlePageSizeChange}
-                                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                        className="bg-bg rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-900 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
                                     >
                                         <option value={5}>
                                             5 รายการต่อหน้า
@@ -261,16 +266,27 @@ export default function ProductItemsPage() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">รุ่น / SN</th>
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">IMEI / แบตช์</th>
-                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">สถานะ</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">จัดการ</th>
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        รุ่น / SN
+                                    </th>
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        IMEI / แบตช์
+                                    </th>
+                                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        สถานะ
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        จัดการ
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {items.length > 0 ? (
                                     items.map((item) => (
-                                        <tr key={item.item_id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr
+                                            key={item.item_id}
+                                            className="transition-colors hover:bg-slate-50/50"
+                                        >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-100 text-slate-500">
@@ -290,30 +306,56 @@ export default function ProductItemsPage() {
                                                     </div>
                                                     <div>
                                                         <div className="text-sm font-semibold text-slate-900">
-                                                            {models.find(m => m.model_id === item.model_id)?.model_name || 'Unknown Model'}
+                                                            {models.find(
+                                                                (m) =>
+                                                                    m.model_id ===
+                                                                    item.model_id
+                                                            )?.model_name ||
+                                                                'Unknown Model'}
                                                         </div>
-                                                        <div className="text-[10px] text-slate-400 font-medium uppercase">SN: {item.item_serial_number || 'N/A'}</div>
+                                                        <div className="text-[10px] font-medium text-slate-400 uppercase">
+                                                            SN:{' '}
+                                                            {item.item_serial_number ||
+                                                                'N/A'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm text-slate-900">IMEI: {item.item_imei || '-'}</div>
-                                                <div className="text-xs text-slate-400">Lot: {item.item_lot_number || '-'}</div>
+                                                <div className="text-sm text-slate-900">
+                                                    IMEI:{' '}
+                                                    {item.item_imei || '-'}
+                                                </div>
+                                                <div className="text-xs text-slate-400">
+                                                    Lot:{' '}
+                                                    {item.item_lot_number ||
+                                                        '-'}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`text-xs font-semibold ${
-                                                    item.item_status === 'Available' ? 'text-green-600' : 
-                                                    item.item_status === 'Sold' ? 'text-gray-600' :
-                                                    item.item_status === 'Reserved' ? 'text-orange-600' :
-                                                    'text-slate-400'
-                                                }`}>
+                                                <span
+                                                    className={`text-xs font-semibold ${
+                                                        item.item_status ===
+                                                        'Available'
+                                                            ? 'text-green-600'
+                                                            : item.item_status ===
+                                                                'Sold'
+                                                              ? 'text-gray-600'
+                                                              : item.item_status ===
+                                                                  'Reserved'
+                                                                ? 'text-orange-600'
+                                                                : 'text-slate-400'
+                                                    }`}
+                                                >
                                                     {item.item_status}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <button
-                                                        onClick={() => handleEdit(item)}
+                                                        onClick={() =>
+                                                            handleEdit(item)
+                                                        }
                                                         className="p-1 text-slate-400 transition-colors hover:text-blue-600"
                                                     >
                                                         <svg
@@ -332,7 +374,10 @@ export default function ProductItemsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() =>
-                                                            item.item_id && handleDelete(item.item_id)
+                                                            item.item_id &&
+                                                            handleDelete(
+                                                                item.item_id
+                                                            )
                                                         }
                                                         className="p-1 text-slate-400 transition-colors hover:text-red-500"
                                                     >
@@ -448,12 +493,16 @@ export default function ProductItemsPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
+                    <div className="bg-bg w-full max-w-lg rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
                         <div className="mb-6 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900">{selectedItem ? 'แก้ไขรายการ' : 'สร้างรายการใหม่'}</h2>
+                            <h2 className="text-xl font-bold text-slate-900">
+                                {selectedItem
+                                    ? 'แก้ไขรายการ'
+                                    : 'สร้างรายการใหม่'}
+                            </h2>
                             <button
                                 onClick={handleCloseModal}
-                                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-50 hover:text-blue-600"
+                                className="hover:bg-slate-50rounded-full p-1 text-slate-400 transition-colors hover:text-blue-600"
                             >
                                 <svg
                                     className="h-5 w-5"
@@ -485,13 +534,20 @@ export default function ProductItemsPage() {
                                         className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-medium transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                     >
                                         <option value={0}>เลือกรุ่น</option>
-                                        {models.map(model => (
-                                            <option key={model.model_id} value={model.model_id}>{model.model_name}</option>
+                                        {models.map((model) => (
+                                            <option
+                                                key={model.model_id}
+                                                value={model.model_id}
+                                            >
+                                                {model.model_name}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">หมายเลขซีเรียล</label>
+                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        หมายเลขซีเรียล
+                                    </label>
                                     <input
                                         type="text"
                                         name="item_serial_number"
@@ -501,7 +557,9 @@ export default function ProductItemsPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">IMEI</label>
+                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        IMEI
+                                    </label>
                                     <input
                                         type="text"
                                         name="item_imei"
@@ -511,7 +569,9 @@ export default function ProductItemsPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">หมายเลขแบตช์</label>
+                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        หมายเลขแบตช์
+                                    </label>
                                     <input
                                         type="text"
                                         name="item_lot_number"
@@ -521,18 +581,24 @@ export default function ProductItemsPage() {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">สถานะ</label>
+                                    <label className="mb-1.5 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        สถานะ
+                                    </label>
                                     <select
                                         required
                                         name="item_status"
                                         value={formData.item_status}
                                         onChange={handleInputChange}
-                                        className="w-full rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                        className="bg-bg w-full rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                     >
-                                        <option value="Available">พร้อมใช้</option>
+                                        <option value="Available">
+                                            พร้อมใช้
+                                        </option>
                                         <option value="Sold">ขายแล้ว</option>
                                         <option value="Damaged">เสียหาย</option>
-                                        <option value="Reserved">จองแล้ว</option>
+                                        <option value="Reserved">
+                                            จองแล้ว
+                                        </option>
                                     </select>
                                 </div>
                             </div>

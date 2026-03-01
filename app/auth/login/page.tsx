@@ -33,9 +33,9 @@ export default function LoginPage() {
     useEffect(() => {
         // Load config.json
         fetch('/config.json')
-            .then(res => res.json())
-            .then(data => setConfig(data))
-            .catch(err => console.error('Failed to load config:', err))
+            .then((res) => res.json())
+            .then((data) => setConfig(data))
+            .catch((err) => console.error('Failed to load config:', err))
     }, [])
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -89,7 +89,7 @@ export default function LoginPage() {
                     <p className="text-gray-600">ระบบจัดการสต็อกร้านโทรศัพท์</p>
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-8">
+                <div className="bg-bg rounded-xl border border-gray-200 p-8">
                     <h2 className="mb-6 text-xl font-semibold text-gray-800">
                         เข้าสู่ระบบ
                     </h2>
@@ -178,17 +178,22 @@ export default function LoginPage() {
                 {/* Footer with Build Info */}
                 {config && (
                     <div className="mt-8 text-center">
-                        <div className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs text-gray-500 shadow-sm border border-gray-200">
+                        <div className="bg-bg inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-xs text-gray-500 shadow-sm">
                             <span className="flex items-center gap-1.5">
                                 Built by
                                 {config.developers.map((dev, index) => (
-                                    <span key={dev.name} className="inline-flex items-center">
-                                        {index > 0 && <span className="mx-1">·</span>}
+                                    <span
+                                        key={dev.name}
+                                        className="inline-flex items-center"
+                                    >
+                                        {index > 0 && (
+                                            <span className="mx-1">·</span>
+                                        )}
                                         <a
                                             href={dev.github}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                                            className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700"
                                         >
                                             <FaGithub className="h-3 w-3" />
                                             {dev.name}
@@ -197,9 +202,7 @@ export default function LoginPage() {
                                 ))}
                             </span>
                             <span className="text-gray-300">|</span>
-                            <span>
-                                Last updated: {config.lastUpdated}
-                            </span>
+                            <span>Last updated: {config.lastUpdated}</span>
                         </div>
                     </div>
                 )}

@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM CLAIM_ORDER WHERE claim_id = ?', [id])) as ClaimOrder[]
+        const rows = (await query(
+            'SELECT * FROM CLAIM_ORDER WHERE claim_id = ?',
+            [id]
+        )) as ClaimOrder[]
         if (rows.length === 0) {
             return errorResponse('Claim order not found', null, 404)
         }
@@ -45,13 +48,16 @@ export async function PUT(
                 claim_date_returned,
                 claim_status,
                 claim_resolution,
-                supplier_id,
+                supplier_id || null,
                 customer_id,
                 item_id,
                 id,
             ]
         )
-        return successResponse({ id, ...body }, 'Claim order updated successfully')
+        return successResponse(
+            { id, ...body },
+            'Claim order updated successfully'
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error updating claim order', error)

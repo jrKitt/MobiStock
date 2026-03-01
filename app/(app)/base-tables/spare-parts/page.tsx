@@ -45,7 +45,9 @@ export default function SparePartsPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this spare part?')) return
         try {
-            const response = await fetch(`/api/spare-parts/${id}`, { method: 'DELETE' })
+            const response = await fetch(`/api/spare-parts/${id}`, {
+                method: 'DELETE',
+            })
             if (!response.ok) throw new Error('Failed to delete spare part')
             showToast('Spare part deleted successfully', 'success')
             fetchParts()
@@ -57,7 +59,9 @@ export default function SparePartsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const url = selectedPart ? `/api/spare-parts/${selectedPart.part_id}` : '/api/spare-parts'
+            const url = selectedPart
+                ? `/api/spare-parts/${selectedPart.part_id}`
+                : '/api/spare-parts'
             const method = selectedPart ? 'PUT' : 'POST'
             const response = await fetch(url, {
                 method,
@@ -66,7 +70,10 @@ export default function SparePartsPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save spare part')
-            showToast(`Spare part ${selectedPart ? 'updated' : 'created'} successfully`, 'success')
+            showToast(
+                `Spare part ${selectedPart ? 'updated' : 'created'} successfully`,
+                'success'
+            )
             setIsModalOpen(false)
             setSelectedPart(null)
             setFormData({ part_name: '', part_status: 'Available' })
@@ -80,8 +87,12 @@ export default function SparePartsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Spare Parts</h1>
-                    <p className="text-sm text-slate-500">Manage components and replacement parts inventory</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                        Spare Parts
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                        Manage components and replacement parts inventory
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -96,25 +107,38 @@ export default function SparePartsPage() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
-                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Part Name</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Status</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Part Name
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {parts.map((part) => (
-                                <tr key={part.part_id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{part.part_name}</td>
+                                <tr
+                                    key={part.part_id}
+                                    className="transition-colors hover:bg-slate-50/50"
+                                >
+                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">
+                                        {part.part_name}
+                                    </td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-xs font-bold ${part.part_status === 'Available' ? 'text-green-600' : 'text-slate-400'}`}>
+                                        <span
+                                            className={`text-xs font-bold ${part.part_status === 'Available' ? 'text-green-600' : 'text-slate-400'}`}
+                                        >
                                             {part.part_status}
                                         </span>
                                     </td>
@@ -122,13 +146,16 @@ export default function SparePartsPage() {
                                         <div className="flex justify-end gap-3">
                                             <button
                                                 onClick={() => handleEdit(part)}
-                                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                className="text-slate-400 transition-colors hover:text-blue-600"
                                             >
                                                 Edit
                                             </button>
                                             <button
-                                                onClick={() => part.part_id && handleDelete(part.part_id)}
-                                                className="text-slate-400 hover:text-red-600 transition-colors"
+                                                onClick={() =>
+                                                    part.part_id &&
+                                                    handleDelete(part.part_id)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-red-600"
                                             >
                                                 Delete
                                             </button>
@@ -143,29 +170,49 @@ export default function SparePartsPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedPart ? 'Edit Part' : 'Add New Part'}</h2>
+                    <div className="bg-bg w-full max-w-md rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="mb-6 text-xl font-bold text-slate-900">
+                            {selectedPart ? 'Edit Part' : 'Add New Part'}
+                        </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Part Name</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Part Name
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.part_name}
-                                    onChange={(e) => setFormData({ ...formData, part_name: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            part_name: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Status</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Status
+                                </label>
                                 <select
                                     value={formData.part_status}
-                                    onChange={(e) => setFormData({ ...formData, part_status: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            part_status: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                                 >
                                     <option value="Available">Available</option>
-                                    <option value="Out of Stock">Out of Stock</option>
-                                    <option value="Discontinued">Discontinued</option>
+                                    <option value="Out of Stock">
+                                        Out of Stock
+                                    </option>
+                                    <option value="Discontinued">
+                                        Discontinued
+                                    </option>
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 pt-4">

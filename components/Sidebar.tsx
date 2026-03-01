@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-    HiHome, 
-    HiClipboardDocumentList, 
-    HiWrench, 
-    HiExclamationTriangle,
+import {
+    HiHome,
+    HiClipboardDocumentList,
+    HiWrench,
     HiViewColumns,
     HiListBullet,
     HiCubeTransparent,
@@ -17,7 +16,8 @@ import {
     HiUser,
     HiChevronDown,
     HiChevronLeft,
-    HiXMark
+    HiXMark,
+    HiShieldCheck,
 } from 'react-icons/hi2'
 
 interface SidebarProps {
@@ -86,15 +86,20 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                     label: 'คำขอซ่อม',
                     href: '/services/repair-orders',
                 },
+            ],
+        },
+        {
+            title: 'การรับประกัน',
+            items: [
                 {
-                    icon: <HiExclamationTriangle className="h-4 w-4" />,
-                    label: 'การแจ้งเรียกร้อง',
+                    icon: <HiShieldCheck className="h-4 w-4" />,
+                    label: 'การเคลมสินค้า',
                     href: '/services/claim-orders',
                 },
             ],
         },
         {
-            title: 'คลังสินค้า',
+            title: 'คลังสินค้า / อะไหล่',
             items: [
                 // {
                 //     icon: (
@@ -115,6 +120,11 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                 //     label: 'Stock Items',
                 //     href: '/inventory',
                 // },
+                {
+                    icon: <HiBuildingOffice2 className="h-4 w-4" />,
+                    label: 'ยี่ห้อ',
+                    href: '/base-tables/brands',
+                },
                 {
                     icon: <HiViewColumns className="h-4 w-4" />,
                     label: 'รุ่นสินค้า',
@@ -138,13 +148,8 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
             ],
         },
         {
-            title: 'การจัดการ',
+            title: 'การจัดการภายนอก',
             items: [
-                {
-                    icon: <HiBuildingOffice2 className="h-4 w-4" />,
-                    label: 'ยี่ห้อ',
-                    href: '/base-tables/brands',
-                },
                 {
                     icon: <HiUserGroup className="h-4 w-4" />,
                     label: 'ซัพพลายเออร์',
@@ -219,7 +224,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
             )}
 
             <div
-                className={`fixed inset-y-0 left-0 z-30 flex h-screen flex-col border-r border-slate-200 bg-white shadow-xs transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64`}
+                className={`bg-bg fixed inset-y-0 left-0 z-30 flex h-screen flex-col border-r border-slate-200 shadow-xs transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64`}
             >
                 <div className="border-b border-slate-100 p-6">
                     <div className="flex items-center justify-between">
@@ -310,13 +315,13 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                 </nav>
 
                 <div
-                    className="border-t border-slate-100 bg-white p-4"
+                    className="bg-bg border-t border-slate-100 p-4"
                     ref={menuRef}
                 >
                     <div className="relative">
                         {showUserMenu && (
                             <div
-                                className={`absolute bottom-full left-0 mb-2 w-full min-w-50 rounded-lg border border-gray-100 bg-white shadow-lg ${isCollapsed && !isOpen ? 'bottom-0 left-full ml-2' : ''}`}
+                                className={`bg-bg absolute bottom-full left-0 mb-2 w-full min-w-50 rounded-lg border border-gray-100 shadow-lg ${isCollapsed && !isOpen ? 'bottom-0 left-full ml-2' : ''}`}
                             >
                                 <button
                                     onClick={handleLogout}

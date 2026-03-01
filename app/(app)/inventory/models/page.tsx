@@ -11,7 +11,9 @@ export default function ProductModelsPage() {
     const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedModel, setSelectedModel] = useState<ProductModel | null>(null)
+    const [selectedModel, setSelectedModel] = useState<ProductModel | null>(
+        null
+    )
     const [formData, setFormData] = useState({
         model_name: '',
         model_made_in: '',
@@ -29,7 +31,8 @@ export default function ProductModelsPage() {
                 fetch('/api/categories?page=1&limit=100'),
             ])
 
-            if (!modelsRes.ok || !brandsRes.ok || !catsRes.ok) throw new Error('Failed to fetch data')
+            if (!modelsRes.ok || !brandsRes.ok || !catsRes.ok)
+                throw new Error('Failed to fetch data')
 
             const [modelsData, brandsData, catsData] = await Promise.all([
                 modelsRes.json(),
@@ -66,7 +69,9 @@ export default function ProductModelsPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this model?')) return
         try {
-            const response = await fetch(`/api/product-models/${id}`, { method: 'DELETE' })
+            const response = await fetch(`/api/product-models/${id}`, {
+                method: 'DELETE',
+            })
             if (!response.ok) throw new Error('Failed to delete model')
             showToast('Model deleted successfully', 'success')
             fetchData()
@@ -78,7 +83,9 @@ export default function ProductModelsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const url = selectedModel ? `/api/product-models/${selectedModel.model_id}` : '/api/product-models'
+            const url = selectedModel
+                ? `/api/product-models/${selectedModel.model_id}`
+                : '/api/product-models'
             const method = selectedModel ? 'PUT' : 'POST'
             const response = await fetch(url, {
                 method,
@@ -87,7 +94,10 @@ export default function ProductModelsPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save model')
-            showToast(`Model ${selectedModel ? 'updated' : 'created'} successfully`, 'success')
+            showToast(
+                `Model ${selectedModel ? 'updated' : 'created'} successfully`,
+                'success'
+            )
             setIsModalOpen(false)
             setSelectedModel(null)
             fetchData()
@@ -100,8 +110,12 @@ export default function ProductModelsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Product Models</h1>
-                    <p className="text-sm text-slate-500">Manage device models and technical specifications</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                        Product Models
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                        Manage device models and technical specifications
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -122,47 +136,77 @@ export default function ProductModelsPage() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
-                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Model Name</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Brand / Category</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Warranty</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Model Name
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Brand / Category
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Warranty
+                                </th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {models.map((model) => (
-                                <tr key={model.model_id} className="hover:bg-slate-50/50 transition-colors">
+                                <tr
+                                    key={model.model_id}
+                                    className="transition-colors hover:bg-slate-50/50"
+                                >
                                     <td className="px-6 py-4">
-                                        <div className="text-sm font-semibold text-slate-900">{model.model_name}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium uppercase">{model.model_made_in || 'N/A'}</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {model.model_name}
+                                        </div>
+                                        <div className="text-[10px] font-medium text-slate-400 uppercase">
+                                            {model.model_made_in || 'N/A'}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm text-slate-900">
-                                            {brands.find(b => b.brand_id === model.brand_id)?.brand_name || 'Unknown'}
+                                            {brands.find(
+                                                (b) =>
+                                                    b.brand_id ===
+                                                    model.brand_id
+                                            )?.brand_name || 'Unknown'}
                                         </div>
                                         <div className="text-xs text-slate-400">
-                                            {categories.find(c => c.category_id === model.category_id)?.category_name_en || 'Misc'}
+                                            {categories.find(
+                                                (c) =>
+                                                    c.category_id ===
+                                                    model.category_id
+                                            )?.category_name_en || 'Misc'}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{model.model_warranty_duration} Months</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                        {model.model_warranty_duration} Months
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-3">
                                             <button
-                                                onClick={() => handleEdit(model)}
-                                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                onClick={() =>
+                                                    handleEdit(model)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-blue-600"
                                             >
                                                 Edit
                                             </button>
                                             <button
-                                                onClick={() => model.model_id && handleDelete(model.model_id)}
-                                                className="text-slate-400 hover:text-red-600 transition-colors"
+                                                onClick={() =>
+                                                    model.model_id &&
+                                                    handleDelete(model.model_id)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-red-600"
                                             >
                                                 Delete
                                             </button>
@@ -177,64 +221,118 @@ export default function ProductModelsPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedModel ? 'Edit Model' : 'Add New Model'}</h2>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                    <div className="bg-bg w-full max-w-lg rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="mb-6 text-xl font-bold text-slate-900">
+                            {selectedModel ? 'Edit Model' : 'Add New Model'}
+                        </h2>
+                        <form
+                            onSubmit={handleSubmit}
+                            className="grid grid-cols-2 gap-4"
+                        >
                             <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Model Name</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Model Name
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.model_name}
-                                    onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            model_name: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Brand
+                                </label>
                                 <select
                                     required
                                     value={formData.brand_id}
-                                    onChange={(e) => setFormData({ ...formData, brand_id: parseInt(e.target.value) })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            brand_id: parseInt(e.target.value),
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 >
                                     <option value={0}>Select Brand</option>
-                                    {brands.map(brand => (
-                                        <option key={brand.brand_id} value={brand.brand_id}>{brand.brand_name}</option>
+                                    {brands.map((brand) => (
+                                        <option
+                                            key={brand.brand_id}
+                                            value={brand.brand_id}
+                                        >
+                                            {brand.brand_name}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Category</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Category
+                                </label>
                                 <select
                                     required
                                     value={formData.category_id}
-                                    onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            category_id: parseInt(
+                                                e.target.value
+                                            ),
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 >
                                     <option value={0}>Select Category</option>
-                                    {categories.map(cat => (
-                                        <option key={cat.category_id} value={cat.category_id}>{cat.category_name_en}</option>
+                                    {categories.map((cat) => (
+                                        <option
+                                            key={cat.category_id}
+                                            value={cat.category_id}
+                                        >
+                                            {cat.category_name_en}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Made In</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Made In
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.model_made_in}
-                                    onChange={(e) => setFormData({ ...formData, model_made_in: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            model_made_in: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Warranty (Months)</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Warranty (Months)
+                                </label>
                                 <input
                                     type="number"
                                     required
                                     value={formData.model_warranty_duration}
-                                    onChange={(e) => setFormData({ ...formData, model_warranty_duration: parseInt(e.target.value) })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            model_warranty_duration: parseInt(
+                                                e.target.value
+                                            ),
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div className="col-span-2 flex justify-end gap-3 pt-4">

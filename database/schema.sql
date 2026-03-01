@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS CLAIM_ORDER (
   claim_date_returned DATETIME,
   claim_status VARCHAR(255),
   claim_resolution VARCHAR(255),
-  supplier_id INT,
+  supplier_id INT NULL,
   customer_id INT,
   item_id INT,
   create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -147,3 +147,12 @@ CREATE TABLE IF NOT EXISTS CLAIM_ORDER (
   FOREIGN KEY (customer_id) REFERENCES CUSTOMER(customer_id),
   FOREIGN KEY (item_id) REFERENCES PRODUCT_ITEM(item_id)
 );
+
+CREATE TABLE IF NOT EXISTS User (
+  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

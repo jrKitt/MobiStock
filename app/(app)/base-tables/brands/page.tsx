@@ -45,7 +45,9 @@ export default function BrandsPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('Are you sure you want to delete this brand?')) return
         try {
-            const response = await fetch(`/api/brands/${id}`, { method: 'DELETE' })
+            const response = await fetch(`/api/brands/${id}`, {
+                method: 'DELETE',
+            })
             if (!response.ok) throw new Error('Failed to delete brand')
             showToast('Brand deleted successfully', 'success')
             fetchBrands()
@@ -57,7 +59,9 @@ export default function BrandsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const url = selectedBrand ? `/api/brands/${selectedBrand.brand_id}` : '/api/brands'
+            const url = selectedBrand
+                ? `/api/brands/${selectedBrand.brand_id}`
+                : '/api/brands'
             const method = selectedBrand ? 'PUT' : 'POST'
             const response = await fetch(url, {
                 method,
@@ -66,7 +70,10 @@ export default function BrandsPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save brand')
-            showToast(`Brand ${selectedBrand ? 'updated' : 'created'} successfully`, 'success')
+            showToast(
+                `Brand ${selectedBrand ? 'updated' : 'created'} successfully`,
+                'success'
+            )
             setIsModalOpen(false)
             setSelectedBrand(null)
             setFormData({ brand_name: '', brand_country: '' })
@@ -80,8 +87,12 @@ export default function BrandsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Brands</h1>
-                    <p className="text-sm text-slate-500">Manage your product brands and origins</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                        Brands
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                        Manage your product brands and origins
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -96,35 +107,53 @@ export default function BrandsPage() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-24">
-                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
+                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Brand Name</th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Country</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Brand Name
+                                </th>
+                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Country
+                                </th>
+                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {brands.map((brand) => (
-                                <tr key={brand.brand_id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{brand.brand_name}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{brand.brand_country || '-'}</td>
+                                <tr
+                                    key={brand.brand_id}
+                                    className="transition-colors hover:bg-slate-50/50"
+                                >
+                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">
+                                        {brand.brand_name}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                        {brand.brand_country || '-'}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-3">
                                             <button
-                                                onClick={() => handleEdit(brand)}
-                                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                onClick={() =>
+                                                    handleEdit(brand)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-blue-600"
                                             >
                                                 Edit
                                             </button>
                                             <button
-                                                onClick={() => brand.brand_id && handleDelete(brand.brand_id)}
-                                                className="text-slate-400 hover:text-red-600 transition-colors"
+                                                onClick={() =>
+                                                    brand.brand_id &&
+                                                    handleDelete(brand.brand_id)
+                                                }
+                                                className="text-slate-400 transition-colors hover:text-red-600"
                                             >
                                                 Delete
                                             </button>
@@ -139,26 +168,42 @@ export default function BrandsPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">{selectedBrand ? 'Edit Brand' : 'Add New Brand'}</h2>
+                    <div className="bg-bg w-full max-w-md rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="mb-6 text-xl font-bold text-slate-900">
+                            {selectedBrand ? 'Edit Brand' : 'Add New Brand'}
+                        </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Brand Name</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Brand Name
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.brand_name}
-                                    onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            brand_name: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Country</label>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    Country
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.brand_country}
-                                    onChange={(e) => setFormData({ ...formData, brand_country: e.target.value })}
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            brand_country: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex justify-end gap-3 pt-4">

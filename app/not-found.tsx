@@ -3,7 +3,7 @@ import Link from 'next/link'
 export default function NotFound() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 text-center">
-             <div className="rounded-full bg-white p-6 shadow-sm mb-6">
+            <div className="bg-bg mb-6 rounded-full p-6 shadow-sm">
                 <svg
                     className="h-16 w-16 text-gray-400"
                     fill="none"
@@ -22,7 +22,7 @@ export default function NotFound() {
             <p className="mb-8 text-gray-600">ไม่พบหน้าที่คุณต้องการ</p>
             <Link
                 href="/dashboard"
-                className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
             >
                 กลับสู่หน้าหลัก
             </Link>

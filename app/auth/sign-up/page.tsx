@@ -62,7 +62,7 @@ export default function SignUpPage() {
                     <p className="text-gray-600">ระบบจัดการสต็อกร้านโทรศัพท์</p>
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-8">
+                <div className="bg-bg rounded-xl border border-gray-200 p-8">
                     <h2 className="mb-6 text-xl font-semibold text-gray-800">
                         สมัครสมาชิก
                     </h2>

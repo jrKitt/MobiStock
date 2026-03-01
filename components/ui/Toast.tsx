@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                                 scale: 0.5,
                                 transition: { duration: 0.2 },
                             }}
-                            className={`pointer-events-auto flex items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-lg ${
+                            className={`bg-bg pointer-events-auto flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lg ${
                                 toast.type === 'success'
                                     ? 'border-green-200 text-green-800'
                                     : toast.type === 'error'

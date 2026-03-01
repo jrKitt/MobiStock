@@ -90,8 +90,9 @@ export default function DashboardPage() {
                     availableProducts: availableCount,
                     totalSales: saleData.pagination?.total || 0,
                     totalRevenue: totalRevenue,
-                    lowStockCount: products.filter((p: any) => p.status === 'oos')
-                        .length,
+                    lowStockCount: products.filter(
+                        (p: any) => p.status === 'oos'
+                    ).length,
                     totalCategories: catData.pagination?.total || 0,
                     totalBrands: brandData.pagination?.total || 0,
                 })
@@ -113,7 +114,9 @@ export default function DashboardPage() {
             <div className="flex h-[60vh] items-center justify-center">
                 <div className="text-center">
                     <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
-                    <p className="text-slate-500">กำลังเตรียมข้อมูล Dashboard...</p>
+                    <p className="text-slate-500">
+                        กำลังเตรียมข้อมูล Dashboard...
+                    </p>
                 </div>
             </div>
         )
@@ -124,13 +127,17 @@ export default function DashboardPage() {
             {/* Header section with Greeting */}
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">แผงควบคุมหลัก</h1>
-                    <p className="text-slate-500">ยินดีต้อนรับสู่ระบบจัดการคลังสินค้า Mobi Stock</p>
+                    <h1 className="text-2xl font-bold text-slate-900">
+                        แผงควบคุมหลัก
+                    </h1>
+                    <p className="text-slate-500">
+                        ยินดีต้อนรับสู่ระบบจัดการคลังสินค้า Mobi Stock
+                    </p>
                 </div>
                 <div className="flex gap-3">
                     <Link
                         href="/inventory/items"
-                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                        className="bg-bg flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                     >
                         ดูสต็อกทั้งหมด
                     </Link>
@@ -163,7 +170,9 @@ export default function DashboardPage() {
                 <StatCard
                     title="คำสั่งซื้อทั้งหมด"
                     value={stats.totalSales.toLocaleString()}
-                    icon={<FiShoppingCart className="h-6 w-6 text-purple-600" />}
+                    icon={
+                        <FiShoppingCart className="h-6 w-6 text-purple-600" />
+                    }
                     trend="5 รายการวันนี้"
                     color="purple"
                 />
@@ -180,9 +189,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Recent Sales Table */}
                 <div className="lg:col-span-2">
-                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="bg-bg overflow-hidden rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-center justify-between border-b border-slate-100 p-5">
-                            <h3 className="font-bold text-slate-900">รายการขายล่าสุด</h3>
+                            <h3 className="font-bold text-slate-900">
+                                รายการขายล่าสุด
+                            </h3>
                             <Link
                                 href="/transactions/sale-orders"
                                 className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
@@ -194,16 +205,16 @@ export default function DashboardPage() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="bg-slate-50/50">
-                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <th className="px-5 py-3 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                             รหัสคำสั่งซื้อ
                                         </th>
-                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <th className="px-5 py-3 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                             วันที่
                                         </th>
-                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <th className="px-5 py-3 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                             จำนวนเงิน
                                         </th>
-                                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <th className="px-5 py-3 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                             สถานะ
                                         </th>
                                     </tr>
@@ -211,30 +222,47 @@ export default function DashboardPage() {
                                 <tbody className="divide-y divide-slate-100">
                                     {recentSales.length > 0 ? (
                                         recentSales.map((sale) => (
-                                            <tr key={sale.sale_id} className="hover:bg-slate-50 transition-colors">
+                                            <tr
+                                                key={sale.sale_id}
+                                                className="transition-colors hover:bg-slate-50"
+                                            >
                                                 <td className="px-5 py-4 text-sm font-medium text-slate-900">
                                                     #{sale.sale_code}
                                                 </td>
                                                 <td className="px-5 py-4 text-sm text-slate-600">
-                                                    {new Date(sale.sale_date).toLocaleDateString('th-TH')}
+                                                    {new Date(
+                                                        sale.sale_date
+                                                    ).toLocaleDateString(
+                                                        'th-TH'
+                                                    )}
                                                 </td>
                                                 <td className="px-5 py-4 text-sm font-bold text-slate-900">
-                                                    ฿{sale.sale_total_amount?.toLocaleString()}
+                                                    ฿
+                                                    {sale.sale_total_amount?.toLocaleString()}
                                                 </td>
                                                 <td className="px-5 py-4">
-                                                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                                                        sale.sale_status === 'Paid' 
-                                                        ? 'bg-green-100 text-green-700' 
-                                                        : 'bg-orange-100 text-orange-700'
-                                                    }`}>
-                                                        {sale.sale_status === 'Paid' ? 'ชำระแล้ว' : 'รอชำระ'}
+                                                    <span
+                                                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                                                            sale.sale_status ===
+                                                            'Paid'
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-orange-100 text-orange-700'
+                                                        }`}
+                                                    >
+                                                        {sale.sale_status ===
+                                                        'Paid'
+                                                            ? 'ชำระแล้ว'
+                                                            : 'รอชำระ'}
                                                     </span>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={4} className="px-5 py-10 text-center text-slate-400">
+                                            <td
+                                                colSpan={4}
+                                                className="px-5 py-10 text-center text-slate-400"
+                                            >
                                                 ยังไม่มีรายการขาย
                                             </td>
                                         </tr>
@@ -247,32 +275,41 @@ export default function DashboardPage() {
 
                 {/* Categories & Brands Overview */}
                 <div className="space-y-6">
-                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <h3 className="mb-4 font-bold text-slate-900">ภาพรวมสต็อก</h3>
+                    <div className="bg-bg rounded-xl border border-slate-200 p-5 shadow-sm">
+                        <h3 className="mb-4 font-bold text-slate-900">
+                            ภาพรวมสต็อก
+                        </h3>
                         <div className="space-y-4">
-                            <OverviewItem 
-                                label="หมวดหมู่สินค้า" 
-                                count={stats.totalCategories} 
+                            <OverviewItem
+                                label="หมวดหมู่สินค้า"
+                                count={stats.totalCategories}
                                 icon={<FiTag className="text-blue-500" />}
                                 color="blue"
                             />
-                            <OverviewItem 
-                                label="แบรนด์สินค้า" 
-                                count={stats.totalBrands} 
+                            <OverviewItem
+                                label="แบรนด์สินค้า"
+                                count={stats.totalBrands}
                                 icon={<FiBox className="text-purple-500" />}
                                 color="purple"
                             />
-                            <div className="mt-6 pt-6 border-t border-slate-100">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">การแจ้งเตือน</h4>
+                            <div className="mt-6 border-t border-slate-100 pt-6">
+                                <h4 className="mb-3 text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    การแจ้งเตือน
+                                </h4>
                                 {stats.lowStockCount > 0 ? (
-                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100 text-orange-800">
+                                    <div className="flex items-center gap-3 rounded-lg border border-orange-100 bg-orange-50 p-3 text-orange-800">
                                         <FiAlertCircle className="shrink-0" />
-                                        <p className="text-xs font-medium">มีสินค้า {stats.lowStockCount} รายการที่ใกล้หมดสต็อก</p>
+                                        <p className="text-xs font-medium">
+                                            มีสินค้า {stats.lowStockCount}{' '}
+                                            รายการที่ใกล้หมดสต็อก
+                                        </p>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100 text-green-800">
+                                    <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-green-50 p-3 text-green-800">
                                         <FiTrendingUp className="shrink-0" />
-                                        <p className="text-xs font-medium">ระดับสต็อกสินค้าปกติ</p>
+                                        <p className="text-xs font-medium">
+                                            ระดับสต็อกสินค้าปกติ
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -282,7 +319,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Recent Products Grid */}
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-bg overflow-hidden rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-100 p-5">
                     <h3 className="font-bold text-slate-900">สินค้าเข้าใหม่</h3>
                     <Link
@@ -292,20 +329,35 @@ export default function DashboardPage() {
                         จัดการสต็อก <FiArrowRight />
                     </Link>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 divide-x divide-slate-100">
+                <div className="grid grid-cols-1 divide-x divide-slate-100 md:grid-cols-3 lg:grid-cols-5">
                     {recentProducts.map((product) => (
-                        <div key={product.prod_id} className="p-5 hover:bg-slate-50 transition-colors">
-                            <div className="mb-2 h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                        <div
+                            key={product.prod_id}
+                            className="p-5 transition-colors hover:bg-slate-50"
+                        >
+                            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                                 <FiBox />
                             </div>
-                            <h4 className="text-sm font-bold text-slate-900 truncate">{product.prod_name}</h4>
-                            <p className="text-xs text-slate-500 mb-2">ID: {product.prod_id}</p>
+                            <h4 className="truncate text-sm font-bold text-slate-900">
+                                {product.prod_name}
+                            </h4>
+                            <p className="mb-2 text-xs text-slate-500">
+                                ID: {product.prod_id}
+                            </p>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-blue-600">฿{product.sell_price?.toLocaleString()}</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                    product.status === 'Available' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'
-                                }`}>
-                                    {product.status === 'Available' ? 'พร้อม' : product.status}
+                                <span className="text-sm font-bold text-blue-600">
+                                    ฿{product.sell_price?.toLocaleString()}
+                                </span>
+                                <span
+                                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                                        product.status === 'Available'
+                                            ? 'bg-green-100 text-green-600'
+                                            : 'bg-slate-100 text-slate-500'
+                                    }`}
+                                >
+                                    {product.status === 'Available'
+                                        ? 'พร้อม'
+                                        : product.status}
                                 </span>
                             </div>
                         </div>
@@ -325,23 +377,29 @@ function StatCard({ title, value, icon, trend, color, isAlert }: any) {
     }
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-xl border p-5 shadow-sm transition-all hover:shadow-md ${colorClasses[color]} ${isAlert ? 'ring-2 ring-orange-500 ring-offset-2' : ''}`}
         >
             <div className="mb-4 flex items-center justify-between">
-                <div className="rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-slate-100">
+                <div className="bg-bg rounded-lg p-2.5 shadow-sm ring-1 ring-slate-100">
                     {icon}
                 </div>
                 {isAlert && (
-                    <span className="flex h-2 w-2 rounded-full bg-orange-600 animate-ping"></span>
+                    <span className="flex h-2 w-2 animate-ping rounded-full bg-orange-600"></span>
                 )}
             </div>
             <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{title}</p>
-                <h2 className="mt-1 text-2xl font-black text-slate-900">{value}</h2>
-                <p className={`mt-2 text-xs font-medium ${isAlert ? 'text-orange-600' : 'text-slate-400'}`}>
+                <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
+                    {title}
+                </p>
+                <h2 className="mt-1 text-2xl font-black text-slate-900">
+                    {value}
+                </h2>
+                <p
+                    className={`mt-2 text-xs font-medium ${isAlert ? 'text-orange-600' : 'text-slate-400'}`}
+                >
                     {trend}
                 </p>
             </div>
@@ -351,12 +409,14 @@ function StatCard({ title, value, icon, trend, color, isAlert }: any) {
 
 function OverviewItem({ label, count, icon, color }: any) {
     return (
-        <div className="flex items-center justify-between group cursor-pointer">
+        <div className="group flex cursor-pointer items-center justify-between">
             <div className="flex items-center gap-3">
-                <div className="h-8 w-8 flex items-center justify-center rounded bg-slate-50 text-slate-600 group-hover:bg-white group-hover:shadow-sm transition-all">
+                <div className="group-hover:bg-bg bg-slate-50flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-all group-hover:shadow-sm">
                     {icon}
                 </div>
-                <span className="text-sm font-medium text-slate-600">{label}</span>
+                <span className="text-sm font-medium text-slate-600">
+                    {label}
+                </span>
             </div>
             <span className="text-sm font-bold text-slate-900">{count}</span>
         </div>
