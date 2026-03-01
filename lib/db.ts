@@ -60,3 +60,7 @@ export async function query<T = unknown>(
     const [results] = await checkLimitQuery(sql, params)
     return results as T
 }
+
+export async function getConnection() {
+    return await pool.getConnection()
+}
