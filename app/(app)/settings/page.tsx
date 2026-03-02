@@ -3,33 +3,27 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 
+const STORAGE_KEY = 'mobistock_store_name'
+const DEFAULT_STORE_NAME = 'MobiStock'
+
 export default function SettingsPage() {
     const { showToast } = useToast()
     const [storeName, setStoreName] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
-    const fetchConfig = async () => {
+    useEffect(() => {
+        // โหลดชื่อร้านจาก localStorage
         try {
             setLoading(true)
-            const res = await fetch('/api/config', { cache: 'no-store' })
-            if (!res.ok) {
-                throw new Error('ไม่สามารถโหลดการตั้งค่าได้')
-            }
-            const data = await res.json()
-            setStoreName(data?.data?.storeName || 'MobiStock')
+            const savedName = localStorage.getItem(STORAGE_KEY)
+            setStoreName(savedName || DEFAULT_STORE_NAME)
         } catch (error) {
-            showToast(
-                error instanceof Error ? error.message : 'เกิดข้อผิดพลาด',
-                'error'
-            )
+            showToast('ไม่สามารถโหลดการตั้งค่าได้', 'error')
+            setStoreName(DEFAULT_STORE_NAME)
         } finally {
             setLoading(false)
         }
-    }
-
-    useEffect(() => {
-        fetchConfig()
     }, [])
 
     const handleSave = async (e: React.FormEvent) => {
@@ -41,21 +35,8 @@ export default function SettingsPage() {
 
         try {
             setSaving(true)
-            const res = await fetch('/api/config', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ storeName: storeName.trim() }),
-            })
-
-            const data = await res.json()
-
-            if (!res.ok) {
-                throw new Error(data?.message || 'บันทึกไม่สำเร็จ')
-            }
-
-            setStoreName(data?.data?.storeName || storeName.trim())
+            localStorage.setItem(STORAGE_KEY, storeName.trim())
+            setStoreName(storeName.trim())
             showToast('บันทึกชื่อร้านสำเร็จ', 'success')
         } catch (error) {
             showToast(
