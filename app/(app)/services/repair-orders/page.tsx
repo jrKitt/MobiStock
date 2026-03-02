@@ -105,19 +105,13 @@ export default function RepairOrdersPage() {
     }, [])
 
     useEffect(() => {
-        const fetchStoreConfig = async () => {
-            try {
-                const res = await fetch('/api/config', { cache: 'no-store' })
-                if (!res.ok) return
-                const data = await res.json()
-                const name = data?.data?.storeName
-                if (typeof name === 'string' && name.trim()) {
-                    setStoreName(name)
-                }
-            } catch {}
-        }
-
-        fetchStoreConfig()
+        // โหลดชื่อร้านจาก localStorage
+        try {
+            const savedName = localStorage.getItem('mobistock_store_name')
+            if (savedName && savedName.trim()) {
+                setStoreName(savedName)
+            }
+        } catch {}
     }, [])
 
     const handleEdit = (repair: RepairOrder) => {
@@ -1009,7 +1003,7 @@ export default function RepairOrdersPage() {
                             <div className="mt-16 border-t border-slate-200 pt-8 text-center text-xs text-slate-500">
                                 <p>
                                     เอกสารนี้สร้างขึ้นอย่างเป็นอิเล็กทรอนิกส์จากระบบจัดเก็บสินค้า
-                                    MobiStock
+                                    {storeName}
                                 </p>
                                 <p>{new Date().toLocaleString('th-TH')}</p>
                             </div>

@@ -72,19 +72,13 @@ export default function ClaimOrdersPage() {
     }, [fetchData])
 
     useEffect(() => {
-        const fetchStoreConfig = async () => {
-            try {
-                const res = await fetch('/api/config', { cache: 'no-store' })
-                if (!res.ok) return
-                const data = await res.json()
-                const name = data?.data?.storeName
-                if (typeof name === 'string' && name.trim()) {
-                    setStoreName(name)
-                }
-            } catch {}
-        }
-
-        fetchStoreConfig()
+        // โหลดชื่อร้านจาก localStorage
+        try {
+            const savedName = localStorage.getItem('mobistock_store_name')
+            if (savedName && savedName.trim()) {
+                setStoreName(savedName)
+            }
+        } catch {}
     }, [])
 
     const handleEdit = (claim: ClaimOrder) => {
