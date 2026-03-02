@@ -77,7 +77,7 @@ export default function LoginPage() {
     }
 
     return (
-        <div 
+        <div
             className="flex min-h-screen items-center justify-center px-4"
             style={{
                 backgroundImage: `
@@ -85,7 +85,7 @@ export default function LoginPage() {
                   linear-gradient(90deg, transparent 24%, rgba(100, 150, 255, 0.08) 25%, rgba(100, 150, 255, 0.08) 26%, transparent 27%, transparent 74%, rgba(100, 150, 255, 0.08) 75%, rgba(100, 150, 255, 0.08) 76%, transparent 77%, transparent)
                 `,
                 backgroundSize: '40px 40px',
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
             }}
         >
             <div className="w-full max-w-md">
@@ -96,7 +96,7 @@ export default function LoginPage() {
                     <p className="text-gray-600">ระบบจัดการสต็อกร้านโทรศัพท์</p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
+                <div className="rounded-xl border border-gray-200 bg-white p-8">
                     <h2 className="mb-6 text-xl font-semibold text-gray-800">
                         เข้าสู่ระบบ
                     </h2>
@@ -184,32 +184,33 @@ export default function LoginPage() {
 
                 {/* Footer with Build Info */}
                 {config && (
-                    <div className="mt-8 text-center">
-                        <div className="bg-white inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-xs text-gray-500 shadow-sm">
-                            <span className="flex items-center gap-1.5">
-                                Built by
+                    <div className="mt-10 text-center">
+                        <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white/80 px-5 py-4 text-xs text-gray-500 shadow-sm backdrop-blur-sm">
+                            {/* Developers */}
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                <span className="text-gray-400">Built by</span>
+
                                 {config.developers.map((dev, index) => (
-                                    <span
+                                    <a
                                         key={dev.name}
-                                        className="inline-flex items-center"
+                                        href={dev.github}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700"
                                     >
-                                        {index > 0 && (
-                                            <span className="mx-1">·</span>
-                                        )}
-                                        <a
-                                            href={dev.github}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700"
-                                        >
-                                            <FaGithub className="h-3 w-3" />
-                                            {dev.name}
-                                        </a>
-                                    </span>
+                                        <FaGithub className="h-3.5 w-3.5" />
+                                        {dev.name}
+                                    </a>
                                 ))}
-                            </span>
-                            <span className="text-gray-300">|</span>
-                            <span>Last updated: {config.lastUpdated}</span>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="my-3 h-px w-full bg-gray-100" />
+
+                            {/* Meta */}
+                            <div className="flex flex-col items-center gap-1 text-gray-400 sm:flex-row sm:justify-center sm:gap-3">
+                                <span>Last updated: {config.lastUpdated}</span>
+                            </div>
                         </div>
                     </div>
                 )}
