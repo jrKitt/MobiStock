@@ -25,6 +25,14 @@ export default function SaleOrdersPage() {
     const printRef = useRef<HTMLDivElement>(null)
     const [searchItemQuery, setSearchItemQuery] = useState('')
     const [availableItems, setAvailableItems] = useState<ProductItem[]>([])
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
+    const [newCustomer, setNewCustomer] = useState({
+        customer_fname: '',
+        customer_lname: '',
+        customer_phone: '',
+        customer_tax_number: '',
+        customer_address: '',
+    })
 
     const [formData, setFormData] = useState({
         sale_code: '',
@@ -73,6 +81,15 @@ export default function SaleOrdersPage() {
             }
         } catch {}
     }, [])
+
+    // Realtime search with debounce
+    useEffect(() => {
+        const delayTimer = setTimeout(() => {
+            searchAvailableItems(searchItemQuery)
+        }, 500) // ดีเลย์ 500ms หลังจากหยุดพิมพ์
+
+        return () => clearTimeout(delayTimer)
+    }, [searchItemQuery, formData.items])
 
     const searchAvailableItems = async (query: string) => {
         if (!query) return setAvailableItems([])
@@ -181,11 +198,49 @@ export default function SaleOrdersPage() {
         }
     }
 
+    const handleCreateCustomer = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            const response = await fetch('/api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCustomer),
+            })
+
+            if (!response.ok) throw new Error('Failed to create customer')
+            const result = await response.json()
+            showToast('สร้างลูกค้าใหม่สำเร็จ', 'success')
+            
+            // โหลดข้อมูลลูกค้าใหม่
+            const customersRes = await fetch('/api/customers?page=1&limit=100')
+            if (customersRes.ok) {
+                const customersData = await customersRes.json()
+                setCustomers(customersData.data)
+                // เลือกลูกค้าที่เพิ่งสร้างขึ้น
+                if (result.data?.customer_id) {
+                    setFormData({ ...formData, customer_id: result.data.customer_id })
+                }
+            }
+            
+            // รีเซ็ตฟอร์ม
+            setNewCustomer({
+                customer_fname: '',
+                customer_lname: '',
+                customer_phone: '',
+                customer_tax_number: '',
+                customer_address: '',
+            })
+            setIsCustomerModalOpen(false)
+        } catch {
+            showToast('ไม่สามารถสร้างลูกค้าได้', 'error')
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    <h1 className="text-2xl font-bold tracking-tight text-black">
                         ใบสั่งขาย
                     </h1>
                 </div>
@@ -312,7 +367,7 @@ export default function SaleOrdersPage() {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm text-black">
                     <div className="bg-bg w-full max-w-lg rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
                         <h2 className="mb-6 text-xl font-bold text-slate-900">
                             {selectedOrder ? 'แก้ไขใบสั่งขาย' : 'ใบสั่งขายใหม่'}
@@ -359,30 +414,40 @@ export default function SaleOrdersPage() {
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
                                     ลูกค้า
                                 </label>
-                                <select
-                                    required
-                                    value={formData.customer_id}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            customer_id: parseInt(
-                                                e.target.value
-                                            ),
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value={0}>เลือกลูกค้า</option>
-                                    {customers.map((c) => (
-                                        <option
-                                            key={c.customer_id}
-                                            value={c.customer_id}
-                                        >
-                                            {c.customer_fname}{' '}
-                                            {c.customer_lname}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex gap-2">
+                                    <select
+                                        required
+                                        value={formData.customer_id}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                customer_id: parseInt(
+                                                    e.target.value
+                                                ),
+                                            })
+                                        }
+                                        className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                    >
+                                        <option value={0}>เลือกลูกค้า</option>
+                                        {customers.map((c) => (
+                                            <option
+                                                key={c.customer_id}
+                                                value={c.customer_id}
+                                            >
+                                                {c.customer_fname}{' '}
+                                                {c.customer_lname}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCustomerModalOpen(true)}
+                                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 whitespace-nowrap"
+                                        title="เพิ่มลูกค้าใหม่"
+                                    >
+                                        + ลูกค้า
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
@@ -391,13 +456,13 @@ export default function SaleOrdersPage() {
                                 <input
                                     type="number"
                                     required
-                                    value={formData.sale_total_amount}
+                                    value={formData.sale_total_amount || 0}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
                                             sale_total_amount: parseFloat(
                                                 e.target.value
-                                            ),
+                                            ) || 0,
                                         })
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
@@ -431,35 +496,16 @@ export default function SaleOrdersPage() {
                                     รายการสินค้า
                                 </h3>
 
-                                <div className="mb-4 flex gap-2">
+                                <div className="mb-4">
                                     <input
                                         type="text"
-                                        placeholder="ค้นหา Serial Number, IMEI..."
+                                        placeholder="ค้นหา Serial Number, IMEI... (พิมพ์เพื่อค้นหา)"
                                         value={searchItemQuery}
                                         onChange={(e) =>
                                             setSearchItemQuery(e.target.value)
                                         }
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault()
-                                                searchAvailableItems(
-                                                    searchItemQuery
-                                                )
-                                            }
-                                        }}
-                                        className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            searchAvailableItems(
-                                                searchItemQuery
-                                            )
-                                        }
-                                        className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
-                                    >
-                                        ค้นหา
-                                    </button>
                                 </div>
 
                                 {availableItems.length > 0 && (
@@ -467,6 +513,9 @@ export default function SaleOrdersPage() {
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-slate-50">
                                                 <tr>
+                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
+                                                        ชื่อเครื่อง
+                                                    </th>
                                                     <th className="px-3 py-2 font-bold text-slate-600 uppercase">
                                                         Serial
                                                     </th>
@@ -482,12 +531,20 @@ export default function SaleOrdersPage() {
                                                         key={item.item_id}
                                                         className="hover:bg-slate-50"
                                                     >
-                                                        <td className="px-3 py-2 font-mono">
+                                                        <td className="px-3 py-2">
+                                                            <div className="font-semibold text-slate-900">
+                                                                {(item as any).model_name || '-'}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500">
+                                                                {(item as any).brand_name || '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-2 font-mono text-xs">
                                                             {
                                                                 item.item_serial_number
                                                             }
                                                         </td>
-                                                        <td className="px-3 py-2 font-mono">
+                                                        <td className="px-3 py-2 font-mono text-xs">
                                                             {item.item_imei}
                                                         </td>
                                                         <td className="px-3 py-2 text-right">
@@ -927,6 +984,128 @@ export default function SaleOrdersPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Customer Creation Modal */}
+            {isCustomerModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-sm text-black">
+                    <div className="bg-white w-full max-w-md rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                        <h2 className="mb-6 text-xl font-bold text-slate-900">
+                            เพิ่มลูกค้าใหม่
+                        </h2>
+                        <form onSubmit={handleCreateCustomer} className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    ชื่อ
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newCustomer.customer_fname}
+                                    onChange={(e) =>
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            customer_fname: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    นามสกุล
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newCustomer.customer_lname}
+                                    onChange={(e) =>
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            customer_lname: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    เบอร์โทรศัพท์
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newCustomer.customer_phone}
+                                    onChange={(e) =>
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            customer_phone: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    เลขประจำตัวผู้เสียภาษี
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newCustomer.customer_tax_number}
+                                    onChange={(e) =>
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            customer_tax_number: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                    ที่อยู่
+                                </label>
+                                <textarea
+                                    required
+                                    rows={3}
+                                    value={newCustomer.customer_address}
+                                    onChange={(e) =>
+                                        setNewCustomer({
+                                            ...newCustomer,
+                                            customer_address: e.target.value,
+                                        })
+                                    }
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsCustomerModalOpen(false)
+                                        setNewCustomer({
+                                            customer_fname: '',
+                                            customer_lname: '',
+                                            customer_phone: '',
+                                            customer_tax_number: '',
+                                            customer_address: '',
+                                        })
+                                    }}
+                                    className="px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-600"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-md bg-green-600 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                                >
+                                    สร้างลูกค้า
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     )
