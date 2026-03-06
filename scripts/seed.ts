@@ -107,17 +107,17 @@ async function seed() {
         // 7. Spare Parts
         console.log('Seeding Spare Parts...')
         await query(`
-      INSERT INTO SPARE_PART (part_name, part_status) VALUES
-      ('iPhone 15 Display Assembly', 'Available'),
-      ('iPhone 14 Display Assembly', 'Available'),
-      ('Galaxy S24 Ultra Display Screen', 'Available'),
-      ('iPhone 15 Battery', 'Available'),
-      ('iPhone 14 Battery', 'Out of Stock'),
-      ('Galaxy S24 Battery', 'Available'),
-      ('Galaxy Z Flip 5 Inner Display', 'Available'),
-      ('USB-C Charging Port Module (Generic)', 'Available'),
-      ('Speaker Module (iPhone 15)', 'Available'),
-      ('Camera Lens Glass (Galaxy S24 Ultra)', 'Available')
+      INSERT INTO SPARE_PART (part_name, part_quantity) VALUES
+      ('iPhone 15 Display Assembly', 25),
+      ('iPhone 14 Display Assembly', 15),
+      ('Galaxy S24 Ultra Display Screen', 20),
+      ('iPhone 15 Battery', 50),
+      ('iPhone 14 Battery', 0),
+      ('Galaxy S24 Battery', 30),
+      ('Galaxy Z Flip 5 Inner Display', 10),
+      ('USB-C Charging Port Module (Generic)', 40),
+      ('Speaker Module (iPhone 15)', 18),
+      ('Camera Lens Glass (Galaxy S24 Ultra)', 12)
     `)
 
         console.log('✅ Seeding completed successfully.')
