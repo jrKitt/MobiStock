@@ -22,9 +22,11 @@ export async function GET(
         // Fetch items associated
         const items = await query(
             `
-            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number
+            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number, pm.model_name, b.brand_name
             FROM SALE_ORDER_ITEM soi
             JOIN PRODUCT_ITEM pi ON soi.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
             WHERE soi.sale_id = ?
         `,
             [id]
@@ -51,6 +53,7 @@ export async function PUT(
             sale_status,
             customer_id,
             update_by,
+            sale_additional_cost = 0,
             items, // Array of { item_id, sale_price }
         } = body
 
@@ -62,11 +65,12 @@ export async function PUT(
             )
         }
 
-        const sale_total_amount = items.reduce(
-            (sum: number, item: { sale_price: string | number }) =>
-                sum + Number(item.sale_price || 0),
-            0
-        )
+        const sale_total_amount =
+            items.reduce(
+                (sum: number, item: { sale_price: string | number }) =>
+                    sum + Number(item.sale_price || 0),
+                0
+            ) + Number(sale_additional_cost || 0)
 
         connection = await getConnection()
         await connection.beginTransaction()

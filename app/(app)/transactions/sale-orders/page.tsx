@@ -8,9 +8,11 @@ import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
 
 interface SaleOrderItemForm {
     item_id: number
-    sale_price: number
+    sale_price: number | string
     item_serial_number?: string
     item_imei?: string
+    model_name?: string
+    brand_name?: string
     item_lot_number?: string
 }
 
@@ -23,6 +25,7 @@ export default function SaleOrdersPage() {
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [selectedOrder, setSelectedOrder] = useState<SaleOrder | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
     const [searchItemQuery, setSearchItemQuery] = useState('')
@@ -40,6 +43,7 @@ export default function SaleOrdersPage() {
         sale_code: '',
         sale_date: new Date().toISOString().split('T')[0],
         sale_total_amount: 0,
+        sale_additional_cost: 0,
         sale_status: 'Pending',
         customer_id: 0,
         items: [] as SaleOrderItemForm[],
@@ -121,6 +125,16 @@ export default function SaleOrdersPage() {
             if (res.ok) {
                 const data = await res.json()
                 const fullOrder = data.data
+                const itemsTotal = (fullOrder.items || []).reduce(
+                    (acc: number, curr: any) =>
+                        acc + Number(curr.sale_price || 0),
+                    0
+                )
+                const computedAdditionalCost = Math.max(
+                    0,
+                    (fullOrder.sale_total_amount || 0) - itemsTotal
+                )
+
                 setSelectedOrder(fullOrder)
                 setFormData({
                     sale_code: fullOrder.sale_code,
@@ -128,6 +142,7 @@ export default function SaleOrdersPage() {
                         .toISOString()
                         .split('T')[0],
                     sale_total_amount: fullOrder.sale_total_amount || 0,
+                    sale_additional_cost: computedAdditionalCost,
                     sale_status: fullOrder.sale_status || 'Pending',
                     customer_id: fullOrder.customer_id || 0,
                     items: fullOrder.items || [],
@@ -165,6 +180,7 @@ export default function SaleOrdersPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบใบสั่งขายนี้?')) return
         try {
+            setIsSubmitting(true)
             const response = await fetch(`/api/sale-orders/${id}`, {
                 method: 'DELETE',
             })
@@ -173,12 +189,15 @@ export default function SaleOrdersPage() {
             fetchData()
         } catch {
             showToast('Failed to delete order', 'error')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
+            setIsSubmitting(true)
             const url = selectedOrder
                 ? `/api/sale-orders/${selectedOrder.sale_id}`
                 : '/api/sale-orders'
@@ -199,12 +218,15 @@ export default function SaleOrdersPage() {
             fetchData()
         } catch {
             showToast('Failed to save order', 'error')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
     const handleCreateCustomer = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
+            setIsSubmitting(true)
             const response = await fetch('/api/customers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -214,18 +236,21 @@ export default function SaleOrdersPage() {
             if (!response.ok) throw new Error('Failed to create customer')
             const result = await response.json()
             showToast('สร้างลูกค้าใหม่สำเร็จ', 'success')
-            
+
             // โหลดข้อมูลลูกค้าใหม่
             const customersRes = await fetch('/api/customers?page=1&limit=100')
             if (customersRes.ok) {
                 const customersData = await customersRes.json()
                 setCustomers(customersData.data)
                 // เลือกลูกค้าที่เพิ่งสร้างขึ้น
-                if (result.data?.customer_id) {
-                    setFormData({ ...formData, customer_id: result.data.customer_id })
+                if (result.data?.id) {
+                    setFormData({
+                        ...formData,
+                        customer_id: result.data.id,
+                    })
                 }
             }
-            
+
             // รีเซ็ตฟอร์ม
             setNewCustomer({
                 customer_fname: '',
@@ -237,11 +262,24 @@ export default function SaleOrdersPage() {
             setIsCustomerModalOpen(false)
         } catch {
             showToast('ไม่สามารถสร้างลูกค้าได้', 'error')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
     return (
         <div className="space-y-6">
+            {isSubmitting && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="flex items-center justify-center rounded-xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+                        <span className="ml-4 font-semibold text-slate-700">
+                            กำลังดำเนินการ...
+                        </span>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-black">
@@ -257,6 +295,7 @@ export default function SaleOrdersPage() {
                             sale_code: `SO-${Date.now().toString().slice(-6)}`,
                             sale_date: new Date().toISOString().split('T')[0],
                             sale_total_amount: 0,
+                            sale_additional_cost: 0,
                             sale_status: 'Pending',
                             customer_id: customers[0]?.customer_id || 0,
                             items: [],
@@ -371,381 +410,523 @@ export default function SaleOrdersPage() {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm text-black">
-                    <div className="bg-bg w-full max-w-lg rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
-                        <h2 className="mb-6 text-xl font-bold text-slate-900">
-                            {selectedOrder ? 'แก้ไขใบสั่งขาย' : 'ใบสั่งขายใหม่'}
-                        </h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 text-black backdrop-blur-sm sm:p-6">
+                    <div className="bg-bg flex max-h-[90vh] w-full max-w-5xl flex-col rounded-xl shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-8 py-6">
+                            <h2 className="text-xl font-bold text-slate-900">
+                                {selectedOrder
+                                    ? 'แก้ไขใบสั่งขาย'
+                                    : 'ใบสั่งขายใหม่'}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-slate-400 transition-colors hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
                         <form
                             onSubmit={handleSubmit}
-                            className="grid grid-cols-2 gap-4"
+                            className="flex min-h-0 flex-1 flex-col"
                         >
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    รหัสใบสั่ง
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.sale_code}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            sale_code: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    วันที่
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={formData.sale_date}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            sale_date: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    ลูกค้า
-                                </label>
-                                <div className="flex gap-2">
-                                    <select
-                                        required
-                                        value={formData.customer_id}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                customer_id: parseInt(
-                                                    e.target.value
-                                                ),
-                                            })
-                                        }
-                                        className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    >
-                                        <option value={0}>เลือกลูกค้า</option>
-                                        {customers.map((c) => (
-                                            <option
-                                                key={c.customer_id}
-                                                value={c.customer_id}
-                                            >
-                                                {c.customer_fname}{' '}
-                                                {c.customer_lname}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCustomerModalOpen(true)}
-                                        className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 whitespace-nowrap"
-                                        title="เพิ่มลูกค้าใหม่"
-                                    >
-                                        + ลูกค้า
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    จำนวนรวม (฿)
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={formData.sale_total_amount || 0}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            sale_total_amount: parseFloat(
-                                                e.target.value
-                                            ) || 0,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    สถานะ
-                                </label>
-                                <select
-                                    required
-                                    value={formData.sale_status}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            sale_status: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value="Pending">รอดำเนินการ</option>
-                                    <option value="Completed">เสร็จสิ้น</option>
-                                    <option value="Cancelled">ยกเลิก</option>
-                                </select>
-                            </div>
-                            <div className="col-span-2 border-t border-slate-200 pt-4">
-                                <h3 className="mb-4 text-sm font-bold text-slate-900">
-                                    รายการสินค้า
-                                </h3>
-
-                                <div className="mb-4">
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหา Serial Number, IMEI... (พิมพ์เพื่อค้นหา)"
-                                        value={searchItemQuery}
-                                        onChange={(e) =>
-                                            setSearchItemQuery(e.target.value)
-                                        }
-                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                    />
-                                </div>
-
-                                {availableItems.length > 0 && (
-                                    <div className="mb-4 max-h-40 overflow-auto rounded-md border border-slate-200">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="bg-slate-50">
-                                                <tr>
-                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
-                                                        ชื่อเครื่อง
-                                                    </th>
-                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
-                                                        Serial
-                                                    </th>
-                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
-                                                        IMEI
-                                                    </th>
-                                                    <th className="px-3 py-2 text-right"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {availableItems.map((item) => (
-                                                    <tr
-                                                        key={item.item_id}
-                                                        className="hover:bg-slate-50"
-                                                    >
-                                                        <td className="px-3 py-2">
-                                                            <div className="font-semibold text-slate-900">
-                                                                {(item as any).model_name || '-'}
-                                                            </div>
-                                                            <div className="text-xs text-slate-500">
-                                                                {(item as any).brand_name || '-'}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2 font-mono text-xs">
-                                                            {
-                                                                item.item_serial_number
-                                                            }
-                                                        </td>
-                                                        <td className="px-3 py-2 font-mono text-xs">
-                                                            {item.item_imei}
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const newItems =
-                                                                        [
-                                                                            ...formData.items,
-                                                                            {
-                                                                                item_id:
-                                                                                    item.item_id!,
-                                                                                sale_price: 0,
-                                                                                item_serial_number:
-                                                                                    item.item_serial_number,
-                                                                                item_imei:
-                                                                                    item.item_imei,
-                                                                            },
-                                                                        ]
-                                                                    setFormData(
-                                                                        {
-                                                                            ...formData,
-                                                                            items: newItems,
-                                                                            sale_total_amount:
-                                                                                newItems.reduce(
-                                                                                    (
-                                                                                        acc,
-                                                                                        curr
-                                                                                    ) =>
-                                                                                        acc +
-                                                                                        Number(
-                                                                                            curr.sale_price ||
-                                                                                                0
-                                                                                        ),
-                                                                                    0
-                                                                                ),
-                                                                        }
-                                                                    )
-                                                                    setAvailableItems(
-                                                                        availableItems.filter(
-                                                                            (
-                                                                                i
-                                                                            ) =>
-                                                                                i.item_id !==
-                                                                                item.item_id
-                                                                        )
-                                                                    )
-                                                                }}
-                                                                className="rounded bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                                                            >
-                                                                + เพิ่ม
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                            <div className="flex-1 overflow-y-auto p-8 pt-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                            รหัสใบสั่ง
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.sale_code}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    sale_code: e.target.value,
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                        />
                                     </div>
-                                )}
-
-                                <div className="mb-4">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="border-y border-slate-200 bg-slate-50">
-                                            <tr>
-                                                <th className="px-3 py-2 font-bold text-slate-600 uppercase">
-                                                    สินค้าที่เลือก
-                                                </th>
-                                                <th className="w-32 px-3 py-2 font-bold text-slate-600 uppercase">
-                                                    ราคาขาย (฿)
-                                                </th>
-                                                <th className="w-16 px-3 py-2 text-right"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {formData.items.map((item, idx) => (
-                                                <tr
-                                                    key={idx}
-                                                    className="hover:bg-slate-50"
-                                                >
-                                                    <td className="px-3 py-2">
-                                                        <div className="font-mono text-xs">
-                                                            SN:{' '}
-                                                            {item.item_serial_number ||
-                                                                '-'}
-                                                        </div>
-                                                        <div className="font-mono text-xs text-slate-400">
-                                                            IMEI:{' '}
-                                                            {item.item_imei ||
-                                                                '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        <input
-                                                            type="number"
-                                                            value={
-                                                                item.sale_price
-                                                            }
-                                                            onChange={(e) => {
-                                                                const updatedItems =
-                                                                    [
-                                                                        ...formData.items,
-                                                                    ]
-                                                                updatedItems[
-                                                                    idx
-                                                                ].sale_price =
-                                                                    Number(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                setFormData({
-                                                                    ...formData,
-                                                                    items: updatedItems,
-                                                                    sale_total_amount:
-                                                                        updatedItems.reduce(
-                                                                            (
-                                                                                acc,
-                                                                                curr
-                                                                            ) =>
-                                                                                acc +
-                                                                                Number(
-                                                                                    curr.sale_price ||
-                                                                                        0
-                                                                                ),
-                                                                            0
-                                                                        ),
-                                                                })
-                                                            }}
-                                                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-right focus:border-blue-600 focus:outline-none"
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const updatedItems =
-                                                                    formData.items.filter(
-                                                                        (
-                                                                            _,
-                                                                            i
-                                                                        ) =>
-                                                                            i !==
-                                                                            idx
-                                                                    )
-                                                                setFormData({
-                                                                    ...formData,
-                                                                    items: updatedItems,
-                                                                    sale_total_amount:
-                                                                        updatedItems.reduce(
-                                                                            (
-                                                                                acc,
-                                                                                curr
-                                                                            ) =>
-                                                                                acc +
-                                                                                Number(
-                                                                                    curr.sale_price ||
-                                                                                        0
-                                                                                ),
-                                                                            0
-                                                                        ),
-                                                                })
-                                                            }}
-                                                            className="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
-                                                        >
-                                                            <CloseIcon />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {formData.items.length === 0 && (
-                                                <tr>
-                                                    <td
-                                                        colSpan={3}
-                                                        className="px-3 py-8 text-center font-medium text-slate-400"
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                            วันที่
+                                        </label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={formData.sale_date}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    sale_date: e.target.value,
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                            ลูกค้า
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                required
+                                                value={formData.customer_id}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        customer_id: parseInt(
+                                                            e.target.value
+                                                        ),
+                                                    })
+                                                }
+                                                className="flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                            >
+                                                <option value={0}>
+                                                    เลือกลูกค้า
+                                                </option>
+                                                {customers.map((c) => (
+                                                    <option
+                                                        key={c.customer_id}
+                                                        value={c.customer_id}
                                                     >
-                                                        ยังไม่มีสินค้าในใบสั่งขาย
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                        {formData.items.length > 0 && (
-                                            <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-bold">
-                                                <tr>
-                                                    <td className="px-3 py-3 text-right text-slate-600">
-                                                        ยอดรวมทั้งสิ้น
-                                                    </td>
-                                                    <td className="px-3 py-3 text-right text-lg text-slate-900">
-                                                        ฿
-                                                        {formData.sale_total_amount.toLocaleString(
-                                                            'th-TH'
+                                                        {c.customer_fname}{' '}
+                                                        {c.customer_lname}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setIsCustomerModalOpen(true)
+                                                }
+                                                className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-green-700"
+                                                title="เพิ่มลูกค้าใหม่"
+                                            >
+                                                + ลูกค้า
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                            สถานะ
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.sale_status}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    sale_status: e.target.value,
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                        >
+                                            <option value="Pending">
+                                                รอชำระเงิน
+                                            </option>
+                                            <option value="Completed">
+                                                ชำระเงินเสร็จสิ้น
+                                            </option>
+                                            <option value="Cancelled">
+                                                ยกเลิก
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2 border-t border-slate-200 pt-4">
+                                        <h3 className="mb-4 text-sm font-bold text-slate-900">
+                                            รายการสินค้า
+                                        </h3>
+
+                                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                                            {/* คอลัมน์ซ้าย: ค้นหา และ รายการที่มี */}
+                                            <div>
+                                                <div className="mb-4">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="ค้นหา Serial Number, IMEI... (พิมพ์เพื่อค้นหา)"
+                                                        value={searchItemQuery}
+                                                        onChange={(e) =>
+                                                            setSearchItemQuery(
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                                    />
+                                                </div>
+
+                                                {availableItems.length > 0 && (
+                                                    <div className="mb-4 max-h-[400px] overflow-auto rounded-md border border-slate-200">
+                                                        <table className="relative w-full text-left text-sm">
+                                                            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 shadow-sm">
+                                                                <tr>
+                                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
+                                                                        ชื่อเครื่อง
+                                                                    </th>
+                                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
+                                                                        Serial
+                                                                    </th>
+                                                                    <th className="px-3 py-2 font-bold text-slate-600 uppercase">
+                                                                        IMEI
+                                                                    </th>
+                                                                    <th className="px-3 py-2 text-right"></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-slate-100">
+                                                                {availableItems.map(
+                                                                    (item) => (
+                                                                        <tr
+                                                                            key={
+                                                                                item.item_id
+                                                                            }
+                                                                            className="hover:bg-slate-50"
+                                                                        >
+                                                                            <td className="px-3 py-2">
+                                                                                <div className="font-semibold text-slate-900">
+                                                                                    {(
+                                                                                        item as any
+                                                                                    )
+                                                                                        .model_name ||
+                                                                                        '-'}
+                                                                                </div>
+                                                                                <div className="text-xs text-slate-500">
+                                                                                    {(
+                                                                                        item as any
+                                                                                    )
+                                                                                        .brand_name ||
+                                                                                        '-'}
+                                                                                </div>
+                                                                            </td>
+                                                                            <td className="px-3 py-2 font-mono text-xs">
+                                                                                {
+                                                                                    item.item_serial_number
+                                                                                }
+                                                                            </td>
+                                                                            <td className="px-3 py-2 font-mono text-xs">
+                                                                                {
+                                                                                    item.item_imei
+                                                                                }
+                                                                            </td>
+                                                                            <td className="px-3 py-2 text-right">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        const newItems =
+                                                                                            [
+                                                                                                ...formData.items,
+                                                                                                {
+                                                                                                    item_id:
+                                                                                                        item.item_id!,
+                                                                                                    sale_price: 100,
+                                                                                                    item_serial_number:
+                                                                                                        item.item_serial_number,
+                                                                                                    item_imei:
+                                                                                                        item.item_imei,
+                                                                                                    model_name:
+                                                                                                        (
+                                                                                                            item as any
+                                                                                                        )
+                                                                                                            .model_name,
+                                                                                                    brand_name:
+                                                                                                        (
+                                                                                                            item as any
+                                                                                                        )
+                                                                                                            .brand_name,
+                                                                                                },
+                                                                                            ]
+                                                                                        setFormData(
+                                                                                            {
+                                                                                                ...formData,
+                                                                                                items: newItems,
+                                                                                                sale_total_amount:
+                                                                                                    newItems.reduce(
+                                                                                                        (
+                                                                                                            acc,
+                                                                                                            curr
+                                                                                                        ) =>
+                                                                                                            acc +
+                                                                                                            Number(
+                                                                                                                curr.sale_price ||
+                                                                                                                    0
+                                                                                                            ),
+                                                                                                        0
+                                                                                                    ) +
+                                                                                                    Number(
+                                                                                                        formData.sale_additional_cost ||
+                                                                                                            0
+                                                                                                    ),
+                                                                                            }
+                                                                                        )
+                                                                                        setAvailableItems(
+                                                                                            availableItems.filter(
+                                                                                                (
+                                                                                                    i
+                                                                                                ) =>
+                                                                                                    i.item_id !==
+                                                                                                    item.item_id
+                                                                                            )
+                                                                                        )
+                                                                                    }}
+                                                                                    className="rounded bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100"
+                                                                                >
+                                                                                    +
+                                                                                    เพิ่ม
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* คอลัมน์ขวา: สินค้าที่เลือก และ ยอดรวม */}
+                                            <div className="flex flex-col">
+                                                <div className="mb-4 h-[480px] flex-1 overflow-auto rounded-md border border-slate-200">
+                                                    <table className="relative w-full text-left text-sm">
+                                                        <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 shadow-sm">
+                                                            <tr>
+                                                                <th className="px-3 py-2 font-bold text-slate-600 uppercase">
+                                                                    สินค้าที่เลือก
+                                                                </th>
+                                                                <th className="w-32 px-3 py-2 font-bold text-slate-600 uppercase">
+                                                                    ราคาขาย (฿)
+                                                                </th>
+                                                                <th className="w-16 px-3 py-2 text-right"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-100">
+                                                            {formData.items.map(
+                                                                (item, idx) => (
+                                                                    <tr
+                                                                        key={
+                                                                            idx
+                                                                        }
+                                                                        className="hover:bg-slate-50"
+                                                                    >
+                                                                        <td className="px-3 py-2">
+                                                                            <div className="font-semibold text-slate-900">
+                                                                                {item.model_name ||
+                                                                                    '-'}
+                                                                            </div>
+                                                                            <div className="font-mono text-xs text-slate-500">
+                                                                                SN:{' '}
+                                                                                {item.item_serial_number ||
+                                                                                    'N/A'}
+                                                                            </div>
+                                                                            <div className="font-mono text-xs text-slate-500">
+                                                                                IMEI:{' '}
+                                                                                {item.item_imei ||
+                                                                                    'N/A'}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-3 py-2">
+                                                                            <input
+                                                                                type="number"
+                                                                                step="100"
+                                                                                value={
+                                                                                    item.sale_price
+                                                                                }
+                                                                                onChange={(
+                                                                                    e
+                                                                                ) => {
+                                                                                    const updatedItems =
+                                                                                        [
+                                                                                            ...formData.items,
+                                                                                        ]
+                                                                                    updatedItems[
+                                                                                        idx
+                                                                                    ].sale_price =
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value
+                                                                                        )
+                                                                                    setFormData(
+                                                                                        {
+                                                                                            ...formData,
+                                                                                            items: updatedItems,
+                                                                                            sale_total_amount:
+                                                                                                updatedItems.reduce(
+                                                                                                    (
+                                                                                                        acc,
+                                                                                                        curr
+                                                                                                    ) =>
+                                                                                                        acc +
+                                                                                                        Number(
+                                                                                                            curr.sale_price ||
+                                                                                                                0
+                                                                                                        ),
+                                                                                                    0
+                                                                                                ) +
+                                                                                                Number(
+                                                                                                    formData.sale_additional_cost ||
+                                                                                                        0
+                                                                                                ),
+                                                                                        }
+                                                                                    )
+                                                                                }}
+                                                                                className="w-full rounded-md border border-slate-200 px-2 py-1 text-right focus:border-blue-600 focus:outline-none"
+                                                                            />
+                                                                        </td>
+                                                                        <td className="px-3 py-2 text-right">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const updatedItems =
+                                                                                        formData.items.filter(
+                                                                                            (
+                                                                                                _,
+                                                                                                i
+                                                                                            ) =>
+                                                                                                i !==
+                                                                                                idx
+                                                                                        )
+                                                                                    setFormData(
+                                                                                        {
+                                                                                            ...formData,
+                                                                                            items: updatedItems,
+                                                                                            sale_total_amount:
+                                                                                                updatedItems.reduce(
+                                                                                                    (
+                                                                                                        acc,
+                                                                                                        curr
+                                                                                                    ) =>
+                                                                                                        acc +
+                                                                                                        Number(
+                                                                                                            curr.sale_price ||
+                                                                                                                0
+                                                                                                        ),
+                                                                                                    0
+                                                                                                ) +
+                                                                                                Number(
+                                                                                                    formData.sale_additional_cost ||
+                                                                                                        0
+                                                                                                ),
+                                                                                        }
+                                                                                    )
+                                                                                }}
+                                                                                className="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                                            >
+                                                                                <CloseIcon />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )}
+                                                            {formData.items
+                                                                .length ===
+                                                                0 && (
+                                                                <tr>
+                                                                    <td
+                                                                        colSpan={
+                                                                            3
+                                                                        }
+                                                                        className="px-3 py-8 text-center font-medium text-slate-400"
+                                                                    >
+                                                                        ยังไม่มีสินค้าในใบสั่งขาย
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                        {formData.items.length >
+                                                            0 && (
+                                                            <tfoot className="sticky bottom-0 z-10 border-t-2 border-slate-100 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+                                                                <tr>
+                                                                    <td
+                                                                        colSpan={
+                                                                            1
+                                                                        }
+                                                                        className="px-3 py-4 text-right font-bold text-slate-600"
+                                                                    >
+                                                                        ค่าใช้จ่ายเพิ่มเติม
+                                                                        (฿)
+                                                                    </td>
+                                                                    <td
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                        className="px-3 py-3 text-right"
+                                                                    >
+                                                                        <input
+                                                                            type="number"
+                                                                            value={
+                                                                                formData.sale_additional_cost ||
+                                                                                0
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) => {
+                                                                                const newCost =
+                                                                                    Number(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    ) ||
+                                                                                    0
+                                                                                setFormData(
+                                                                                    {
+                                                                                        ...formData,
+                                                                                        sale_additional_cost:
+                                                                                            newCost,
+                                                                                        sale_total_amount:
+                                                                                            formData.items.reduce(
+                                                                                                (
+                                                                                                    acc,
+                                                                                                    curr
+                                                                                                ) =>
+                                                                                                    acc +
+                                                                                                    Number(
+                                                                                                        curr.sale_price ||
+                                                                                                            0
+                                                                                                    ),
+                                                                                                0
+                                                                                            ) +
+                                                                                            newCost,
+                                                                                    }
+                                                                                )
+                                                                            }}
+                                                                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-right focus:border-blue-600 focus:outline-none"
+                                                                        />
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td
+                                                                        colSpan={
+                                                                            1
+                                                                        }
+                                                                        className="px-3 py-3 text-right font-bold text-slate-800"
+                                                                    >
+                                                                        ยอดรวมทั้งสิ้น
+                                                                        (฿)
+                                                                    </td>
+                                                                    <td
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                        className="px-3 py-3 text-right text-lg text-slate-900"
+                                                                    >
+                                                                        ฿
+                                                                        {formData.sale_total_amount.toLocaleString(
+                                                                            'th-TH'
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            </tfoot>
                                                         )}
-                                                    </td>
-                                                    <td></td>
-                                                </tr>
-                                            </tfoot>
-                                        )}
-                                    </table>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="col-span-2 flex justify-end gap-3 border-t border-slate-200 pt-4">
+                            <div className="flex shrink-0 justify-end gap-3 rounded-b-xl border-t border-slate-200 bg-slate-50 px-8 py-4">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
@@ -985,8 +1166,7 @@ export default function SaleOrdersPage() {
                             {/* Footer */}
                             <div className="mt-16 border-t border-slate-200 pt-8 text-center text-xs text-slate-500">
                                 <p>
-                                    เอกสารนี้สร้างขึ้นอย่างเป็นอิเล็กทรอนิกส์จากระบบจัดเก็บสินค้า
-                                    {' '}
+                                    เอกสารนี้สร้างขึ้นอย่างเป็นอิเล็กทรอนิกส์จากระบบจัดเก็บสินค้า{' '}
                                     {storeName}
                                 </p>
                                 <p>{new Date().toLocaleString('th-TH')}</p>
@@ -998,12 +1178,15 @@ export default function SaleOrdersPage() {
 
             {/* Customer Creation Modal */}
             {isCustomerModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-sm text-black">
-                    <div className="bg-white w-full max-w-md rounded-xl p-8 shadow-2xl ring-1 ring-slate-200">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 text-black backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
                         <h2 className="mb-6 text-xl font-bold text-slate-900">
                             เพิ่มลูกค้าใหม่
                         </h2>
-                        <form onSubmit={handleCreateCustomer} className="space-y-4">
+                        <form
+                            onSubmit={handleCreateCustomer}
+                            className="space-y-4"
+                        >
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
                                     ชื่อ
@@ -1110,7 +1293,7 @@ export default function SaleOrdersPage() {
                                     type="submit"
                                     className="rounded-md bg-green-600 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700"
                                 >
-                                    สร้างลูกค้า
+                                    เพิ่มลูกค้า
                                 </button>
                             </div>
                         </form>

@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
             sale_status,
             customer_id,
             create_by,
+            sale_additional_cost = 0,
             items, // Array of { item_id, sale_price }
         } = body
 
@@ -54,10 +55,11 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        const sale_total_amount = items.reduce(
-            (sum, item: any) => sum + Number(item.sale_price || 0),
-            0
-        )
+        const sale_total_amount =
+            items.reduce(
+                (sum, item: any) => sum + Number(item.sale_price || 0),
+                0
+            ) + Number(sale_additional_cost || 0)
 
         connection = await getConnection()
         await connection.beginTransaction()

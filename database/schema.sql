@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS User (
   username VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'staff') DEFAULT 'staff',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
