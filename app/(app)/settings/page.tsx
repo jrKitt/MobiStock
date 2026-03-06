@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 
 const STORE_NAME_STORAGE_KEY = 'mobistock_store_name'
 const STORE_LOGO_STORAGE_KEY = 'mobistock_store_logo'
+const PROMPTPAY_ID_STORAGE_KEY = 'mobistock_promptpay_id'
 const STORE_CONFIG_UPDATED_EVENT = 'mobistock_store_config_updated'
 const DEFAULT_STORE_NAME = 'MobiStock'
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024
@@ -29,6 +30,7 @@ export default function SettingsPage() {
     const { showToast } = useToast()
     const [storeName, setStoreName] = useState('')
     const [storeLogo, setStoreLogo] = useState<string | null>(null)
+    const [promptpayId, setPromptpayId] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
@@ -38,12 +40,17 @@ export default function SettingsPage() {
             setLoading(true)
             const savedName = localStorage.getItem(STORE_NAME_STORAGE_KEY)
             const savedLogo = localStorage.getItem(STORE_LOGO_STORAGE_KEY)
+            const savedPromptpayId = localStorage.getItem(
+                PROMPTPAY_ID_STORAGE_KEY
+            )
             setStoreName(savedName || DEFAULT_STORE_NAME)
             setStoreLogo(savedLogo || null)
+            setPromptpayId(savedPromptpayId || '')
         } catch {
             showToast('ไม่สามารถโหลดการตั้งค่าได้', 'error')
             setStoreName(DEFAULT_STORE_NAME)
             setStoreLogo(null)
+            setPromptpayId('')
         } finally {
             setLoading(false)
         }
@@ -82,14 +89,16 @@ export default function SettingsPage() {
         try {
             setSaving(true)
             localStorage.setItem(STORE_NAME_STORAGE_KEY, storeName.trim())
+            localStorage.setItem(PROMPTPAY_ID_STORAGE_KEY, promptpayId.trim())
             if (storeLogo) {
                 localStorage.setItem(STORE_LOGO_STORAGE_KEY, storeLogo)
             } else {
                 localStorage.removeItem(STORE_LOGO_STORAGE_KEY)
             }
             setStoreName(storeName.trim())
+            setPromptpayId(promptpayId.trim())
             window.dispatchEvent(new Event(STORE_CONFIG_UPDATED_EVENT))
-            showToast('บันทึกชื่อร้านสำเร็จ', 'success')
+            showToast('บันทึกการตั้งค่าสำเร็จ', 'success')
         } catch (error) {
             showToast(
                 error instanceof Error ? error.message : 'เกิดข้อผิดพลาด',
@@ -103,7 +112,9 @@ export default function SettingsPage() {
     return (
         <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
             <div className="bg-bg rounded-xl border border-slate-200 p-6">
-                <h1 className="text-xl font-bold text-slate-900">ตั้งค่าระบบ</h1>
+                <h1 className="text-xl font-bold text-slate-900">
+                    ตั้งค่าระบบ
+                </h1>
                 <p className="mt-1 text-sm text-slate-500">
                     แก้ไขข้อมูลชื่อร้านสำหรับการแสดงผลในระบบและงานพิมพ์
                 </p>
@@ -161,7 +172,26 @@ export default function SettingsPage() {
                         )}
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="border-t border-slate-200 pt-4">
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                            รหัสพร้อมเพย์ (PromptPay ID)
+                        </label>
+                        <p className="mb-2 text-xs text-slate-500">
+                            เบอร์โทรศัพท์, รหัสบัตรประชาชน หรือ e-Wallet ID
+                            สำหรับสร้าง QR Code ชำระเงิน
+                        </p>
+                        <input
+                            type="text"
+                            value={promptpayId}
+                            onChange={(e) => setPromptpayId(e.target.value)}
+                            placeholder="เช่น 0812345678 หรือ 1123456789012"
+                            maxLength={15}
+                            disabled={loading || saving}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                        />
+                    </div>
+
+                    <div className="flex justify-end border-t border-slate-200 pt-4">
                         <button
                             type="submit"
                             disabled={loading || saving}

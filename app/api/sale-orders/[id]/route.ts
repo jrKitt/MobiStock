@@ -179,6 +179,79 @@ export async function PUT(
     }
 }
 
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    let connection
+    try {
+        const { id } = await params
+        const body = await req.json()
+        const { sale_status, update_by } = body
+
+        if (!sale_status) {
+            return errorResponse('Sale status is required', null, 400)
+        }
+
+        connection = await getConnection()
+        await connection.beginTransaction()
+
+        // 1. Update Sale Order Status
+        await connection.query(
+            'UPDATE SALE_ORDER SET sale_status = ?, update_by = ? WHERE sale_id = ?',
+            [sale_status, update_by || null, id]
+        )
+
+        // 2. Fetch Existing Items and update their statuses
+        const existingItems = (await connection.query(
+            'SELECT item_id FROM SALE_ORDER_ITEM WHERE sale_id = ?',
+            [id]
+        )) as [{ item_id: number }[], unknown]
+
+        const newItemStatus =
+            sale_status === 'Completed'
+                ? 'Sold'
+                : sale_status === 'Pending' || sale_status === 'Processing'
+                  ? 'Reserved'
+                  : 'Available'
+
+        for (const row of existingItems[0]) {
+            await connection.query(
+                'UPDATE PRODUCT_ITEM SET item_status = ? WHERE item_id = ?',
+                [newItemStatus, row.item_id]
+            )
+        }
+
+        // 3. Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'sale',
+                id,
+                'status_changed',
+                `Sale order status updated to ${sale_status}`,
+                JSON.stringify({ sale_status }),
+                update_by || null,
+            ]
+        )
+
+        await connection.commit()
+        connection.release()
+
+        return successResponse(
+            { id, sale_status },
+            'Sale order status updated successfully'
+        )
+    } catch (error) {
+        if (connection) {
+            await connection.rollback()
+            connection.release()
+        }
+        console.error(error)
+        return errorResponse('Error updating sale order status', error)
+    }
+}
+
 export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }

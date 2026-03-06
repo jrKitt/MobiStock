@@ -1,10 +1,18 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { SaleOrder, Customer, ProductItem } from '@/types/api'
-import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
+import { SaleOrder, Customer, ProductItem, Category, Brand } from '@/types/api'
+import {
+    PrintIcon,
+    EditIcon,
+    DeleteIcon,
+    CloseIcon,
+    QrCodeIcon,
+} from '@/lib/icons'
+import generatePayload from 'promptpay-qr'
+import { QRCodeCanvas } from 'qrcode.react'
 
 interface SaleOrderItemForm {
     item_id: number
@@ -22,9 +30,21 @@ export default function SaleOrdersPage() {
     const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const [orders, setOrders] = useState<SaleOrder[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
+    const [brands, setBrands] = useState<Brand[]>([])
+
+    // Filter states
+    const [filterQuery, setFilterQuery] = useState('')
+    const [filterCategory, setFilterCategory] = useState('')
+    const [filterBrand, setFilterBrand] = useState('')
+    const [filterStartDate, setFilterStartDate] = useState('')
+    const [filterEndDate, setFilterEndDate] = useState('')
+
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
+    const [isQROpen, setIsQROpen] = useState(false)
+    const [isConfirmPaymentOpen, setIsConfirmPaymentOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [selectedOrder, setSelectedOrder] = useState<SaleOrder | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
@@ -49,30 +69,61 @@ export default function SaleOrdersPage() {
         items: [] as SaleOrderItemForm[],
     })
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true)
-            const [ordersRes, customersRes] = await Promise.all([
-                fetch('/api/sale-orders?page=1&limit=100'),
-                fetch('/api/customers?page=1&limit=100'),
-            ])
 
-            if (!ordersRes.ok || !customersRes.ok)
+            // Build query string
+            const params = new URLSearchParams()
+            params.append('page', '1')
+            params.append('limit', '100')
+            if (filterQuery) params.append('search', filterQuery)
+            if (filterCategory) params.append('category_id', filterCategory)
+            if (filterBrand) params.append('brand_id', filterBrand)
+            if (filterStartDate) params.append('start_date', filterStartDate)
+            if (filterEndDate) params.append('end_date', filterEndDate)
+
+            const [ordersRes, customersRes, categoriesRes, brandsRes] =
+                await Promise.all([
+                    fetch(`/api/sale-orders?${params.toString()}`),
+                    fetch('/api/customers?page=1&limit=100'),
+                    fetch('/api/categories?page=1&limit=100'),
+                    fetch('/api/brands?page=1&limit=100'),
+                ])
+
+            if (
+                !ordersRes.ok ||
+                !customersRes.ok ||
+                !categoriesRes.ok ||
+                !brandsRes.ok
+            )
                 throw new Error('ไม่สามารถดึงข้อมูลได้')
 
-            const [ordersData, customersData] = await Promise.all([
-                ordersRes.json(),
-                customersRes.json(),
-            ])
+            const [ordersData, customersData, categoriesData, brandsData] =
+                await Promise.all([
+                    ordersRes.json(),
+                    customersRes.json(),
+                    categoriesRes.json(),
+                    brandsRes.json(),
+                ])
 
             setOrders(ordersData.data)
             setCustomers(customersData.data)
+            setCategories(categoriesData.data || [])
+            setBrands(brandsData.data || [])
         } catch {
             showToast('ไม่สามารถโหลดข้อมูลการขายได้', 'error')
         } finally {
             setLoading(false)
         }
-    }
+    }, [
+        filterQuery,
+        filterCategory,
+        filterBrand,
+        filterStartDate,
+        filterEndDate,
+        showToast,
+    ])
 
     useEffect(() => {
         fetchData()
@@ -90,33 +141,91 @@ export default function SaleOrdersPage() {
         } catch {}
     }, [])
 
+    const handleQRPayment = (order: SaleOrder) => {
+        const promptpayId = localStorage.getItem('mobistock_promptpay_id')
+        if (!promptpayId) {
+            showToast('กรุณาตั้งค่ารหัสพร้อมเพย์ที่หน้าระบบก่อน', 'warning')
+            return
+        }
+        setSelectedOrder(order)
+        setIsQROpen(true)
+    }
+
+    const confirmPayment = async () => {
+        if (!selectedOrder?.sale_id) return
+        try {
+            setIsSubmitting(true)
+            const res = await fetch(
+                `/api/sale-orders/${selectedOrder.sale_id}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sale_status: 'Completed' }),
+                }
+            )
+
+            if (res.ok) {
+                showToast('ชำระเงินสำเร็จ', 'success')
+                fetchData()
+                setIsConfirmPaymentOpen(false)
+                setIsQROpen(false)
+            } else {
+                showToast('ชำระเงินไม่สำเร็จ กรุณาลองใหม่', 'error')
+            }
+        } catch (error) {
+            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     // Realtime search with debounce
+    useEffect(() => {
+        const delayTimer = setTimeout(() => {
+            fetchData()
+        }, 500)
+
+        return () => clearTimeout(delayTimer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        filterQuery,
+        filterCategory,
+        filterBrand,
+        filterStartDate,
+        filterEndDate,
+        fetchData,
+    ])
+
+    const searchAvailableItems = useCallback(
+        async (query: string) => {
+            if (!query) return setAvailableItems([])
+            try {
+                const res = await fetch(
+                    `/api/product-items?search=${encodeURIComponent(query)}&status=Available`
+                )
+                if (res.ok) {
+                    const data = await res.json()
+                    const filtered = data.data.filter(
+                        (di: ProductItem) =>
+                            !formData.items.find(
+                                (fi) => fi.item_id === di.item_id
+                            )
+                    )
+                    setAvailableItems(filtered)
+                }
+            } catch {
+                console.error('Failed to search items')
+            }
+        },
+        [formData.items]
+    )
     useEffect(() => {
         const delayTimer = setTimeout(() => {
             searchAvailableItems(searchItemQuery)
         }, 500) // ดีเลย์ 500ms หลังจากหยุดพิมพ์
 
         return () => clearTimeout(delayTimer)
-    }, [searchItemQuery, formData.items])
-
-    const searchAvailableItems = async (query: string) => {
-        if (!query) return setAvailableItems([])
-        try {
-            const res = await fetch(
-                `/api/product-items?search=${encodeURIComponent(query)}&status=Available`
-            )
-            if (res.ok) {
-                const data = await res.json()
-                const filtered = data.data.filter(
-                    (di: ProductItem) =>
-                        !formData.items.find((fi) => fi.item_id === di.item_id)
-                )
-                setAvailableItems(filtered)
-            }
-        } catch (error) {
-            console.error(error)
-        }
-    }
+    }, [searchItemQuery, searchAvailableItems])
 
     const handleEdit = async (order: SaleOrder) => {
         try {
@@ -151,7 +260,7 @@ export default function SaleOrdersPage() {
                 setAvailableItems([])
                 setIsModalOpen(true)
             }
-        } catch (err) {
+        } catch {
             showToast('Loading error', 'error')
         } finally {
             setLoading(false)
@@ -308,6 +417,84 @@ export default function SaleOrdersPage() {
                 </button>
             </div>
 
+            {/* Filter Section */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="ค้นหารหัสใบสั่ง, ลูกค้า, Serial, IMEI"
+                            value={filterQuery}
+                            onChange={(e) => setFilterQuery(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                        />
+                    </div>
+                    <div>
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                        >
+                            <option value="">ทุกหมวดหมู่</option>
+                            {categories.map((c) => (
+                                <option
+                                    key={c.category_id}
+                                    value={c.category_id}
+                                >
+                                    {c.category_name_th}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <select
+                            value={filterBrand}
+                            onChange={(e) => setFilterBrand(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                        >
+                            <option value="">ทุกแบรนด์</option>
+                            {brands.map((b) => (
+                                <option key={b.brand_id} value={b.brand_id}>
+                                    {b.brand_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <input
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-600 focus:outline-none"
+                            placeholder="วันที่เริ่มต้น"
+                        />
+                    </div>
+                    <div>
+                        <input
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-600 focus:outline-none"
+                            placeholder="วันที่สิ้นสุด"
+                        />
+                    </div>
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => {
+                                setFilterQuery('')
+                                setFilterCategory('')
+                                setFilterBrand('')
+                                setFilterStartDate('')
+                                setFilterEndDate('')
+                            }}
+                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                        >
+                            ล้างตัวกรอง
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {loading ? (
                 <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
@@ -333,79 +520,255 @@ export default function SaleOrdersPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {orders.map((order) => (
-                                <tr
-                                    key={order.sale_id}
-                                    className="transition-colors hover:bg-slate-50/50"
-                                >
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                                        {order.sale_code}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                        {(() => {
-                                            const c = customers.find(
-                                                (c) =>
-                                                    c.customer_id ===
-                                                    order.customer_id
-                                            )
-                                            return c
-                                                ? `${c.customer_fname} ${c.customer_lname}`
-                                                : 'Unknown'
-                                        })()}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm font-bold text-slate-900">
-                                            ฿
-                                            {order.sale_total_amount?.toLocaleString() ||
-                                                '0'}
-                                        </div>
-                                        <div
-                                            className={`text-[10px] font-bold uppercase ${
-                                                order.sale_status ===
-                                                'Completed'
-                                                    ? 'text-green-600'
-                                                    : order.sale_status ===
-                                                        'Cancelled'
-                                                      ? 'text-red-600'
-                                                      : 'text-orange-500'
-                                            }`}
+                                <React.Fragment key={order.sale_id}>
+                                    <tr className="transition-colors hover:bg-slate-50/50">
+                                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                                            {order.sale_code}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {(() => {
+                                                const c = customers.find(
+                                                    (c) =>
+                                                        c.customer_id ===
+                                                        order.customer_id
+                                                )
+                                                return c
+                                                    ? `${c.customer_fname} ${c.customer_lname}`
+                                                    : 'Unknown'
+                                            })()}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-bold text-slate-900">
+                                                ฿
+                                                {order.sale_total_amount?.toLocaleString() ||
+                                                    '0'}
+                                            </div>
+                                            <span
+                                                className={`text-[10px] font-bold uppercase ${
+                                                    order.sale_status ===
+                                                    'Completed'
+                                                        ? 'text-green-600'
+                                                        : order.sale_status ===
+                                                            'Cancelled'
+                                                          ? 'text-red-600'
+                                                          : 'text-orange-500'
+                                                }`}
+                                            >
+                                                {order.sale_status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {order.sale_status ===
+                                                    'Pending' && (
+                                                    <button
+                                                        onClick={() =>
+                                                            handleQRPayment(
+                                                                order
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                    >
+                                                        <QrCodeIcon className="h-4 w-4" />
+                                                        QR ชำระเงิน
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() =>
+                                                        handlePrint(order)
+                                                    }
+                                                    className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
+                                                >
+                                                    <PrintIcon className="h-4 w-4" />
+                                                    ออกบิลลูกค้า
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        handleEdit(order)
+                                                    }
+                                                    className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                                                >
+                                                    <EditIcon className="h-4 w-4" />
+                                                    แก้ไข
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        handleDelete(
+                                                            order.sale_id!
+                                                        )
+                                                    }
+                                                    className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                                                >
+                                                    <DeleteIcon className="h-4 w-4" />
+                                                    ลบ
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {order.items && order.items.length > 0 && (
+                                        <tr
+                                            key={`${order.sale_id}-items`}
+                                            className="bg-slate-50/30"
                                         >
-                                            {order.sale_status}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() =>
-                                                    handlePrint(order)
-                                                }
-                                                className="p-1 text-slate-400 transition-colors hover:text-green-600"
-                                                title="Print as PDF"
+                                            <td
+                                                colSpan={4}
+                                                className="border-b border-slate-100 px-6 py-3"
                                             >
-                                                <PrintIcon />
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleEdit(order)
-                                                }
-                                                className="p-1 text-slate-400 transition-colors hover:text-blue-600"
-                                            >
-                                                <EditIcon />
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    order.sale_id &&
-                                                    handleDelete(order.sale_id)
-                                                }
-                                                className="p-1 text-slate-400 transition-colors hover:text-red-500"
-                                            >
-                                                <DeleteIcon />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                                <div className="mb-2 space-y-2 border-l-2 border-slate-200 pl-4">
+                                                    <p className="text-xs font-bold text-slate-500 uppercase">
+                                                        รายการสินค้า:
+                                                    </p>
+                                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                    {order.items.map(
+                                                        (item: any) => (
+                                                            <div
+                                                                key={
+                                                                    item.sale_item_id
+                                                                }
+                                                                className="grid grid-cols-3 gap-2 text-sm text-slate-600"
+                                                            >
+                                                                <div>
+                                                                    {
+                                                                        item.brand_name
+                                                                    }{' '}
+                                                                    {
+                                                                        item.model_name
+                                                                    }
+                                                                </div>
+                                                                <div>
+                                                                    {item.item_serial_number
+                                                                        ? `SN: ${item.item_serial_number}`
+                                                                        : item.item_imei
+                                                                          ? `IMEI: ${item.item_imei}`
+                                                                          : ''}
+                                                                </div>
+                                                                <div className="font-semibold">
+                                                                    ฿
+                                                                    {Number(
+                                                                        item.sale_price
+                                                                    ).toLocaleString()}
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                    <div className="mt-2 w-64 border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
+                                                        รวมยอด: ฿
+                                                        {Number(
+                                                            order.sale_total_amount
+                                                        ).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {isQROpen && selectedOrder && (
+                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/20 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="bg-bg w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+                            <h3 className="font-bold text-slate-900">
+                                QR Code ชำระเงิน
+                            </h3>
+                            <button
+                                onClick={() => setIsQROpen(false)}
+                                className="text-slate-400 transition-colors hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-8 text-center">
+                            <div className="mb-6">
+                                <p className="mb-1 text-sm font-medium text-slate-500">
+                                    ยอดชำระสุทธิ
+                                </p>
+                                <div className="text-3xl font-black tracking-tight text-blue-600">
+                                    ฿
+                                    {selectedOrder.sale_total_amount?.toLocaleString(
+                                        'th-TH'
+                                    )}
+                                </div>
+                                <p className="mt-2 text-xs text-slate-400">
+                                    ออเดอร์ {selectedOrder.sale_code}
+                                </p>
+                            </div>
+
+                            <div className="mx-auto inline-block rounded-xl border-4 border-white bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                                <QRCodeCanvas
+                                    value={generatePayload(
+                                        localStorage.getItem(
+                                            'mobistock_promptpay_id'
+                                        ) || '',
+                                        {
+                                            amount:
+                                                selectedOrder.sale_total_amount ||
+                                                0,
+                                        }
+                                    )}
+                                    size={200}
+                                    level="H"
+                                    includeMargin={false}
+                                />
+                            </div>
+
+                            <div className="mt-8 flex flex-col gap-3">
+                                <button
+                                    onClick={() =>
+                                        setIsConfirmPaymentOpen(true)
+                                    }
+                                    className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                >
+                                    ชำระสำเร็จ
+                                </button>
+                                <button
+                                    onClick={() => setIsQROpen(false)}
+                                    className="w-full rounded-xl bg-slate-100 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                    ปิด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isConfirmPaymentOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="p-6 text-center">
+                            <h3 className="mb-2 text-lg font-bold text-slate-900">
+                                ยืนยันการชำระเงิน
+                            </h3>
+                            <p className="mb-6 text-sm text-slate-600">
+                                คุณต้องการยืนยันว่าลูกค้าได้ชำระเงินสำหรับออเดอร์นี้แล้วใช่หรือไม่?
+                                สถานะออเดอร์จะถูกเปลี่ยนเป็น "ชำระเงินแล้ว"
+                                (Completed)
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() =>
+                                        setIsConfirmPaymentOpen(false)
+                                    }
+                                    disabled={isSubmitting}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={confirmPayment}
+                                    disabled={isSubmitting}
+                                    className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {isSubmitting ? 'กำลังยืนยัน...' : 'ยืนยัน'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -509,32 +872,35 @@ export default function SaleOrdersPage() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                            สถานะ
-                                        </label>
-                                        <select
-                                            required
-                                            value={formData.sale_status}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    sale_status: e.target.value,
-                                                })
-                                            }
-                                            className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                        >
-                                            <option value="Pending">
-                                                รอชำระเงิน
-                                            </option>
-                                            <option value="Completed">
-                                                ชำระเงินเสร็จสิ้น
-                                            </option>
-                                            <option value="Cancelled">
-                                                ยกเลิก
-                                            </option>
-                                        </select>
-                                    </div>
+                                    {selectedOrder && (
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                                สถานะ
+                                            </label>
+                                            <select
+                                                required
+                                                value={formData.sale_status}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        sale_status:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                            >
+                                                <option value="Pending">
+                                                    รอชำระเงิน
+                                                </option>
+                                                <option value="Completed">
+                                                    ชำระเงินเสร็จสิ้น
+                                                </option>
+                                                <option value="Cancelled">
+                                                    ยกเลิก
+                                                </option>
+                                            </select>
+                                        </div>
+                                    )}
                                     <div className="col-span-2 border-t border-slate-200 pt-4">
                                         <h3 className="mb-4 text-sm font-bold text-slate-900">
                                             รายการสินค้า

@@ -9,4 +9,5 @@ export interface SaleOrder {
     update_by?: string
     create_at?: Date
     update_at?: Date
+    items?: any[]
 }
