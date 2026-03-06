@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS SALE_ORDER (
   sale_code VARCHAR(255),
   sale_date DATETIME,
   sale_total_amount DECIMAL(10, 2),
-  sale_status ENUM('Pending', 'Processing', 'Completed', 'Cancelled') DEFAULT 'Pending',
+  sale_status ENUM('Pending', 'Completed', 'Cancelled') DEFAULT 'Pending',
   customer_id INT,
   create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS SALE_ORDER_ITEM (
 CREATE TABLE IF NOT EXISTS SPARE_PART (
   part_id INT AUTO_INCREMENT PRIMARY KEY,
   part_name VARCHAR(255),
-  part_status ENUM('Available', 'Out of Stock') DEFAULT 'Available',
+  part_quantity INT DEFAULT 0,
+  -- part_status ENUM('Available', 'Out of Stock') DEFAULT 'Available',
   image_url VARCHAR(255) NULL,
   create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
