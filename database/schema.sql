@@ -159,6 +159,18 @@ CREATE TABLE IF NOT EXISTS CLAIM_ORDER (
   FOREIGN KEY (item_id) REFERENCES PRODUCT_ITEM(item_id)
 );
 
+CREATE TABLE IF NOT EXISTS ORDER_HISTORY_LOG (
+  log_id INT AUTO_INCREMENT PRIMARY KEY,
+  order_type ENUM('sale', 'repair', 'claim') NOT NULL,
+  order_id INT NOT NULL,
+  action ENUM('created', 'updated', 'deleted', 'status_changed') NOT NULL,
+  description TEXT NULL,
+  old_data JSON NULL,
+  new_data JSON NULL,
+  action_by VARCHAR(255) NULL,
+  create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS User (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL,

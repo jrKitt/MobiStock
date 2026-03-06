@@ -56,6 +56,29 @@ export async function PUT(
                 id,
             ]
         )
+
+        // Log history
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'claim',
+                id,
+                'updated',
+                'Claim order updated',
+                JSON.stringify({
+                    claim_code,
+                    claim_date_received,
+                    claim_date_returned,
+                    claim_status,
+                    claim_resolution,
+                    supplier_id,
+                    customer_id,
+                    item_id,
+                }),
+                update_by || null,
+            ]
+        )
+
         return successResponse(
             { id, ...body },
             'Claim order updated successfully'
@@ -72,6 +95,13 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params
+
+        // Log history before deleting
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, action_by) VALUES (?, ?, ?, ?, ?)',
+            ['claim', id, 'deleted', 'Claim order deleted', null]
+        )
+
         await query('DELETE FROM CLAIM_ORDER WHERE claim_id = ?', [id])
         return successResponse(null, 'Claim order deleted successfully')
     } catch (error) {

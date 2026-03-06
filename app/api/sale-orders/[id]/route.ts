@@ -138,6 +138,26 @@ export async function PUT(
             )
         }
 
+        // Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'sale',
+                id,
+                'updated',
+                'Sale order updated',
+                JSON.stringify({
+                    sale_code,
+                    sale_date,
+                    sale_total_amount,
+                    sale_status,
+                    customer_id,
+                    items,
+                }),
+                update_by || null,
+            ]
+        )
+
         await connection.commit()
         connection.release()
 
@@ -183,6 +203,12 @@ export async function DELETE(
             [id]
         )
         await connection.query('DELETE FROM SALE_ORDER WHERE sale_id = ?', [id])
+
+        // Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, action_by) VALUES (?, ?, ?, ?, ?)',
+            ['sale', id, 'deleted', 'Sale order deleted', null]
+        )
 
         await connection.commit()
         connection.release()

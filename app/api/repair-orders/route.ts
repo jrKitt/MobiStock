@@ -62,8 +62,32 @@ export async function POST(req: NextRequest) {
                 create_by || null,
             ]
         )
+        const insertedId = (result as ResultSetHeader).insertId
+
+        // Log history
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'repair',
+                insertedId,
+                'created',
+                'Repair order created',
+                JSON.stringify({
+                    repair_problem_desc,
+                    repair_technician_note,
+                    repair_date_received,
+                    repair_date_completed,
+                    repair_labor_cost,
+                    repair_status,
+                    customer_id,
+                    item_id,
+                }),
+                create_by || null,
+            ]
+        )
+
         return successResponse(
-            { id: (result as ResultSetHeader).insertId, ...body },
+            { id: insertedId, ...body },
             'Repair order created successfully',
             201
         )

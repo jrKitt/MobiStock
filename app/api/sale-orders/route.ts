@@ -96,6 +96,26 @@ export async function POST(req: NextRequest) {
             )
         }
 
+        // Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'sale',
+                saleId,
+                'created',
+                'Sale order created',
+                JSON.stringify({
+                    sale_code,
+                    sale_date,
+                    sale_total_amount,
+                    sale_status,
+                    customer_id,
+                    items,
+                }),
+                create_by || null,
+            ]
+        )
+
         await connection.commit()
         connection.release()
 

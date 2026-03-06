@@ -56,6 +56,29 @@ export async function PUT(
                 id,
             ]
         )
+
+        // Log history
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'repair',
+                id,
+                'updated',
+                'Repair order updated',
+                JSON.stringify({
+                    repair_problem_desc,
+                    repair_technician_note,
+                    repair_date_received,
+                    repair_date_completed,
+                    repair_labor_cost,
+                    repair_status,
+                    customer_id,
+                    item_id,
+                }),
+                update_by || null,
+            ]
+        )
+
         return successResponse(
             { id, ...body },
             'Repair order updated successfully'
@@ -72,6 +95,13 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params
+
+        // Log history before deleting
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, action_by) VALUES (?, ?, ?, ?, ?)',
+            ['repair', id, 'deleted', 'Repair order deleted', null]
+        )
+
         await query('DELETE FROM REPAIR_ORDER WHERE repair_id = ?', [id])
         return successResponse(null, 'Repair order deleted successfully')
     } catch (error) {
