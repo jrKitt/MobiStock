@@ -40,6 +40,11 @@ export default function SaleOrdersPage() {
     const [filterStartDate, setFilterStartDate] = useState('')
     const [filterEndDate, setFilterEndDate] = useState('')
 
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
+    const itemsPerPage = 10
+
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
@@ -75,8 +80,8 @@ export default function SaleOrdersPage() {
 
             // Build query string
             const params = new URLSearchParams()
-            params.append('page', '1')
-            params.append('limit', '100')
+            params.append('page', currentPage.toString())
+            params.append('limit', itemsPerPage.toString())
             if (filterQuery) params.append('search', filterQuery)
             if (filterCategory) params.append('category_id', filterCategory)
             if (filterBrand) params.append('brand_id', filterBrand)
@@ -108,6 +113,10 @@ export default function SaleOrdersPage() {
                 ])
 
             setOrders(ordersData.data)
+            if (ordersData.pagination) {
+                setTotalPages(ordersData.pagination.totalPages)
+                setTotalItems(ordersData.pagination.total)
+            }
             setCustomers(customersData.data)
             setCategories(categoriesData.data || [])
             setBrands(brandsData.data || [])
@@ -117,6 +126,7 @@ export default function SaleOrdersPage() {
             setLoading(false)
         }
     }, [
+        currentPage,
         filterQuery,
         filterCategory,
         filterBrand,
@@ -425,15 +435,21 @@ export default function SaleOrdersPage() {
                             type="text"
                             placeholder="ค้นหารหัสใบสั่ง, ลูกค้า, Serial, IMEI"
                             value={filterQuery}
-                            onChange={(e) => setFilterQuery(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                            onChange={(e) => {
+                                setFilterQuery(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none"
                         />
                     </div>
                     <div>
                         <select
                             value={filterCategory}
-                            onChange={(e) => setFilterCategory(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                            onChange={(e) => {
+                                setFilterCategory(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none"
                         >
                             <option value="">ทุกหมวดหมู่</option>
                             {categories.map((c) => (
@@ -449,8 +465,11 @@ export default function SaleOrdersPage() {
                     <div>
                         <select
                             value={filterBrand}
-                            onChange={(e) => setFilterBrand(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                            onChange={(e) => {
+                                setFilterBrand(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none"
                         >
                             <option value="">ทุกแบรนด์</option>
                             {brands.map((b) => (
@@ -464,8 +483,11 @@ export default function SaleOrdersPage() {
                         <input
                             type="date"
                             value={filterStartDate}
-                            onChange={(e) => setFilterStartDate(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-600 focus:outline-none"
+                            onChange={(e) => {
+                                setFilterStartDate(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none"
                             placeholder="วันที่เริ่มต้น"
                         />
                     </div>
@@ -473,8 +495,11 @@ export default function SaleOrdersPage() {
                         <input
                             type="date"
                             value={filterEndDate}
-                            onChange={(e) => setFilterEndDate(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-600 focus:outline-none"
+                            onChange={(e) => {
+                                setFilterEndDate(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-none"
                             placeholder="วันที่สิ้นสุด"
                         />
                     </div>
@@ -486,8 +511,9 @@ export default function SaleOrdersPage() {
                                 setFilterBrand('')
                                 setFilterStartDate('')
                                 setFilterEndDate('')
+                                setCurrentPage(1)
                             }}
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:border-blue-600 focus:outline-none"
                         >
                             ล้างตัวกรอง
                         </button>
@@ -519,152 +545,221 @@ export default function SaleOrdersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {orders.map((order) => (
-                                <React.Fragment key={order.sale_id}>
-                                    <tr className="transition-colors hover:bg-slate-50/50">
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                                            {order.sale_code}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">
-                                            {(() => {
-                                                const c = customers.find(
-                                                    (c) =>
-                                                        c.customer_id ===
-                                                        order.customer_id
-                                                )
-                                                return c
-                                                    ? `${c.customer_fname} ${c.customer_lname}`
-                                                    : 'Unknown'
-                                            })()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm font-bold text-slate-900">
-                                                ฿
-                                                {order.sale_total_amount?.toLocaleString() ||
-                                                    '0'}
-                                            </div>
-                                            <span
-                                                className={`text-[10px] font-bold uppercase ${
-                                                    order.sale_status ===
-                                                    'Completed'
-                                                        ? 'text-green-600'
-                                                        : order.sale_status ===
-                                                            'Cancelled'
-                                                          ? 'text-red-600'
-                                                          : 'text-orange-500'
-                                                }`}
-                                            >
-                                                {order.sale_status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                {order.sale_status ===
-                                                    'Pending' && (
+                            {orders.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="h-32 text-center text-sm text-slate-500"
+                                    >
+                                        ไม่พบข้อมูลใบสั่งขาย
+                                    </td>
+                                </tr>
+                            ) : (
+                                orders.map((order) => (
+                                    <React.Fragment key={order.sale_id}>
+                                        <tr className="transition-colors hover:bg-slate-50/50">
+                                            <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                                                {order.sale_code}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                                {(() => {
+                                                    const c = customers.find(
+                                                        (c) =>
+                                                            c.customer_id ===
+                                                            order.customer_id
+                                                    )
+                                                    return c
+                                                        ? `${c.customer_fname} ${c.customer_lname}`
+                                                        : 'Unknown'
+                                                })()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-bold text-slate-900">
+                                                    ฿
+                                                    {order.sale_total_amount?.toLocaleString() ||
+                                                        '0'}
+                                                </div>
+                                                <span
+                                                    className={`text-[10px] font-bold uppercase ${
+                                                        order.sale_status ===
+                                                        'Completed'
+                                                            ? 'text-green-600'
+                                                            : order.sale_status ===
+                                                                'Cancelled'
+                                                              ? 'text-red-600'
+                                                              : 'text-orange-500'
+                                                    }`}
+                                                >
+                                                    {order.sale_status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {order.sale_status ===
+                                                        'Pending' && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleQRPayment(
+                                                                    order
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                        >
+                                                            <QrCodeIcon className="h-4 w-4" />
+                                                            QR ชำระเงิน
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() =>
-                                                            handleQRPayment(
-                                                                order
+                                                            handlePrint(order)
+                                                        }
+                                                        className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
+                                                    >
+                                                        <PrintIcon className="h-4 w-4" />
+                                                        ออกบิลลูกค้า
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleEdit(order)
+                                                        }
+                                                        className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                                                    >
+                                                        <EditIcon className="h-4 w-4" />
+                                                        แก้ไข
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                order.sale_id!
                                                             )
                                                         }
-                                                        className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                        className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                                                     >
-                                                        <QrCodeIcon className="h-4 w-4" />
-                                                        QR ชำระเงิน
+                                                        <DeleteIcon className="h-4 w-4" />
+                                                        ลบ
                                                     </button>
-                                                )}
-                                                <button
-                                                    onClick={() =>
-                                                        handlePrint(order)
-                                                    }
-                                                    className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
-                                                >
-                                                    <PrintIcon className="h-4 w-4" />
-                                                    ออกบิลลูกค้า
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        handleEdit(order)
-                                                    }
-                                                    className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-                                                >
-                                                    <EditIcon className="h-4 w-4" />
-                                                    แก้ไข
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        handleDelete(
-                                                            order.sale_id!
-                                                        )
-                                                    }
-                                                    className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                                                >
-                                                    <DeleteIcon className="h-4 w-4" />
-                                                    ลบ
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {order.items && order.items.length > 0 && (
-                                        <tr
-                                            key={`${order.sale_id}-items`}
-                                            className="bg-slate-50/30"
-                                        >
-                                            <td
-                                                colSpan={4}
-                                                className="border-b border-slate-100 px-6 py-3"
-                                            >
-                                                <div className="mb-2 space-y-2 border-l-2 border-slate-200 pl-4">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase">
-                                                        รายการสินค้า:
-                                                    </p>
-                                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                    {order.items.map(
-                                                        (item: any) => (
-                                                            <div
-                                                                key={
-                                                                    item.sale_item_id
-                                                                }
-                                                                className="grid grid-cols-3 gap-2 text-sm text-slate-600"
-                                                            >
-                                                                <div>
-                                                                    {
-                                                                        item.brand_name
-                                                                    }{' '}
-                                                                    {
-                                                                        item.model_name
-                                                                    }
-                                                                </div>
-                                                                <div>
-                                                                    {item.item_serial_number
-                                                                        ? `SN: ${item.item_serial_number}`
-                                                                        : item.item_imei
-                                                                          ? `IMEI: ${item.item_imei}`
-                                                                          : ''}
-                                                                </div>
-                                                                <div className="font-semibold">
-                                                                    ฿
-                                                                    {Number(
-                                                                        item.sale_price
-                                                                    ).toLocaleString()}
-                                                                </div>
-                                                            </div>
-                                                        )
-                                                    )}
-                                                    <div className="mt-2 w-64 border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
-                                                        รวมยอด: ฿
-                                                        {Number(
-                                                            order.sale_total_amount
-                                                        ).toLocaleString()}
-                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
+                                        {order.items &&
+                                            order.items.length > 0 && (
+                                                <tr
+                                                    key={`${order.sale_id}-items`}
+                                                    className="bg-slate-50/30"
+                                                >
+                                                    <td
+                                                        colSpan={4}
+                                                        className="border-b border-slate-100 px-6 py-3"
+                                                    >
+                                                        <div className="mb-2 space-y-2 border-l-2 border-slate-200 pl-4">
+                                                            <p className="text-xs font-bold text-slate-500 uppercase">
+                                                                รายการสินค้า:
+                                                            </p>
+                                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                            {order.items.map(
+                                                                (item: any) => (
+                                                                    <div
+                                                                        key={
+                                                                            item.sale_item_id
+                                                                        }
+                                                                        className="grid grid-cols-3 gap-2 text-sm text-slate-600"
+                                                                    >
+                                                                        <div>
+                                                                            {
+                                                                                item.brand_name
+                                                                            }{' '}
+                                                                            {
+                                                                                item.model_name
+                                                                            }
+                                                                        </div>
+                                                                        <div>
+                                                                            {item.item_serial_number
+                                                                                ? `SN: ${item.item_serial_number}`
+                                                                                : item.item_imei
+                                                                                  ? `IMEI: ${item.item_imei}`
+                                                                                  : ''}
+                                                                        </div>
+                                                                        <div className="font-semibold">
+                                                                            ฿
+                                                                            {Number(
+                                                                                item.sale_price
+                                                                            ).toLocaleString()}
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                            <div className="mt-2 w-64 border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
+                                                                รวมยอด: ฿
+                                                                {Number(
+                                                                    order.sale_total_amount
+                                                                ).toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                    </React.Fragment>
+                                ))
+                            )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && totalPages > 0 && (
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-6">
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-slate-700">
+                                แสดง <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> ถึง{' '}
+                                <span className="font-medium">
+                                    {Math.min(currentPage * itemsPerPage, totalItems)}
+                                </span>{' '}
+                                จาก <span className="font-medium">{totalItems}</span> รายการ
+                            </p>
+                        </div>
+                        <div>
+                            <nav
+                                className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                                aria-label="Pagination"
+                            >
+                                <button
+                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
+                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                >
+                                    <span className="sr-only">Previous</span>
+                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button
+                                        key={i + 1}
+                                        onClick={() => setCurrentPage(i + 1)}
+                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
+                                            currentPage === i + 1
+                                                ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                                                : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                >
+                                    <span className="sr-only">Next</span>
+                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             )}
 
