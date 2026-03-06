@@ -8,7 +8,6 @@ import {
     FiTrendingUp,
     FiPlus,
     FiArrowRight,
-    FiDollarSign,
     FiTag,
 } from 'react-icons/fi'
 import { useToast } from '@/components/ui/Toast'
@@ -34,10 +33,10 @@ interface RecentSale {
 }
 
 interface Product {
-    prod_id: number
-    prod_name: string
-    status: string
-    sell_price: number
+    item_id: number
+    item_serial_number: string
+    item_lot_number: string
+    item_status: string
 }
 
 export default function DashboardPage() {
@@ -60,7 +59,7 @@ export default function DashboardPage() {
             try {
                 setLoading(true)
                 // Fetch Products for stats
-                const prodRes = await fetch('/api/products?pageSize=1000')
+                const prodRes = await fetch('/api/product-items?page=1&limit=1000')
                 const prodData = await prodRes.json()
                 const products = prodData.data || []
 
@@ -78,7 +77,7 @@ export default function DashboardPage() {
                 const brandData = await brandRes.json()
 
                 const availableCount = products.filter(
-                    (p: any) => p.status === 'Available'
+                    (p: Product) => p.item_status === 'Available'
                 ).length
                 const totalRevenue = sales.reduce(
                     (acc: number, s: any) => acc + (s.sale_total_amount || 0),
@@ -91,7 +90,7 @@ export default function DashboardPage() {
                     totalSales: saleData.pagination?.total || 0,
                     totalRevenue: totalRevenue,
                     lowStockCount: products.filter(
-                        (p: any) => p.status === 'oos'
+                        (p: Product) => p.item_status === 'Damaged'
                     ).length,
                     totalCategories: catData.pagination?.total || 0,
                     totalBrands: brandData.pagination?.total || 0,
@@ -332,32 +331,32 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 divide-x divide-slate-100 md:grid-cols-3 lg:grid-cols-5">
                     {recentProducts.map((product) => (
                         <div
-                            key={product.prod_id}
+                            key={product.item_id}
                             className="p-5 transition-colors hover:bg-slate-50"
                         >
                             <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                                 <FiBox />
                             </div>
                             <h4 className="truncate text-sm font-bold text-slate-900">
-                                {product.prod_name}
+                                {product.item_serial_number}
                             </h4>
                             <p className="mb-2 text-xs text-slate-500">
-                                ID: {product.prod_id}
+                                ID: {product.item_id}
                             </p>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-blue-600">
-                                    ฿{product.sell_price?.toLocaleString()}
+                                <span className="text-xs text-slate-500">
+                                    Lot: {product.item_lot_number || '-'}
                                 </span>
                                 <span
                                     className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                                        product.status === 'Available'
+                                        product.item_status === 'Available'
                                             ? 'bg-green-100 text-green-600'
                                             : 'bg-slate-100 text-slate-500'
                                     }`}
                                 >
-                                    {product.status === 'Available'
+                                    {product.item_status === 'Available'
                                         ? 'พร้อม'
-                                        : product.status}
+                                        : product.item_status}
                                 </span>
                             </div>
                         </div>
