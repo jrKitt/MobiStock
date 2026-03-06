@@ -243,15 +243,21 @@ export default function DashboardPage() {
                                                     <span
                                                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
                                                             sale.sale_status ===
-                                                            'Paid'
+                                                            'Completed'
                                                                 ? 'bg-green-100 text-green-700'
-                                                                : 'bg-orange-100 text-orange-700'
+                                                                : sale.sale_status ===
+                                                                    'Cancelled'
+                                                                  ? 'bg-red-100 text-red-700'
+                                                                  : 'bg-orange-100 text-orange-700'
                                                         }`}
                                                     >
                                                         {sale.sale_status ===
-                                                        'Paid'
-                                                            ? 'ชำระแล้ว'
-                                                            : 'รอชำระ'}
+                                                        'Completed'
+                                                            ? 'เสร็จสิ้น'
+                                                            : sale.sale_status ===
+                                                                'Cancelled'
+                                                              ? 'ยกเลิก'
+                                                              : 'รอดำเนินการ'}
                                                     </span>
                                                 </td>
                                             </tr>

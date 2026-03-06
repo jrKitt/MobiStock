@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { SaleOrder, Customer, ProductItem } from '@/types/api'
@@ -16,6 +17,7 @@ interface SaleOrderItemForm {
 export default function SaleOrdersPage() {
     const { showToast } = useToast()
     const [storeName, setStoreName] = useState('MobiStock')
+    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const [orders, setOrders] = useState<SaleOrder[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
@@ -76,9 +78,11 @@ export default function SaleOrdersPage() {
         // โหลดชื่อร้านจาก localStorage
         try {
             const savedName = localStorage.getItem('mobistock_store_name')
+            const savedLogo = localStorage.getItem('mobistock_store_logo')
             if (savedName && savedName.trim()) {
                 setStoreName(savedName)
             }
+            setStoreLogo(savedLogo || null)
         } catch {}
     }, [])
 
@@ -486,9 +490,6 @@ export default function SaleOrdersPage() {
                                     <option value="Pending">รอดำเนินการ</option>
                                     <option value="Completed">เสร็จสิ้น</option>
                                     <option value="Cancelled">ยกเลิก</option>
-                                    <option value="Processing">
-                                        กำลังประมวลผล
-                                    </option>
                                 </select>
                             </div>
                             <div className="col-span-2 border-t border-slate-200 pt-4">
@@ -807,13 +808,25 @@ export default function SaleOrdersPage() {
                             {/* Invoice Header */}
                             <div className="mb-8 border-b-2 border-slate-200 pb-8">
                                 <div className="mb-4 grid grid-cols-3 gap-4">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-slate-900">
-                                            {storeName}
-                                        </h2>
-                                        <p className="text-sm text-slate-600">
-                                            ระบบจัดเก็บสินค้า
-                                        </p>
+                                    <div className="flex items-start gap-3">
+                                        {storeLogo && (
+                                            <Image
+                                                src={storeLogo}
+                                                alt="Store logo"
+                                                width={56}
+                                                height={56}
+                                                unoptimized
+                                                className="h-14 w-14 rounded-md border border-slate-200 object-cover"
+                                            />
+                                        )}
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-slate-900">
+                                                {storeName}
+                                            </h2>
+                                            <p className="text-sm text-slate-600">
+                                                ระบบจัดเก็บสินค้า
+                                            </p>
+                                        </div>
                                     </div>
                                     <div></div>
                                     <div className="text-right">
@@ -890,10 +903,7 @@ export default function SaleOrdersPage() {
                                                 : selectedOrder.sale_status ===
                                                     'Cancelled'
                                                   ? 'ยกเลิก'
-                                                  : selectedOrder.sale_status ===
-                                                      'Processing'
-                                                    ? 'กำลังประมวลผล'
-                                                    : 'รอดำเนินการ'}
+                                                  : 'รอดำเนินการ'}
                                         </p>
                                     </div>
                                 </div>

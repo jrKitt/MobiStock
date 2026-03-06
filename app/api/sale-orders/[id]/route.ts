@@ -22,7 +22,7 @@ export async function GET(
         // Fetch items associated
         const items = await query(
             `
-            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number 
+            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number
             FROM SALE_ORDER_ITEM soi
             JOIN PRODUCT_ITEM pi ON soi.item_id = pi.item_id
             WHERE soi.sale_id = ?

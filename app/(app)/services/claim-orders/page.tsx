@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ClaimOrder, Customer, ProductItem, Supplier } from '@/types/api'
@@ -8,6 +9,7 @@ import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
 export default function ClaimOrdersPage() {
     const { showToast } = useToast()
     const [storeName, setStoreName] = useState('MobiStock')
+    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const [claims, setClaims] = useState<ClaimOrder[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -75,9 +77,11 @@ export default function ClaimOrdersPage() {
         // โหลดชื่อร้านจาก localStorage
         try {
             const savedName = localStorage.getItem('mobistock_store_name')
+            const savedLogo = localStorage.getItem('mobistock_store_logo')
             if (savedName && savedName.trim()) {
                 setStoreName(savedName)
             }
+            setStoreLogo(savedLogo || null)
         } catch {}
     }, [])
 
@@ -580,12 +584,26 @@ export default function ClaimOrdersPage() {
                             </div>
 
                             <div className="mb-8 border-b-2 border-slate-200 pb-8">
-                                <h2 className="text-2xl font-bold text-slate-900">
-                                    {storeName}
-                                </h2>
-                                <p className="text-sm text-slate-600">
-                                    ระบบจัดการสต็อก - ใบรับเคลมสินค้า
-                                </p>
+                                <div className="flex items-start gap-3">
+                                    {storeLogo && (
+                                        <Image
+                                            src={storeLogo}
+                                            alt="Store logo"
+                                            width={56}
+                                            height={56}
+                                            unoptimized
+                                            className="h-14 w-14 rounded-md border border-slate-200 object-cover"
+                                        />
+                                    )}
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900">
+                                            {storeName}
+                                        </h2>
+                                        <p className="text-sm text-slate-600">
+                                            ระบบจัดการสต็อก - ใบรับเคลมสินค้า
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="mb-8 grid grid-cols-2 gap-8">

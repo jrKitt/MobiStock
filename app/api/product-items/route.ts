@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
                 pi.*,
                 pm.model_name,
                 b.brand_name,
-                c.category_name
+                c.category_name_th
             FROM PRODUCT_ITEM pi 
             LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id 
             LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
