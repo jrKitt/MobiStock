@@ -122,7 +122,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-6 pb-10">
+        <div className="space-y-6 pb-10 text-black">
             {/* Header section with Greeting */}
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
@@ -188,7 +188,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Recent Sales Table */}
                 <div className="lg:col-span-2">
-                    <div className="bg-bg overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                    <div className="bg-bg overflow-hidden rounded-xl border border-slate-200 shadow-sm min-h-full">
                         <div className="flex items-center justify-between border-b border-slate-100 p-5">
                             <h3 className="font-bold text-slate-900">
                                 รายการขายล่าสุด
@@ -274,7 +274,7 @@ export default function DashboardPage() {
 
                 {/* Categories & Brands Overview */}
                 <div className="space-y-6">
-                    <div className="bg-bg rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div className="bg-bg rounded-xl border border-slate-200 p-5 shadow-sm ">
                         <h3 className="mb-4 font-bold text-slate-900">
                             ภาพรวมสต็อก
                         </h3>
@@ -410,7 +410,7 @@ function OverviewItem({ label, count, icon, color }: any) {
     return (
         <div className="group flex cursor-pointer items-center justify-between">
             <div className="flex items-center gap-3">
-                <div className="group-hover:bg-bg bg-slate-50flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-all group-hover:shadow-sm">
+                <div className="group-hover:bg-bg bg-slate-50 flex h-8 w-8 items-center justify-center rounded text-slate-600 transition-all group-hover:shadow-sm">
                     {icon}
                 </div>
                 <span className="text-sm font-medium text-slate-600">
