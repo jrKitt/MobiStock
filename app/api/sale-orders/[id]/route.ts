@@ -50,6 +50,7 @@ export async function PUT(
             sale_date,
             sale_status,
             customer_id,
+            update_by,
             items, // Array of { item_id, sale_price }
         } = body
 
@@ -72,13 +73,14 @@ export async function PUT(
 
         // 1. Update Sale Order
         await connection.query(
-            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_status = ?, customer_id = ? WHERE sale_id = ?',
+            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_status = ?, customer_id = ?, update_by = ? WHERE sale_id = ?',
             [
                 sale_code,
                 sale_date,
                 sale_total_amount,
                 sale_status,
                 customer_id,
+                update_by || null,
                 id,
             ]
         )

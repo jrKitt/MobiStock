@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM REPAIR_ORDER WHERE repair_id = ?', [id])) as RepairOrder[]
+        const rows = (await query(
+            'SELECT * FROM REPAIR_ORDER WHERE repair_id = ?',
+            [id]
+        )) as RepairOrder[]
         if (rows.length === 0) {
             return errorResponse('Repair order not found', null, 404)
         }
@@ -36,9 +39,10 @@ export async function PUT(
             repair_status,
             customer_id,
             item_id,
+            update_by,
         } = body
         await query(
-            'UPDATE REPAIR_ORDER SET repair_problem_desc = ?, repair_technician_note = ?, repair_date_received = ?, repair_date_completed = ?, repair_labor_cost = ?, repair_status = ?, customer_id = ?, item_id = ? WHERE repair_id = ?',
+            'UPDATE REPAIR_ORDER SET repair_problem_desc = ?, repair_technician_note = ?, repair_date_received = ?, repair_date_completed = ?, repair_labor_cost = ?, repair_status = ?, customer_id = ?, item_id = ?, update_by = ? WHERE repair_id = ?',
             [
                 repair_problem_desc,
                 repair_technician_note,
@@ -48,10 +52,14 @@ export async function PUT(
                 repair_status,
                 customer_id,
                 item_id,
+                update_by || null,
                 id,
             ]
         )
-        return successResponse({ id, ...body }, 'Repair order updated successfully')
+        return successResponse(
+            { id, ...body },
+            'Repair order updated successfully'
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error updating repair order', error)

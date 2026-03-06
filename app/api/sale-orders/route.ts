@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
             sale_date,
             sale_status,
             customer_id,
+            create_by,
             items, // Array of { item_id, sale_price }
         } = body
 
@@ -62,8 +63,16 @@ export async function POST(req: NextRequest) {
         await connection.beginTransaction()
 
         const [orderResult] = await connection.query(
-            'INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id) VALUES (?, ?, ?, ?, ?)',
-            [sale_code, sale_date, sale_total_amount, sale_status, customer_id]
+            'INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id, create_by, update_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                sale_code,
+                sale_date,
+                sale_total_amount,
+                sale_status,
+                customer_id,
+                create_by || null,
+                create_by || null,
+            ]
         )
         const saleId = (orderResult as ResultSetHeader).insertId
 

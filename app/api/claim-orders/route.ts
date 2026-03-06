@@ -45,9 +45,10 @@ export async function POST(req: NextRequest) {
             supplier_id,
             customer_id,
             item_id,
+            create_by,
         } = body
         const result = await query(
-            'INSERT INTO CLAIM_ORDER (claim_code, claim_date_received, claim_date_returned, claim_status, claim_resolution, supplier_id, customer_id, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO CLAIM_ORDER (claim_code, claim_date_received, claim_date_returned, claim_status, claim_resolution, supplier_id, customer_id, item_id, create_by, update_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 claim_code,
                 claim_date_received,
@@ -57,6 +58,8 @@ export async function POST(req: NextRequest) {
                 supplier_id || null,
                 customer_id,
                 item_id,
+                create_by || null,
+                create_by || null,
             ]
         )
         return successResponse(

@@ -10,13 +10,23 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
 
-        const countResult = await query<{ total: number }[]>('SELECT COUNT(*) as total FROM REPAIR_ORDER')
+        const countResult = await query<{ total: number }[]>(
+            'SELECT COUNT(*) as total FROM REPAIR_ORDER'
+        )
         const total = countResult[0].total
         const totalPages = Math.ceil(total / limit)
 
-        const rows = (await query('SELECT * FROM REPAIR_ORDER ORDER BY repair_id DESC LIMIT ? OFFSET ?', [limit, offset])) as RepairOrder[]
-        
-        return successResponse(rows, 'Success', 200, { page, limit, total, totalPages })
+        const rows = (await query(
+            'SELECT * FROM REPAIR_ORDER ORDER BY repair_id DESC LIMIT ? OFFSET ?',
+            [limit, offset]
+        )) as RepairOrder[]
+
+        return successResponse(rows, 'Success', 200, {
+            page,
+            limit,
+            total,
+            totalPages,
+        })
     } catch (error) {
         console.error(error)
         return errorResponse('Error fetching repair orders', error)
@@ -35,9 +45,10 @@ export async function POST(req: NextRequest) {
             repair_status,
             customer_id,
             item_id,
+            create_by,
         } = body
         const result = await query(
-            'INSERT INTO REPAIR_ORDER (repair_problem_desc, repair_technician_note, repair_date_received, repair_date_completed, repair_labor_cost, repair_status, customer_id, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO REPAIR_ORDER (repair_problem_desc, repair_technician_note, repair_date_received, repair_date_completed, repair_labor_cost, repair_status, customer_id, item_id, create_by, update_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 repair_problem_desc,
                 repair_technician_note,
@@ -47,9 +58,15 @@ export async function POST(req: NextRequest) {
                 repair_status,
                 customer_id,
                 item_id,
+                create_by || null,
+                create_by || null,
             ]
         )
-        return successResponse({ id: (result as ResultSetHeader).insertId, ...body }, 'Repair order created successfully', 201)
+        return successResponse(
+            { id: (result as ResultSetHeader).insertId, ...body },
+            'Repair order created successfully',
+            201
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error creating repair order', error)

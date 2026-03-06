@@ -5,6 +5,8 @@ export interface SaleOrder {
     sale_total_amount: number
     sale_status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled'
     customer_id: number
+    create_by?: string
+    update_by?: string
     create_at?: Date
     update_at?: Date
 }

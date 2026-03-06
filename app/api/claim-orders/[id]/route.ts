@@ -39,9 +39,10 @@ export async function PUT(
             supplier_id,
             customer_id,
             item_id,
+            update_by,
         } = body
         await query(
-            'UPDATE CLAIM_ORDER SET claim_code = ?, claim_date_received = ?, claim_date_returned = ?, claim_status = ?, claim_resolution = ?, supplier_id = ?, customer_id = ?, item_id = ? WHERE claim_id = ?',
+            'UPDATE CLAIM_ORDER SET claim_code = ?, claim_date_received = ?, claim_date_returned = ?, claim_status = ?, claim_resolution = ?, supplier_id = ?, customer_id = ?, item_id = ?, update_by = ? WHERE claim_id = ?',
             [
                 claim_code,
                 claim_date_received,
@@ -51,6 +52,7 @@ export async function PUT(
                 supplier_id || null,
                 customer_id,
                 item_id,
+                update_by || null,
                 id,
             ]
         )
