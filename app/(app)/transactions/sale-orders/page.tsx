@@ -306,15 +306,6 @@ export default function SaleOrdersPage() {
             if (res.ok) {
                 const data = await res.json()
                 const fullOrder = data.data
-                const itemsTotal = (fullOrder.items || []).reduce(
-                    (acc: number, curr: any) =>
-                        acc + Number(curr.sale_price || 0),
-                    0
-                )
-                const computedAdditionalCost = Math.max(
-                    0,
-                    (fullOrder.sale_total_amount || 0) - itemsTotal
-                )
 
                 setSelectedOrder(fullOrder)
                 setFormData({
@@ -323,7 +314,7 @@ export default function SaleOrdersPage() {
                         .toISOString()
                         .split('T')[0],
                     sale_total_amount: fullOrder.sale_total_amount || 0,
-                    sale_additional_cost: computedAdditionalCost,
+                    sale_additional_cost: fullOrder.sale_additional_cost ?? 0,
                     sale_status: fullOrder.sale_status || 'Pending',
                     customer_id: fullOrder.customer_id || 0,
                     items: fullOrder.items || [],

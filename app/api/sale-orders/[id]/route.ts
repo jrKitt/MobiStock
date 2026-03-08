@@ -77,11 +77,12 @@ export async function PUT(
 
         // 1. Update Sale Order
         await connection.query(
-            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_status = ?, customer_id = ?, update_by = ? WHERE sale_id = ?',
+            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_additional_cost = ?, sale_status = ?, customer_id = ?, update_by = ? WHERE sale_id = ?',
             [
                 sale_code,
                 sale_date,
                 sale_total_amount,
+                Number(sale_additional_cost || 0),
                 sale_status,
                 customer_id,
                 update_by || null,
@@ -211,7 +212,7 @@ export async function PATCH(
         const newItemStatus =
             sale_status === 'Completed'
                 ? 'Sold'
-                : sale_status === 'Pending' || sale_status === 'Processing'
+                : sale_status === 'Pending'
                   ? 'Reserved'
                   : 'Available'
 

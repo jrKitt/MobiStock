@@ -179,11 +179,12 @@ export async function POST(req: NextRequest) {
         await connection.beginTransaction()
 
         const [orderResult] = await connection.query(
-            'INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id, create_by, update_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_additional_cost, sale_status, customer_id, create_by, update_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 sale_code,
                 sale_date,
                 sale_total_amount,
+                Number(sale_additional_cost || 0),
                 sale_status,
                 customer_id,
                 create_by || null,
@@ -202,7 +203,7 @@ export async function POST(req: NextRequest) {
             const newItemStatus =
                 sale_status === 'Completed'
                     ? 'Sold'
-                    : sale_status === 'Pending' || sale_status === 'Processing'
+                    : sale_status === 'Pending'
                       ? 'Reserved'
                       : 'Available'
 

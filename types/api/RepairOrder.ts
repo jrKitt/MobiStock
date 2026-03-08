@@ -6,7 +6,12 @@ export interface RepairOrder {
     repair_date_received: Date
     repair_date_completed?: Date
     repair_labor_cost: number
-    repair_status: 'received' | 'in_progress' | 'completed' | 'cancelled'
+    repair_status:
+        | 'received'
+        | 'in_progress'
+        | 'waiting_payment'
+        | 'completed'
+        | 'cancelled'
     customer_id: number
     item_id: number
     create_by?: string

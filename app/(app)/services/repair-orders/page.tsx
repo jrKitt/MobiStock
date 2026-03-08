@@ -449,8 +449,30 @@ export default function RepairOrdersPage() {
         }
     }
 
+    const handleMarkWaitingPayment = async (repair: RepairOrder) => {
+        if (!confirm('ยืนยันว่าซ่อมเสร็จแล้ว รอลูกค้าชำระเงิน?')) return
+        try {
+            const response = await fetch(
+                `/api/repair-orders/${repair.repair_id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...repair,
+                        repair_status: 'waiting_payment',
+                    }),
+                }
+            )
+            if (!response.ok) throw new Error('Failed to update')
+            showToast('อัปเดตสถานะรอชำระเงินสำเร็จ', 'success')
+            fetchData()
+        } catch {
+            showToast('ไม่สามารถอัปเดตสถานะได้', 'error')
+        }
+    }
+
     const handleMarkCompleted = async (repair: RepairOrder) => {
-        if (!confirm('ยืนยันซ่อมเสร็จสิ้น?')) return
+        if (!confirm('ยืนยันรับเงินและปิดงานซ่อม?')) return
         try {
             const response = await fetch(
                 `/api/repair-orders/${repair.repair_id}`,
@@ -478,7 +500,8 @@ export default function RepairOrdersPage() {
         const statusMap: { [key: string]: string } = {
             received: 'รับเรื่อง / รอซ่อม',
             in_progress: 'กำลังซ่อม',
-            completed: 'ซ่อมเสร็จ / รอรับเครื่อง',
+            waiting_payment: 'รอชำระเงิน',
+            completed: 'ซ่อมเสร็จ / รับเครื่องแล้ว',
             cancelled: 'ยกเลิก',
         }
         return statusMap[status] || status
@@ -525,7 +548,8 @@ export default function RepairOrdersPage() {
                     { id: '', label: 'ทั้งหมด' },
                     { id: 'received', label: 'รับเรื่อง / รอซ่อม' },
                     { id: 'in_progress', label: 'กำลังซ่อม' },
-                    { id: 'completed', label: 'ซ่อมเสร็จ / รอรับเครื่อง' },
+                    { id: 'waiting_payment', label: 'รอชำระเงิน' },
+                    { id: 'completed', label: 'ซ่อมเสร็จ / รับเครื่องแล้ว' },
                     { id: 'cancelled', label: 'ยกเลิก' },
                 ].map((tab) => (
                     <button
@@ -716,7 +740,10 @@ export default function RepairOrdersPage() {
                                                           : repair.repair_status ===
                                                               'in_progress'
                                                             ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-700/10 ring-inset'
-                                                            : 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20 ring-inset'
+                                                            : repair.repair_status ===
+                                                                'waiting_payment'
+                                                              ? 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20 ring-inset'
+                                                              : 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20 ring-inset'
                                                 }`}
                                             >
                                                 {getStatusLabel(
@@ -744,13 +771,38 @@ export default function RepairOrdersPage() {
                                                     <>
                                                         <button
                                                             onClick={() =>
+                                                                handleMarkWaitingPayment(
+                                                                    repair
+                                                                )
+                                                            }
+                                                            className="rounded bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800"
+                                                        >
+                                                            รอชำระเงิน
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleOpenParts(
+                                                                    repair
+                                                                )
+                                                            }
+                                                            className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 hover:text-purple-800"
+                                                        >
+                                                            อะไหล่
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {repair.repair_status ===
+                                                    'waiting_payment' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() =>
                                                                 handleMarkCompleted(
                                                                     repair
                                                                 )
                                                             }
                                                             className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 hover:text-green-800"
                                                         >
-                                                            ซ่อมเสร็จ
+                                                            ยืนยันรับเงิน
                                                         </button>
                                                         <button
                                                             onClick={() =>
@@ -780,7 +832,9 @@ export default function RepairOrdersPage() {
                                                 {repair.repair_status !==
                                                     'completed' &&
                                                     repair.repair_status !==
-                                                        'cancelled' && (
+                                                        'cancelled' &&
+                                                    repair.repair_status !==
+                                                        'waiting_payment' && (
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedRepair(

@@ -32,6 +32,10 @@ async function seed() {
             ALTER TABLE User
             ADD COLUMN IF NOT EXISTS role ENUM('admin', 'staff') DEFAULT 'staff'
         `)
+        await query(`
+            ALTER TABLE SALE_ORDER
+            ADD COLUMN IF NOT EXISTS sale_additional_cost DECIMAL(10, 2) DEFAULT 0
+        `)
 
         // ── 1. Brands ────────────────────────────────────────────────────────
         console.log('Seeding Brands...')
@@ -154,8 +158,8 @@ async function seed() {
         // ── 9. Sale Orders ───────────────────────────────────────────────────
         console.log('Seeding Sale Orders...')
         const sale1 = await query(
-            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id, create_by, update_by)
-             VALUES ('SO-20260101-00001', '2026-01-10 10:30:00', 42900.00, 'Completed', 1, 'admin', 'admin')`
+            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_additional_cost, sale_status, customer_id, create_by, update_by)
+             VALUES ('SO-20260101-00001', '2026-01-10 10:30:00', 42900.00, 0.00, 'Completed', 1, 'admin', 'admin')`
         )
         const sale1Id = (sale1 as ResultSetHeader).insertId
         await query(
@@ -164,8 +168,8 @@ async function seed() {
         )
 
         const sale2 = await query(
-            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id, create_by, update_by)
-             VALUES ('SO-20260115-00002', '2026-01-15 14:00:00', 54900.00, 'Completed', 2, 'admin', 'admin')`
+            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_additional_cost, sale_status, customer_id, create_by, update_by)
+             VALUES ('SO-20260115-00002', '2026-01-15 14:00:00', 55400.00, 500.00, 'Completed', 2, 'admin', 'admin')`
         )
         const sale2Id = (sale2 as ResultSetHeader).insertId
         await query(
@@ -174,8 +178,8 @@ async function seed() {
         )
 
         const sale3 = await query(
-            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_status, customer_id, create_by, update_by)
-             VALUES ('SO-20260301-00003', '2026-03-01 09:15:00', 38900.00, 'Pending', 3, 'admin', 'admin')`
+            `INSERT INTO SALE_ORDER (sale_code, sale_date, sale_total_amount, sale_additional_cost, sale_status, customer_id, create_by, update_by)
+             VALUES ('SO-20260301-00003', '2026-03-01 09:15:00', 39900.00, 1000.00, 'Pending', 3, 'admin', 'admin')`
         )
         const sale3Id = (sale3 as ResultSetHeader).insertId
         await query(
@@ -209,6 +213,22 @@ async function seed() {
             `INSERT INTO REPAIR_ORDER_PART (repair_id, part_id, repair_part_quantity, repair_part_unit_price)
              VALUES (?, 5, 1, 1200.00), (?, 8, 1, 350.00)`,
             [repair2Id, repair2Id]
+        )
+
+        // repair 2b — waiting_payment: ซ่อมเสร็จแล้ว รอลูกค้ามาจ่ายเงิน
+        const repair2b = await query(
+            `INSERT INTO REPAIR_ORDER (repair_problem_desc, repair_technician_note, repair_date_received, repair_labor_cost, repair_status, customer_id, item_id, create_by, update_by)
+             VALUES ('กล้องหลังโฟกัสไม่ได้', 'เปลี่ยนโมดูลกล้องใหม่ ทดสอบผ่านแล้ว รอลูกค้ามารับและชำระเงิน', '2026-03-05 10:00:00', 800.00, 'waiting_payment', 3, 6, 'admin', 'admin')`
+        )
+        const repair2bId = (repair2b as ResultSetHeader).insertId
+        await query(
+            'UPDATE REPAIR_ORDER SET repair_code = ? WHERE repair_id = ?',
+            [`RPR-20260305-${String(repair2bId).padStart(5, '0')}`, repair2bId]
+        )
+        await query(
+            `INSERT INTO REPAIR_ORDER_PART (repair_id, part_id, repair_part_quantity, repair_part_unit_price)
+             VALUES (?, 10, 1, 1500.00)`,
+            [repair2bId]
         )
 
         const repair3 = await query(
