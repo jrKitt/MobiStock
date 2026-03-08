@@ -12,4 +12,11 @@ export interface RepairOrder {
     update_by?: string
     create_at?: Date
     update_at?: Date
+    // Joined fields from api
+    customer_fname?: string
+    customer_lname?: string
+    customer_phone?: string
+    model_name?: string
+    item_serial_number?: string
+    item_imei?: string
 }

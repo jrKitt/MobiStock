@@ -10,16 +10,76 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
 
+        const search = searchParams.get('search')
+        const startDate = searchParams.get('start_date')
+        const endDate = searchParams.get('end_date')
+        const status = searchParams.get('status')
+
+        let queryStr = `
+            SELECT ro.*, 
+                   c.customer_fname, c.customer_lname, c.customer_phone,
+                   pi.item_serial_number, pi.item_imei,
+                   pm.model_name
+            FROM REPAIR_ORDER ro
+            LEFT JOIN CUSTOMER c ON ro.customer_id = c.customer_id
+            LEFT JOIN PRODUCT_ITEM pi ON ro.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            WHERE 1=1
+        `
+        let countQueryStr = `
+            SELECT COUNT(*) as total 
+            FROM REPAIR_ORDER ro
+            LEFT JOIN CUSTOMER c ON ro.customer_id = c.customer_id
+            LEFT JOIN PRODUCT_ITEM pi ON ro.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            WHERE 1=1
+        `
+        const queryParams: any[] = []
+
+        if (search) {
+            const searchTerm = `%${search}%`
+            const searchCondition = ` AND (ro.repair_id LIKE ? OR c.customer_fname LIKE ? OR c.customer_lname LIKE ? OR c.customer_phone LIKE ? OR pi.item_serial_number LIKE ? OR pi.item_imei LIKE ?)`
+            queryStr += searchCondition
+            countQueryStr += searchCondition
+            queryParams.push(
+                searchTerm,
+                searchTerm,
+                searchTerm,
+                searchTerm,
+                searchTerm,
+                searchTerm
+            )
+        }
+
+        if (status) {
+            queryStr += ` AND ro.repair_status = ?`
+            countQueryStr += ` AND ro.repair_status = ?`
+            queryParams.push(status)
+        }
+
+        if (startDate && startDate !== 'undefined' && startDate !== '') {
+            queryStr += ` AND DATE(ro.repair_date_received) >= ?`
+            countQueryStr += ` AND DATE(ro.repair_date_received) >= ?`
+            queryParams.push(startDate)
+        }
+
+        if (endDate && endDate !== 'undefined' && endDate !== '') {
+            queryStr += ` AND DATE(ro.repair_date_received) <= ?`
+            countQueryStr += ` AND DATE(ro.repair_date_received) <= ?`
+            queryParams.push(endDate)
+        }
+
         const countResult = await query<{ total: number }[]>(
-            'SELECT COUNT(*) as total FROM REPAIR_ORDER'
+            countQueryStr,
+            queryParams
         )
         const total = countResult[0].total
         const totalPages = Math.ceil(total / limit)
 
-        const rows = (await query(
-            'SELECT * FROM REPAIR_ORDER ORDER BY repair_id DESC LIMIT ? OFFSET ?',
-            [limit, offset]
-        )) as RepairOrder[]
+        queryStr += ` ORDER BY ro.repair_id DESC LIMIT ? OFFSET ?`
+        queryParams.push(limit, offset)
+
+        const rows = (await query(queryStr, queryParams)) as any[]
 
         return successResponse(rows, 'Success', 200, {
             page,
