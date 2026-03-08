@@ -102,26 +102,21 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                     label: 'แดชบอร์ด',
                     href: '/dashboard',
                 },
+            ],
+        },
+        {
+            title: 'การทำงานหลัก',
+            items: [
                 {
                     icon: <HiClipboardDocumentList className="h-4 w-4" />,
                     label: 'ใบสั่งขาย',
                     href: '/transactions/sale-orders',
                 },
-            ],
-        },
-        {
-            title: 'บริการซ่อม',
-            items: [
                 {
                     icon: <HiWrench className="h-4 w-4" />,
                     label: 'คำขอซ่อม',
                     href: '/services/repair-orders',
                 },
-            ],
-        },
-        {
-            title: 'การรับประกัน',
-            items: [
                 {
                     icon: <HiShieldCheck className="h-4 w-4" />,
                     label: 'การเคลมสินค้า',
@@ -129,6 +124,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                 },
             ],
         },
+
         {
             title: 'คลังสินค้า / อะไหล่',
             items: [
