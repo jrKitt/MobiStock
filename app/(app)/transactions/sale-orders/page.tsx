@@ -63,6 +63,7 @@ export default function SaleOrdersPage() {
         customer_tax_number: '',
         customer_address: '',
     })
+    const [filterStatus, setFilterStatus] = useState('')
 
     const [formData, setFormData] = useState({
         sale_code: '',
@@ -87,6 +88,7 @@ export default function SaleOrdersPage() {
             if (filterBrand) params.append('brand_id', filterBrand)
             if (filterStartDate) params.append('start_date', filterStartDate)
             if (filterEndDate) params.append('end_date', filterEndDate)
+            if (filterStatus) params.append('status', filterStatus)
 
             const [ordersRes, customersRes, categoriesRes, brandsRes] =
                 await Promise.all([
@@ -132,6 +134,7 @@ export default function SaleOrdersPage() {
         filterBrand,
         filterStartDate,
         filterEndDate,
+        filterStatus,
         showToast,
     ])
 
@@ -427,6 +430,31 @@ export default function SaleOrdersPage() {
                 </button>
             </div>
 
+            {/* Status Tabs */}
+            <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
+                {[
+                    { id: '', label: 'ทั้งหมด' },
+                    { id: 'Pending', label: 'รอชำระเงิน' },
+                    { id: 'Completed', label: 'ชำระเงินเสร็จสิ้น' },
+                    { id: 'Cancelled', label: 'ยกเลิก' },
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => {
+                            setFilterStatus(tab.id)
+                            setCurrentPage(1)
+                        }}
+                        className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                            filterStatus === tab.id
+                                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200'
+                                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Filter Section */}
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
@@ -511,6 +539,7 @@ export default function SaleOrdersPage() {
                                 setFilterBrand('')
                                 setFilterStartDate('')
                                 setFilterEndDate('')
+                                setFilterStatus('')
                                 setCurrentPage(1)
                             }}
                             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:border-blue-600 focus:outline-none"
@@ -712,11 +741,22 @@ export default function SaleOrdersPage() {
                     <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                         <div>
                             <p className="text-sm text-slate-700">
-                                แสดง <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> ถึง{' '}
+                                แสดง{' '}
                                 <span className="font-medium">
-                                    {Math.min(currentPage * itemsPerPage, totalItems)}
+                                    {(currentPage - 1) * itemsPerPage + 1}
                                 </span>{' '}
-                                จาก <span className="font-medium">{totalItems}</span> รายการ
+                                ถึง{' '}
+                                <span className="font-medium">
+                                    {Math.min(
+                                        currentPage * itemsPerPage,
+                                        totalItems
+                                    )}
+                                </span>{' '}
+                                จาก{' '}
+                                <span className="font-medium">
+                                    {totalItems}
+                                </span>{' '}
+                                รายการ
                             </p>
                         </div>
                         <div>
@@ -725,13 +765,26 @@ export default function SaleOrdersPage() {
                                 aria-label="Pagination"
                             >
                                 <button
-                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            Math.max(1, currentPage - 1)
+                                        )
+                                    }
                                     disabled={currentPage === 1}
-                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-slate-300 ring-inset hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                 >
                                     <span className="sr-only">Previous</span>
-                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                                    <svg
+                                        className="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                                            clipRule="evenodd"
+                                        />
                                     </svg>
                                 </button>
                                 {[...Array(totalPages)].map((_, i) => (
@@ -741,20 +794,39 @@ export default function SaleOrdersPage() {
                                         className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
                                             currentPage === i + 1
                                                 ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                                                : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50'
+                                                : 'text-slate-900 ring-1 ring-slate-300 ring-inset hover:bg-slate-50'
                                         }`}
                                     >
                                         {i + 1}
                                     </button>
                                 ))}
                                 <button
-                                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            Math.min(
+                                                totalPages,
+                                                currentPage + 1
+                                            )
+                                        )
+                                    }
+                                    disabled={
+                                        currentPage === totalPages ||
+                                        totalPages === 0
+                                    }
+                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-slate-300 ring-inset hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                 >
                                     <span className="sr-only">Next</span>
-                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                    <svg
+                                        className="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                                            clipRule="evenodd"
+                                        />
                                     </svg>
                                 </button>
                             </nav>

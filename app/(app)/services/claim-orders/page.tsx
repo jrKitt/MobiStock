@@ -14,6 +14,7 @@ export default function ClaimOrdersPage() {
     const [customers, setCustomers] = useState<Customer[]>([])
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [items, setItems] = useState<ProductItem[]>([])
+    const [filterStatus, setFilterStatus] = useState('')
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
@@ -33,9 +34,14 @@ export default function ClaimOrdersPage() {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true)
+            const params = new URLSearchParams()
+            params.append('page', '1')
+            params.append('limit', '100')
+            if (filterStatus) params.append('status', filterStatus)
+
             const [claimsRes, customersRes, suppliersRes, itemsRes] =
                 await Promise.all([
-                    fetch('/api/claim-orders?page=1&limit=100'),
+                    fetch(`/api/claim-orders?${params.toString()}`),
                     fetch('/api/customers?page=1&limit=100'),
                     fetch('/api/suppliers?page=1&limit=100'),
                     fetch('/api/product-items?page=1&limit=100'),
@@ -67,7 +73,7 @@ export default function ClaimOrdersPage() {
         } finally {
             setLoading(false)
         }
-    }, [showToast])
+    }, [showToast, filterStatus])
 
     useEffect(() => {
         fetchData()
@@ -220,6 +226,29 @@ export default function ClaimOrdersPage() {
                 >
                     + สร้างการแจ้งเคลมสินค้า
                 </button>
+            </div>
+
+            {/* Status Tabs */}
+            <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
+                {[
+                    { id: '', label: 'ทั้งหมด' },
+                    { id: 'pending', label: 'รอพิจารณา' },
+                    { id: 'in_review', label: 'กำลังตรวจสอบ' },
+                    { id: 'resolved', label: 'แก้ไขแล้ว' },
+                    { id: 'rejected', label: 'ปฏิเสธ' },
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setFilterStatus(tab.id)}
+                        className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                            filterStatus === tab.id
+                                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200'
+                                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {loading ? (

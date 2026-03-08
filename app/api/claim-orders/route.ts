@@ -9,17 +9,38 @@ export async function GET(req: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
+        const status = searchParams.get('status')
 
+        const queryParams: any[] = []
+        const conditions: string[] = []
+
+        if (status) {
+            conditions.push(`claim_status = ?`)
+            queryParams.push(status)
+        }
+
+        const whereClause =
+            conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+        const countQuery = `SELECT COUNT(*) as total FROM CLAIM_ORDER ${whereClause}`
         const countResult = await query<{ total: number }[]>(
-            'SELECT COUNT(*) as total FROM CLAIM_ORDER'
+            countQuery,
+            queryParams
         )
         const total = countResult[0].total
         const totalPages = Math.ceil(total / limit)
 
-        const rows = (await query(
-            'SELECT * FROM CLAIM_ORDER ORDER BY claim_id DESC LIMIT ? OFFSET ?',
-            [limit, offset]
-        )) as ClaimOrder[]
+        const selectQuery = `
+            SELECT * FROM CLAIM_ORDER 
+            ${whereClause} 
+            ORDER BY claim_id DESC 
+            LIMIT ? OFFSET ?
+        `
+        const rows = (await query(selectQuery, [
+            ...queryParams,
+            limit,
+            offset,
+        ])) as ClaimOrder[]
 
         return successResponse(rows, 'Success', 200, {
             page,

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
         const endDate = searchParams.get('end_date')
         const categoryId = searchParams.get('category_id')
         const brandId = searchParams.get('brand_id')
+        const status = searchParams.get('status')
 
         let baseQuery = `
             FROM SALE_ORDER so
@@ -74,6 +75,11 @@ export async function GET(req: NextRequest) {
         if (brandId) {
             conditions.push(`pm.brand_id = ?`)
             queryParams.push(brandId)
+        }
+
+        if (status) {
+            conditions.push(`so.sale_status = ?`)
+            queryParams.push(status)
         }
 
         const whereClause =
