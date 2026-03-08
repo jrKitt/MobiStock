@@ -666,8 +666,9 @@ export default function RepairOrdersPage() {
                                         className="transition-colors hover:bg-slate-50/50"
                                     >
                                         <td className="px-4 py-3">
-                                            <div className="text-sm font-semibold text-slate-900">
-                                                #{repair.repair_id}
+                                            <div className="font-mono text-sm font-semibold text-slate-900">
+                                                {repair.repair_code ||
+                                                    `#${repair.repair_id}`}
                                             </div>
                                             <div className="text-xs text-slate-500">
                                                 {new Date(

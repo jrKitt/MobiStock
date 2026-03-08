@@ -38,10 +38,11 @@ export async function GET(req: NextRequest) {
 
         if (search) {
             const searchTerm = `%${search}%`
-            const searchCondition = ` AND (ro.repair_id LIKE ? OR c.customer_fname LIKE ? OR c.customer_lname LIKE ? OR c.customer_phone LIKE ? OR pi.item_serial_number LIKE ? OR pi.item_imei LIKE ?)`
+            const searchCondition = ` AND (ro.repair_code LIKE ? OR ro.repair_id LIKE ? OR c.customer_fname LIKE ? OR c.customer_lname LIKE ? OR c.customer_phone LIKE ? OR pi.item_serial_number LIKE ? OR pi.item_imei LIKE ?)`
             queryStr += searchCondition
             countQueryStr += searchCondition
             queryParams.push(
+                searchTerm,
                 searchTerm,
                 searchTerm,
                 searchTerm,
@@ -124,6 +125,15 @@ export async function POST(req: NextRequest) {
         )
         const insertedId = (result as ResultSetHeader).insertId
 
+        // Auto-generate repair_code e.g. RPR-20260309-00001
+        const now = new Date()
+        const datePart = now.toISOString().slice(0, 10).replace(/-/g, '')
+        const repair_code = `RPR-${datePart}-${String(insertedId).padStart(5, '0')}`
+        await query(
+            'UPDATE REPAIR_ORDER SET repair_code = ? WHERE repair_id = ?',
+            [repair_code, insertedId]
+        )
+
         // Log history
         await query(
             'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
@@ -147,7 +157,7 @@ export async function POST(req: NextRequest) {
         )
 
         return successResponse(
-            { id: insertedId, ...body },
+            { id: insertedId, repair_code, ...body },
             'Repair order created successfully',
             201
         )

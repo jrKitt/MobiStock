@@ -1,5 +1,6 @@
 export interface RepairOrder {
     repair_id?: number
+    repair_code?: string
     repair_problem_desc: string
     repair_technician_note: string
     repair_date_received: Date
