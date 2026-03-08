@@ -1,7 +1,6 @@
 'use client'
 
-import Image from 'next/image'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import {
     RepairOrder,
@@ -9,14 +8,12 @@ import {
     ProductItem,
     SparePart,
     RepairOrderPart,
+    RepairOrderImage,
     ProductModel,
 } from '@/types/api'
-import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
-
+import { CloseIcon, DeleteIcon } from '@/lib/icons'
 export default function RepairOrdersPage() {
     const { showToast } = useToast()
-    const [storeName, setStoreName] = useState('MobiStock')
-    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const [repairs, setRepairs] = useState<
         (RepairOrder & { parts?: RepairOrderPart[] })[]
     >([])
@@ -25,7 +22,7 @@ export default function RepairOrdersPage() {
     const [spareParts, setSpareParts] = useState<SparePart[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [isPrintOpen, setIsPrintOpen] = useState(false)
+
     const [selectedRepair, setSelectedRepair] = useState<RepairOrder | null>(
         null
     )
@@ -33,7 +30,15 @@ export default function RepairOrdersPage() {
     const [selectedPartsRepair, setSelectedPartsRepair] =
         useState<RepairOrder | null>(null)
     const [repairParts, setRepairParts] = useState<RepairOrderPart[]>([])
-    const printRef = useRef<HTMLDivElement>(null)
+
+    // Work modal (received → in_progress): technician note + labor cost + parts
+    const [isWorkModalOpen, setIsWorkModalOpen] = useState(false)
+    const [workRepair, setWorkRepair] = useState<RepairOrder | null>(null)
+    const [workFormData, setWorkFormData] = useState({
+        repair_technician_note: '',
+        repair_labor_cost: 0,
+    })
+
     const [formData, setFormData] = useState({
         repair_problem_desc: '',
         repair_technician_note: '',
@@ -49,6 +54,12 @@ export default function RepairOrdersPage() {
         repair_part_quantity: 1,
         repair_part_unit_price: 0,
     })
+
+    // Repair images state
+    const [pendingImages, setPendingImages] = useState<
+        { url: string; caption: string; uploading: boolean }[]
+    >([])
+    const [repairImages, setRepairImages] = useState<RepairOrderImage[]>([])
 
     // Search and Filter States
     const [filterQuery, setFilterQuery] = useState('')
@@ -169,39 +180,6 @@ export default function RepairOrdersPage() {
         return () => clearTimeout(timer)
     }, [fetchData])
 
-    useEffect(() => {
-        // โหลดชื่อร้านจาก localStorage
-        try {
-            const savedName = localStorage.getItem('mobistock_store_name')
-            const savedLogo = localStorage.getItem('mobistock_store_logo')
-            if (savedName && savedName.trim()) {
-                setStoreName(savedName)
-            }
-            setStoreLogo(savedLogo || null)
-        } catch {}
-    }, [])
-
-    const handleEdit = (repair: RepairOrder) => {
-        setSelectedRepair(repair)
-        setFormData({
-            repair_problem_desc: repair.repair_problem_desc,
-            repair_technician_note: repair.repair_technician_note,
-            repair_date_received: new Date(repair.repair_date_received)
-                .toISOString()
-                .split('T')[0],
-            repair_date_completed: repair.repair_date_completed
-                ? new Date(repair.repair_date_completed)
-                      .toISOString()
-                      .split('T')[0]
-                : '',
-            repair_labor_cost: repair.repair_labor_cost || 0,
-            repair_status: repair.repair_status || 'received',
-            customer_id: repair.customer_id || 0,
-            item_id: repair.item_id || 0,
-        })
-        setIsModalOpen(true)
-    }
-
     const handleOpenParts = async (repair: RepairOrder) => {
         setSelectedPartsRepair(repair)
         setPartFormData({
@@ -256,28 +234,6 @@ export default function RepairOrdersPage() {
             await fetchRepairParts(selectedPartsRepair.repair_id)
         } catch {
             showToast('ไม่สามารถลบอะไหล่ได้', 'error')
-        }
-    }
-
-    const handlePrint = (repair: RepairOrder) => {
-        setSelectedRepair(repair)
-        setIsPrintOpen(true)
-        setTimeout(() => {
-            window.print()
-        }, 100)
-    }
-
-    const handleDelete = async (id: number) => {
-        if (!confirm('ต้องการลบคำขอซ่อมนี้หรือไม่?')) return
-        try {
-            const response = await fetch(`/api/repair-orders/${id}`, {
-                method: 'DELETE',
-            })
-            if (!response.ok) throw new Error('Failed to delete repair')
-            showToast('คำขอซ่อมลบสำเร็จ', 'success')
-            fetchData()
-        } catch {
-            showToast('ไม่สามารถลบคำขอซ่อมได้', 'error')
         }
     }
 
@@ -350,6 +306,34 @@ export default function RepairOrdersPage() {
             })
 
             if (!response.ok) throw new Error('Failed to save repair')
+            const result = await response.json()
+
+            // Save pending images when creating a new repair order
+            if (!selectedRepair && pendingImages.length > 0) {
+                const newRepairId = result.data?.id
+                if (newRepairId) {
+                    await Promise.all(
+                        pendingImages
+                            .filter((img) => !img.uploading)
+                            .map((img) =>
+                                fetch('/api/repair-order-images', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        repair_id: newRepairId,
+                                        image_url: img.url,
+                                        image_caption: img.caption || null,
+                                        image_type: 'received',
+                                    }),
+                                })
+                            )
+                    )
+                }
+                setPendingImages([])
+            }
+
             showToast(
                 `คำขอซ่อม${selectedRepair ? 'อัปเดต' : 'สร้าง'}สำเร็จ`,
                 'success'
@@ -362,25 +346,139 @@ export default function RepairOrdersPage() {
         }
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'completed':
-                return 'text-green-600'
-            case 'cancelled':
-                return 'text-red-600'
-            case 'in_progress':
-                return 'text-blue-600'
-            case 'received':
-            default:
-                return 'text-orange-500'
+    const fetchRepairImages = async (repairId: number) => {
+        try {
+            const res = await fetch(
+                `/api/repair-order-images?repair_id=${repairId}`
+            )
+            if (res.ok) {
+                const data = await res.json()
+                setRepairImages(Array.isArray(data.data) ? data.data : [])
+            }
+        } catch (err) {
+            console.error('Failed to fetch repair images:', err)
+        }
+    }
+
+    const handlePendingImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+        // Add placeholder entries while uploading
+        const placeholders = files.map(() => ({
+            url: '',
+            caption: '',
+            uploading: true,
+        }))
+        setPendingImages((prev) => [...prev, ...placeholders])
+        const startIndex = pendingImages.length
+        await Promise.all(
+            files.map(async (file, i) => {
+                const fd = new FormData()
+                fd.append('file', file)
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: fd,
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    setPendingImages((prev) => {
+                        const updated = [...prev]
+                        updated[startIndex + i] = {
+                            url: data.url,
+                            caption: '',
+                            uploading: false,
+                        }
+                        return updated
+                    })
+                } else {
+                    setPendingImages((prev) =>
+                        prev.filter((_, idx) => idx !== startIndex + i)
+                    )
+                    showToast('อัปโหลดรูปภาพไม่สำเร็จ', 'error')
+                }
+            })
+        )
+        // reset file input
+        e.target.value = ''
+    }
+
+    const handleOpenWorkModal = async (repair: RepairOrder) => {
+        setWorkRepair(repair)
+        setWorkFormData({
+            repair_technician_note: repair.repair_technician_note || '',
+            repair_labor_cost: repair.repair_labor_cost || 0,
+        })
+        // reuse selectedPartsRepair so handleAddPart / handleDeletePart work unchanged
+        setSelectedPartsRepair(repair)
+        setPartFormData({
+            part_id: 0,
+            repair_part_quantity: 1,
+            repair_part_unit_price: 0,
+        })
+        if (repair.repair_id) await fetchRepairParts(repair.repair_id)
+        setIsWorkModalOpen(true)
+    }
+
+    const handleSaveWork = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!workRepair?.repair_id) return
+        try {
+            const response = await fetch(
+                `/api/repair-orders/${workRepair.repair_id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...workRepair,
+                        repair_technician_note:
+                            workFormData.repair_technician_note,
+                        repair_labor_cost: workFormData.repair_labor_cost,
+                        repair_status: 'in_progress',
+                    }),
+                }
+            )
+            if (!response.ok) throw new Error('Failed to update')
+            showToast('บันทึกข้อมูลการซ่อมสำเร็จ', 'success')
+            setIsWorkModalOpen(false)
+            setWorkRepair(null)
+            fetchData()
+        } catch {
+            showToast('ไม่สามารถบันทึกข้อมูลได้', 'error')
+        }
+    }
+
+    const handleMarkCompleted = async (repair: RepairOrder) => {
+        if (!confirm('ยืนยันซ่อมเสร็จสิ้น?')) return
+        try {
+            const response = await fetch(
+                `/api/repair-orders/${repair.repair_id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...repair,
+                        repair_status: 'completed',
+                        repair_date_completed: new Date()
+                            .toISOString()
+                            .split('T')[0],
+                    }),
+                }
+            )
+            if (!response.ok) throw new Error('Failed to update')
+            showToast('อัปเดตสถานะซ่อมเสร็จสำเร็จ', 'success')
+            fetchData()
+        } catch {
+            showToast('ไม่สามารถอัปเดตสถานะได้', 'error')
         }
     }
 
     const getStatusLabel = (status: string) => {
         const statusMap: { [key: string]: string } = {
-            received: 'รับแล้ว',
+            received: 'รับเรื่อง / รอซ่อม',
             in_progress: 'กำลังซ่อม',
-            completed: 'เสร็จสิ้น',
+            completed: 'ซ่อมเสร็จ / รอรับเครื่อง',
             cancelled: 'ยกเลิก',
         }
         return statusMap[status] || status
@@ -400,6 +498,7 @@ export default function RepairOrdersPage() {
                 <button
                     onClick={() => {
                         setSelectedRepair(null)
+                        setPendingImages([])
                         setFormData({
                             repair_problem_desc: '',
                             repair_technician_note: '',
@@ -424,9 +523,9 @@ export default function RepairOrdersPage() {
             <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
                 {[
                     { id: '', label: 'ทั้งหมด' },
-                    { id: 'received', label: 'รับแล้ว' },
+                    { id: 'received', label: 'รับเรื่อง / รอซ่อม' },
                     { id: 'in_progress', label: 'กำลังซ่อม' },
-                    { id: 'completed', label: 'เสร็จสิ้น' },
+                    { id: 'completed', label: 'ซ่อมเสร็จ / รอรับเครื่อง' },
                     { id: 'cancelled', label: 'ยกเลิก' },
                 ].map((tab) => (
                     <button
@@ -626,45 +725,106 @@ export default function RepairOrdersPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() =>
-                                                        handleOpenParts(repair)
-                                                    }
-                                                    className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 hover:text-purple-800"
-                                                    title="จัดการอะไหล่"
-                                                >
-                                                    จัดการอะไหล่
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        handlePrint(repair)
-                                                    }
-                                                    className="rounded p-1 text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
-                                                    title="พิมพ์ใบรับซ่อม"
-                                                >
-                                                    <PrintIcon />
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        handleEdit(repair)
-                                                    }
-                                                    className="rounded p-1 text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                                                    title="แก้ไข"
-                                                >
-                                                    <EditIcon />
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        repair.repair_id &&
-                                                        handleDelete(
-                                                            repair.repair_id
-                                                        )
-                                                    }
-                                                    className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                                                    title="ลบ"
-                                                >
-                                                    <DeleteIcon />
-                                                </button>
+                                                {repair.repair_status ===
+                                                    'received' && (
+                                                    <button
+                                                        onClick={() =>
+                                                            handleOpenWorkModal(
+                                                                repair
+                                                            )
+                                                        }
+                                                        className="rounded bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 transition-colors hover:bg-orange-100 hover:text-orange-800"
+                                                    >
+                                                        เริ่มซ่อม
+                                                    </button>
+                                                )}
+                                                {repair.repair_status ===
+                                                    'in_progress' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleMarkCompleted(
+                                                                    repair
+                                                                )
+                                                            }
+                                                            className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 hover:text-green-800"
+                                                        >
+                                                            ซ่อมเสร็จ
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleOpenParts(
+                                                                    repair
+                                                                )
+                                                            }
+                                                            className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 hover:text-purple-800"
+                                                        >
+                                                            อะไหล่
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {repair.repair_status ===
+                                                    'completed' && (
+                                                    <button
+                                                        onClick={() =>
+                                                            handleOpenParts(
+                                                                repair
+                                                            )
+                                                        }
+                                                        className="rounded bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100"
+                                                    >
+                                                        ดูรายละเอียด
+                                                    </button>
+                                                )}
+                                                {repair.repair_status !==
+                                                    'completed' &&
+                                                    repair.repair_status !==
+                                                        'cancelled' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedRepair(
+                                                                    repair
+                                                                )
+                                                                setFormData({
+                                                                    repair_problem_desc:
+                                                                        repair.repair_problem_desc ||
+                                                                        '',
+                                                                    repair_technician_note:
+                                                                        repair.repair_technician_note ||
+                                                                        '',
+                                                                    repair_date_received:
+                                                                        repair.repair_date_received
+                                                                            ?.toString()
+                                                                            .split(
+                                                                                'T'
+                                                                            )[0] ||
+                                                                        '',
+                                                                    repair_date_completed:
+                                                                        repair.repair_date_completed
+                                                                            ?.toString()
+                                                                            .split(
+                                                                                'T'
+                                                                            )[0] ||
+                                                                        '',
+                                                                    repair_labor_cost:
+                                                                        repair.repair_labor_cost ||
+                                                                        0,
+                                                                    repair_status:
+                                                                        repair.repair_status,
+                                                                    customer_id:
+                                                                        repair.customer_id,
+                                                                    item_id:
+                                                                        repair.item_id,
+                                                                })
+                                                                setIsModalOpen(
+                                                                    true
+                                                                )
+                                                            }}
+                                                            className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 hover:text-blue-800"
+                                                        >
+                                                            แก้ไข
+                                                        </button>
+                                                    )}
                                             </div>
                                         </td>
                                     </tr>
@@ -929,6 +1089,107 @@ export default function RepairOrdersPage() {
                                         />
                                     </div>
 
+                                    {/* Image upload — only on create (no selectedRepair) */}
+                                    {!selectedRepair && (
+                                        <div className="col-span-2">
+                                            <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                                รูปภาพความเสียหาย (ไม่บังคับ)
+                                            </label>
+                                            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:border-blue-400 hover:text-blue-600">
+                                                <svg
+                                                    className="h-4 w-4 shrink-0"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                    />
+                                                </svg>
+                                                <span>
+                                                    เลือกรูปภาพ
+                                                    (เลือกได้หลายรูป)
+                                                </span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    className="hidden"
+                                                    onChange={
+                                                        handlePendingImageUpload
+                                                    }
+                                                />
+                                            </label>
+                                            {pendingImages.length > 0 && (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {pendingImages.map(
+                                                        (img, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="relative h-20 w-20 overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+                                                            >
+                                                                {img.uploading ? (
+                                                                    <div className="flex h-full items-center justify-center">
+                                                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
+                                                                    </div>
+                                                                ) : (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                                    <img
+                                                                        src={
+                                                                            img.url
+                                                                        }
+                                                                        alt={`damage-${idx}`}
+                                                                        className="h-full w-full object-cover"
+                                                                    />
+                                                                )}
+                                                                {!img.uploading && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            setPendingImages(
+                                                                                (
+                                                                                    prev
+                                                                                ) =>
+                                                                                    prev.filter(
+                                                                                        (
+                                                                                            _,
+                                                                                            i
+                                                                                        ) =>
+                                                                                            i !==
+                                                                                            idx
+                                                                                    )
+                                                                            )
+                                                                        }
+                                                                        className="absolute top-0.5 right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                                                                    >
+                                                                        <svg
+                                                                            className="h-3 w-3"
+                                                                            fill="none"
+                                                                            viewBox="0 0 24 24"
+                                                                            stroke="currentColor"
+                                                                        >
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth={
+                                                                                    3
+                                                                                }
+                                                                                d="M6 18L18 6M6 6l12 12"
+                                                                            />
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {selectedRepair && (
                                         <>
                                             <div className="col-span-2">
@@ -985,28 +1246,56 @@ export default function RepairOrdersPage() {
                                                     value={
                                                         formData.repair_status
                                                     }
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
+                                                        const newStatus =
+                                                            e.target.value
                                                         setFormData({
                                                             ...formData,
                                                             repair_status:
-                                                                e.target.value,
+                                                                newStatus,
+                                                            ...(newStatus ===
+                                                                'completed' &&
+                                                            !formData.repair_date_completed
+                                                                ? {
+                                                                      repair_date_completed:
+                                                                          new Date()
+                                                                              .toISOString()
+                                                                              .split(
+                                                                                  'T'
+                                                                              )[0],
+                                                                  }
+                                                                : {}),
                                                         })
-                                                    }
+                                                    }}
                                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                                 >
                                                     <option value="received">
-                                                        รับแล้ว
+                                                        รับเรื่อง / รอซ่อม
                                                     </option>
                                                     <option value="in_progress">
                                                         กำลังซ่อม
                                                     </option>
                                                     <option value="completed">
-                                                        เสร็จสิ้น
+                                                        ซ่อมเสร็จ / รอรับเครื่อง
                                                     </option>
                                                     <option value="cancelled">
                                                         ยกเลิก
                                                     </option>
                                                 </select>
+                                                <div className="mt-2 rounded border border-slate-100 bg-slate-50 p-2 text-[11px] leading-relaxed text-slate-500">
+                                                    {formData.repair_status ===
+                                                        'received' &&
+                                                        '📍 รับเรื่อง, ตรวจเช็คอาการ, เสนอราคา, หรือรออะไหล่'}
+                                                    {formData.repair_status ===
+                                                        'in_progress' &&
+                                                        '🔧 ลูกค้าอนุมัติแล้ว อะไหล่พร้อม ช่างกำลังลงมือซ่อมแซม'}
+                                                    {formData.repair_status ===
+                                                        'completed' &&
+                                                        '✅ ซ่อมเสร็จ ทดสอบผ่าน และรอให้ลูกค้ารับเครื่องคืน'}
+                                                    {formData.repair_status ===
+                                                        'cancelled' &&
+                                                        '❌ ยกเลิกการซ่อม, ซ่อมไม่ได้ หรือลูกค้าปฏิเสธราคา'}
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1030,6 +1319,359 @@ export default function RepairOrdersPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Work Modal: received → in_progress (tech note + labor cost + parts) */}
+            {isWorkModalOpen && workRepair && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 text-black backdrop-blur-sm">
+                    <div className="bg-bg flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-5">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">
+                                    บันทึกการซ่อม #{workRepair.repair_id}
+                                </h2>
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                    {workRepair.customer_fname}{' '}
+                                    {workRepair.customer_lname}
+                                    {workRepair.customer_phone &&
+                                        ` · ${workRepair.customer_phone}`}
+                                    {' · '}
+                                    {workRepair.model_name ||
+                                        'ไม่ระบุรุ่น'}{' '}
+                                    <span className="font-mono">
+                                        {workRepair.item_serial_number ||
+                                            workRepair.item_imei ||
+                                            ''}
+                                    </span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsWorkModalOpen(false)}
+                                className="text-slate-400 transition-colors hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            {/* Problem (read-only context) */}
+                            <div className="border-b border-slate-100 bg-orange-50/60 px-6 py-3">
+                                <p className="text-xs font-bold tracking-wider text-orange-600 uppercase">
+                                    ปัญหาที่แจ้ง
+                                </p>
+                                <p className="mt-1 text-sm text-slate-700">
+                                    {workRepair.repair_problem_desc}
+                                </p>
+                            </div>
+
+                            <form
+                                id="work-form"
+                                onSubmit={handleSaveWork}
+                                className="space-y-5 px-6 py-5"
+                            >
+                                <div>
+                                    <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        หมายเหตุช่างซ่อม
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={
+                                            workFormData.repair_technician_note
+                                        }
+                                        onChange={(e) =>
+                                            setWorkFormData({
+                                                ...workFormData,
+                                                repair_technician_note:
+                                                    e.target.value,
+                                            })
+                                        }
+                                        placeholder="ผลการตรวจสอบ, สิ่งที่ต้องซ่อม, หมายเหตุ..."
+                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                        ค่าแรง (฿)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={workFormData.repair_labor_cost}
+                                        onChange={(e) =>
+                                            setWorkFormData({
+                                                ...workFormData,
+                                                repair_labor_cost:
+                                                    parseFloat(
+                                                        e.target.value
+                                                    ) || 0,
+                                            })
+                                        }
+                                        className="w-48 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                    />
+                                </div>
+                            </form>
+
+                            {/* Spare parts section */}
+                            <div className="border-t border-slate-100 px-6 pb-6">
+                                <p className="mb-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    อะไหล่ที่ใช้
+                                </p>
+
+                                {/* Add part inline form */}
+                                <form
+                                    onSubmit={handleAddPart}
+                                    className="mb-4 grid grid-cols-3 gap-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3"
+                                >
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                            อะไหล่ *
+                                        </label>
+                                        <select
+                                            required
+                                            value={partFormData.part_id}
+                                            onChange={(e) =>
+                                                setPartFormData({
+                                                    ...partFormData,
+                                                    part_id: parseInt(
+                                                        e.target.value
+                                                    ),
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-2 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                                        >
+                                            <option value={0}>เลือก</option>
+                                            {spareParts.map((p) => (
+                                                <option
+                                                    key={p.part_id}
+                                                    value={p.part_id}
+                                                    disabled={
+                                                        (p.part_quantity ??
+                                                            1) === 0
+                                                    }
+                                                >
+                                                    {p.part_name}
+                                                    {p.part_quantity != null
+                                                        ? p.part_quantity === 0
+                                                            ? ' (หมด)'
+                                                            : ` (${p.part_quantity})`
+                                                        : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                            จำนวน
+                                        </label>
+                                        <input
+                                            type="number"
+                                            required
+                                            min="1"
+                                            value={
+                                                partFormData.repair_part_quantity
+                                            }
+                                            onChange={(e) =>
+                                                setPartFormData({
+                                                    ...partFormData,
+                                                    repair_part_quantity:
+                                                        parseInt(
+                                                            e.target.value
+                                                        ),
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-2 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                            ราคา/หน่วย (฿)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            required
+                                            min="0"
+                                            step="0.01"
+                                            value={
+                                                partFormData.repair_part_unit_price
+                                            }
+                                            onChange={(e) =>
+                                                setPartFormData({
+                                                    ...partFormData,
+                                                    repair_part_unit_price:
+                                                        parseFloat(
+                                                            e.target.value
+                                                        ),
+                                                })
+                                            }
+                                            className="w-full rounded-md border border-slate-200 px-2 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        <button
+                                            type="submit"
+                                            className="w-full rounded-md bg-blue-600 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                                        >
+                                            + เพิ่มอะไหล่
+                                        </button>
+                                    </div>
+                                </form>
+
+                                {/* Parts list */}
+                                {repairParts.length > 0 ? (
+                                    <div className="overflow-hidden rounded-lg border border-slate-200">
+                                        <table className="w-full text-left text-sm">
+                                            <thead>
+                                                <tr className="border-b border-slate-100 bg-slate-50">
+                                                    <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                        อะไหล่
+                                                    </th>
+                                                    <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                        จำนวน
+                                                    </th>
+                                                    <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                        ราคา/หน่วย
+                                                    </th>
+                                                    <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                        รวม
+                                                    </th>
+                                                    <th className="px-3 py-2"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {repairParts.map((part) => (
+                                                    <tr
+                                                        key={`${part.repair_id}-${part.part_id}`}
+                                                        className="hover:bg-slate-50/50"
+                                                    >
+                                                        <td className="px-3 py-2 text-slate-700">
+                                                            {spareParts.find(
+                                                                (p) =>
+                                                                    p.part_id ===
+                                                                    part.part_id
+                                                            )?.part_name ||
+                                                                'ไม่ระบุ'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-slate-600">
+                                                            {
+                                                                part.repair_part_quantity
+                                                            }
+                                                        </td>
+                                                        <td className="px-3 py-2 text-slate-600">
+                                                            ฿
+                                                            {part.repair_part_unit_price.toLocaleString(
+                                                                'th-TH'
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2 font-semibold text-slate-900">
+                                                            ฿
+                                                            {(
+                                                                part.repair_part_quantity *
+                                                                part.repair_part_unit_price
+                                                            ).toLocaleString(
+                                                                'th-TH'
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right">
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleDeletePart(
+                                                                        part.part_id
+                                                                    )
+                                                                }
+                                                                className="text-slate-300 hover:text-red-500"
+                                                            >
+                                                                <DeleteIcon />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold">
+                                                    <td
+                                                        colSpan={3}
+                                                        className="px-3 py-2 text-right text-slate-600"
+                                                    >
+                                                        รวมอะไหล่:
+                                                    </td>
+                                                    <td
+                                                        colSpan={2}
+                                                        className="px-3 py-2 text-slate-900"
+                                                    >
+                                                        ฿
+                                                        {repairParts
+                                                            .reduce(
+                                                                (s, p) =>
+                                                                    s +
+                                                                    p.repair_part_quantity *
+                                                                        p.repair_part_unit_price,
+                                                                0
+                                                            )
+                                                            .toLocaleString(
+                                                                'th-TH'
+                                                            )}
+                                                    </td>
+                                                </tr>
+                                                <tr className="bg-blue-50 font-bold text-blue-700">
+                                                    <td
+                                                        colSpan={3}
+                                                        className="px-3 py-2 text-right"
+                                                    >
+                                                        ค่าใช้จ่ายรวม:
+                                                    </td>
+                                                    <td
+                                                        colSpan={2}
+                                                        className="px-3 py-2"
+                                                    >
+                                                        ฿
+                                                        {(
+                                                            repairParts.reduce(
+                                                                (s, p) =>
+                                                                    s +
+                                                                    p.repair_part_quantity *
+                                                                        p.repair_part_unit_price,
+                                                                0
+                                                            ) +
+                                                            workFormData.repair_labor_cost
+                                                        ).toLocaleString(
+                                                            'th-TH'
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed border-slate-200 py-6 text-center">
+                                        <p className="text-sm text-slate-400">
+                                            ยังไม่มีอะไหล่
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex shrink-0 justify-end gap-3 rounded-b-xl border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <button
+                                type="button"
+                                onClick={() => setIsWorkModalOpen(false)}
+                                className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-blue-600"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="submit"
+                                form="work-form"
+                                className="rounded-md bg-orange-500 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+                            >
+                                บันทึก → เริ่มซ่อม
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1272,324 +1914,6 @@ export default function RepairOrdersPage() {
                         </div>
                     </div>
                 </div>
-            )}
-
-            {/* Print Modal */}
-            {isPrintOpen && selectedRepair && (
-                <>
-                    <style>{`
-                        @media print {
-                            body * {
-                                visibility: hidden;
-                            }
-                            #printArea, #printArea * {
-                                visibility: visible;
-                            }
-                            #printArea {
-                                position: absolute;
-                                left: 0;
-                                top: 0;
-                                width: 100%;
-                            }
-                        }
-                    `}</style>
-                    <div
-                        id="printArea"
-                        ref={printRef}
-                        className="bg-bg fixed inset-0 z-50 overflow-auto p-8 print:p-0"
-                    >
-                        <div className="mx-auto max-w-4xl print:max-w-none">
-                            <div className="mb-8 flex items-center justify-between print:hidden">
-                                <h1 className="text-3xl font-bold text-slate-900">
-                                    ใบซ่อม
-                                </h1>
-                                <button
-                                    onClick={() => setIsPrintOpen(false)}
-                                    className="text-slate-400 hover:text-slate-600"
-                                >
-                                    <CloseIcon />
-                                </button>
-                            </div>
-
-                            {/* Invoice Header */}
-                            <div className="mb-8 border-b-2 border-slate-200 pb-8">
-                                <div className="mb-4 grid grid-cols-3 gap-4">
-                                    <div className="flex items-start gap-3">
-                                        {storeLogo && (
-                                            <Image
-                                                src={storeLogo}
-                                                alt="Store logo"
-                                                width={56}
-                                                height={56}
-                                                unoptimized
-                                                className="h-14 w-14 rounded-md border border-slate-200 object-cover"
-                                            />
-                                        )}
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-900">
-                                                {storeName}
-                                            </h2>
-                                            <p className="text-sm text-slate-600">
-                                                ระบบจัดเก็บสินค้า
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div></div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-slate-600">
-                                            ใบรับซ่อม
-                                        </p>
-                                        <p className="text-2xl font-bold text-slate-900">
-                                            NO.{' '}
-                                            {selectedRepair.repair_id
-                                                ?.toString()
-                                                .padStart(5, '0')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Order Info */}
-                            <div className="mb-8 grid grid-cols-2 gap-8">
-                                <div>
-                                    <p className="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        ลูกค้า
-                                    </p>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold text-slate-900">
-                                            {(() => {
-                                                const c = customers.find(
-                                                    (cust) =>
-                                                        cust.customer_id ===
-                                                        selectedRepair.customer_id
-                                                )
-                                                return c
-                                                    ? `${c.customer_fname} ${c.customer_lname}`
-                                                    : 'ไม่ระบุ'
-                                            })()}
-                                        </p>
-                                        <p className="text-sm text-slate-600">
-                                            {(() => {
-                                                const c = customers.find(
-                                                    (cust) =>
-                                                        cust.customer_id ===
-                                                        selectedRepair.customer_id
-                                                )
-                                                return c?.customer_phone || '-'
-                                            })()}
-                                        </p>
-                                    </div>
-
-                                    <p className="mt-4 mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        ข้อมูลอุปกรณ์
-                                    </p>
-                                    <div className="space-y-1">
-                                        {(() => {
-                                            const item = items.find(
-                                                (i) =>
-                                                    i.item_id ===
-                                                    selectedRepair.item_id
-                                            )
-                                            const model = models.find(
-                                                (m) =>
-                                                    m.model_id ===
-                                                    item?.model_id
-                                            )
-                                            return item ? (
-                                                <>
-                                                    <p className="text-sm font-bold text-slate-900">
-                                                        {model?.model_name ||
-                                                            'ไม่ระบุ'}
-                                                    </p>
-                                                    <p className="font-mono text-sm text-slate-600">
-                                                        S/N:{' '}
-                                                        {item.item_serial_number ||
-                                                            item.item_imei ||
-                                                            '-'}
-                                                    </p>
-                                                </>
-                                            ) : (
-                                                <p className="text-sm text-slate-500">
-                                                    ไม่ระบุ
-                                                </p>
-                                            )
-                                        })()}
-                                    </div>
-                                </div>
-                                <div className="space-y-2 text-right">
-                                    <div>
-                                        <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                            วันที่รับ
-                                        </p>
-                                        <p className="text-sm text-slate-900">
-                                            {new Date(
-                                                selectedRepair.repair_date_received
-                                            ).toLocaleDateString('th-TH')}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                            สถานะ
-                                        </p>
-                                        <p
-                                            className={`text-sm font-bold ${getStatusColor(
-                                                selectedRepair.repair_status
-                                            )}`}
-                                        >
-                                            {getStatusLabel(
-                                                selectedRepair.repair_status
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Problem Describe */}
-                            <div className="mb-4 rounded-lg bg-slate-50 p-4">
-                                <p className="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    อาการเสีย / งานซ่อม
-                                </p>
-                                <p className="text-sm whitespace-pre-wrap text-slate-900">
-                                    {selectedRepair.repair_problem_desc}
-                                </p>
-                            </div>
-
-                            {selectedRepair.repair_technician_note && (
-                                <div className="mb-8 rounded-lg bg-slate-50 p-4">
-                                    <p className="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                        หมายเหตุช่างซ่อม
-                                    </p>
-                                    <p className="text-sm whitespace-pre-wrap text-slate-900">
-                                        {selectedRepair.repair_technician_note}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Cost Breakdown */}
-                            <div className="mb-8 border-b-2 border-slate-200 pb-4">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="border-b border-slate-200">
-                                        <tr>
-                                            <th className="py-2 font-bold text-slate-600 uppercase">
-                                                รายการอะไหล่และค่าบริการ
-                                            </th>
-                                            <th className="py-2 text-right font-bold text-slate-600 uppercase">
-                                                ราคา
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {repairParts.map((part, index) => {
-                                            const p = spareParts.find(
-                                                (sp) =>
-                                                    sp.part_id === part.part_id
-                                            )
-                                            return (
-                                                <tr key={index}>
-                                                    <td className="py-3">
-                                                        <div className="font-bold text-slate-900">
-                                                            {p?.part_name ||
-                                                                'อะไหล่ไม่ทราบชื่อ'}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500">
-                                                            จำนวน:{' '}
-                                                            {
-                                                                part.repair_part_quantity
-                                                            }{' '}
-                                                            x ฿
-                                                            {part.repair_part_unit_price.toLocaleString(
-                                                                'th-TH',
-                                                                {
-                                                                    minimumFractionDigits: 2,
-                                                                }
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 text-right font-bold text-slate-900">
-                                                        ฿
-                                                        {(
-                                                            part.repair_part_quantity *
-                                                            part.repair_part_unit_price
-                                                        ).toLocaleString(
-                                                            'th-TH',
-                                                            {
-                                                                minimumFractionDigits: 2,
-                                                            }
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            )
-                                        })}
-
-                                        {repairParts.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={2}
-                                                    className="py-4 text-center text-slate-400 italic"
-                                                >
-                                                    ไม่มีรายการอะไหล่
-                                                </td>
-                                            </tr>
-                                        )}
-
-                                        {/* Labor Cost Row */}
-                                        <tr className="bg-slate-50/50">
-                                            <td className="py-3 font-bold text-slate-900">
-                                                ค่าแรงการซ่อมแซม
-                                            </td>
-                                            <td className="py-3 text-right font-bold text-slate-900">
-                                                ฿
-                                                {(
-                                                    selectedRepair.repair_labor_cost ||
-                                                    0
-                                                ).toLocaleString('th-TH', {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Summary Table */}
-                            <div className="mb-8">
-                                <div className="grid grid-cols-3 gap-4 text-right">
-                                    <div></div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                            รวมทั้งสิ้น
-                                        </p>
-                                        <p className="text-2xl font-bold text-slate-900">
-                                            ฿
-                                            {(
-                                                repairParts.reduce(
-                                                    (sum, p) =>
-                                                        sum +
-                                                        p.repair_part_quantity *
-                                                            p.repair_part_unit_price,
-                                                    0
-                                                ) +
-                                                (selectedRepair.repair_labor_cost ||
-                                                    0)
-                                            ).toLocaleString('th-TH', {
-                                                minimumFractionDigits: 2,
-                                            })}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="mt-16 border-t border-slate-200 pt-8 text-center text-xs text-slate-500">
-                                <p>
-                                    เอกสารนี้สร้างขึ้นอย่างเป็นอิเล็กทรอนิกส์จากระบบจัดเก็บสินค้า{' '}
-                                    {storeName}
-                                </p>
-                                <p>{new Date().toLocaleString('th-TH')}</p>
-                            </div>
-                        </div>
-                    </div>
-                </>
             )}
 
             {/* Customer Creation Modal */}
