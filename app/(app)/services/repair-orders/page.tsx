@@ -758,12 +758,12 @@ export default function RepairOrdersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         คำขอซ่อม
                     </h1>
                     <p className="mt-1 text-sm text-slate-500">
                         จัดการคำขอซ่อมสินค้า และเพิ่มอะไหล่
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {
@@ -1834,9 +1834,10 @@ export default function RepairOrdersPage() {
                                                                             part.part_id
                                                                         )
                                                                     }
-                                                                    className="text-slate-300 hover:text-red-500"
+                                                                    className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                                                                 >
-                                                                    <DeleteIcon />
+                                                                    <DeleteIcon className="h-4 w-4" />
+                                                                    ลบ
                                                                 </button>
                                                             </td>
                                                         </tr>
@@ -2256,9 +2257,10 @@ export default function RepairOrdersPage() {
                                                                             part.part_id
                                                                         )
                                                                     }
-                                                                    className="text-slate-400 transition-colors hover:text-red-500"
+                                                                    className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                                                                 >
-                                                                    <DeleteIcon />
+                                                                    <DeleteIcon className="h-4 w-4" />
+                                                                    ลบ
                                                                 </button>
                                                             </td>
                                                         </tr>

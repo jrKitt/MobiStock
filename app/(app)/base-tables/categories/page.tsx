@@ -45,16 +45,16 @@ export default function CategoriesPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this category?')) return
+        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้?')) return
         try {
             const response = await fetch(`/api/categories/${id}`, {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete category')
-            showToast('Category deleted successfully', 'success')
+            showToast('ลบหมวดหมู่สำเร็จ', 'success')
             fetchCategories()
         } catch (err) {
-            showToast('Failed to delete category', 'error')
+            showToast('ไม่สามารถลบหมวดหมู่ได้', 'error')
         }
     }
 
@@ -89,12 +89,12 @@ export default function CategoriesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         Categories
                     </h1>
                     <p className="text-sm text-slate-500">
                         Organize your products into categories
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {

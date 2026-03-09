@@ -60,27 +60,55 @@ export default function ClaimOrdersPage() {
 
     // Client-side filtering for claims
     const filteredClaims = useMemo(() => {
-        if (!filterQuery.trim()) return claims
-        
-        const query = filterQuery.toLowerCase()
-        return claims.filter((claim) => {
-            // Filter by claim code
-            if (claim.claim_code.toLowerCase().includes(query)) return true
-            
-            // Filter by customer name
-            const customer = customers.find(c => c.customer_id === claim.customer_id)
-            if (customer) {
-                const fullName = `${customer.customer_fname} ${customer.customer_lname}`.toLowerCase()
-                if (fullName.includes(query)) return true
-            }
-            
-            // Filter by item serial/IMEI
-            const item = items.find(i => i.item_id === claim.item_id)
-            if (item && item.item_serial_number.toLowerCase().includes(query)) return true
-            
-            return false
-        })
-    }, [claims, customers, items, filterQuery])
+        let filtered = claims
+
+        // Filter by status
+        if (filterStatus) {
+            filtered = filtered.filter((claim) => claim.claim_status === filterStatus)
+        }
+
+        // Filter by search query
+        if (filterQuery.trim()) {
+            const query = filterQuery.toLowerCase()
+            filtered = filtered.filter((claim) => {
+                // Filter by claim code
+                if (claim.claim_code.toLowerCase().includes(query)) return true
+                
+                // Filter by customer name
+                const customer = customers.find(c => c.customer_id === claim.customer_id)
+                if (customer) {
+                    const fullName = `${customer.customer_fname} ${customer.customer_lname}`.toLowerCase()
+                    if (fullName.includes(query)) return true
+                }
+                
+                // Filter by item serial/IMEI
+                const item = items.find(i => i.item_id === claim.item_id)
+                if (item && item.item_serial_number.toLowerCase().includes(query)) return true
+                
+                return false
+            })
+        }
+
+        // Filter by date range
+        if (filterStartDate) {
+            filtered = filtered.filter((claim) => {
+                const claimDate = new Date(claim.claim_date_received)
+                const startDate = new Date(filterStartDate)
+                return claimDate >= startDate
+            })
+        }
+
+        if (filterEndDate) {
+            filtered = filtered.filter((claim) => {
+                const claimDate = new Date(claim.claim_date_received)
+                const endDate = new Date(filterEndDate)
+                endDate.setHours(23, 59, 59, 999) // Include the entire end date
+                return claimDate <= endDate
+            })
+        }
+
+        return filtered
+    }, [claims, customers, items, filterQuery, filterStatus, filterStartDate, filterEndDate])
 
     const fetchData = useCallback(async () => {
         try {
@@ -387,12 +415,12 @@ export default function ClaimOrdersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         การเคลมสินค้า
                     </h1>
                     <p className="mt-1 text-sm text-slate-500">
                         จัดการการแจ้งเคลมสินค้าจากลูกค้าตามเงื่อนไขการรับประกัน
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {
@@ -438,9 +466,9 @@ export default function ClaimOrdersPage() {
                 ))}
             </div>
 
+            {/* Filter Section */}
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-                
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div className="md:col-span-2">
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -469,7 +497,7 @@ export default function ClaimOrdersPage() {
                             </div>
                             <input
                                 type="date"
-                                placeholder="วันที่"
+                                placeholder="วันที่เริ่มต้น"
                                 value={filterStartDate}
                                 onChange={(e) => {
                                     setFilterStartDate(e.target.value)
@@ -479,6 +507,47 @@ export default function ClaimOrdersPage() {
                             />
                         </div>
                     </div>
+                    <div>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="date"
+                                placeholder="วันที่สิ้นสุด"
+                                value={filterEndDate}
+                                onChange={(e) => {
+                                    setFilterEndDate(e.target.value)
+                                    setCurrentPage(1)
+                                }}
+                                className="w-full rounded-lg border border-slate-200 pl-10 pr-4 py-3 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-4 flex justify-between items-center">
+                    <div className="text-sm text-slate-500">
+                        {filterStartDate || filterEndDate ? (
+                            <span>
+                                กรองจากวันที่: {filterStartDate || 'เริ่มต้น'} ถึง {filterEndDate || 'ปัจจุบัน'}
+                            </span>
+                        ) : (
+                            <span>แสดงทั้งหมด</span>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => {
+                            setFilterQuery('')
+                            setFilterStartDate('')
+                            setFilterEndDate('')
+                            setCurrentPage(1)
+                        }}
+                        className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                    >
+                        ล้างตัวกรอง
+                    </button>
                 </div>
             </div>
            
@@ -500,14 +569,14 @@ export default function ClaimOrdersPage() {
                     </div>
 
                     {/* End Header Desktop */}
-                    {claims.length === 0 ? (
+                    {filteredClaims.length === 0 ? (
                         <div className="flex h-32 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
                             <span className="text-sm text-slate-500">
                                 ไม่พบข้อมูลการเคลม
                             </span>
                         </div>
                     ) : (
-                        claims.map((claim) => {
+                        filteredClaims.map((claim) => {
                             const customer = customers.find(c => c.customer_id === claim.customer_id)
                             const supplier = suppliers.find(s => s.supplier_id === claim.supplier_id)
                             
@@ -731,9 +800,10 @@ export default function ClaimOrdersPage() {
                                                             })
                                                         }
                                                     }}
-                                                    className="p-1 text-slate-400 transition-colors hover:text-red-500"
+                                                    className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                                                 >
-                                                    <DeleteIcon />
+                                                    <DeleteIcon className="h-4 w-4" />
+                                                    ลบ
                                                 </button>
                                             )}
                                         </div>

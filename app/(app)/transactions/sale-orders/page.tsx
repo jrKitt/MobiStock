@@ -426,10 +426,10 @@ export default function SaleOrdersPage() {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete order')
-            showToast('Sale order deleted successfully', 'success')
+            showToast('ลบคำสั่งขายสำเร็จ', 'success')
             fetchData()
         } catch {
-            showToast('Failed to delete order', 'error')
+            showToast('ไม่สามารถลบคำสั่งขายได้', 'error')
         } finally {
             setIsSubmitting(false)
         }
@@ -523,9 +523,9 @@ export default function SaleOrdersPage() {
 
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-black">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-black">
                         ใบสั่งขาย
-                    </h1>
+                    </h1> */}
                 </div>
                 <button
                     onClick={() => {

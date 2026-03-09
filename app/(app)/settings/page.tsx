@@ -26,6 +26,38 @@ function fileToBase64(file: File): Promise<string> {
     })
 }
 
+const updateFavicon = (logoUrl: string | null) => {
+    // Remove existing favicon links
+    const existingFavicons = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')
+    existingFavicons.forEach(favicon => favicon.remove())
+
+    if (logoUrl) {
+        // Create new favicon link
+        const favicon = document.createElement('link')
+        favicon.rel = 'icon'
+        favicon.href = logoUrl
+        favicon.type = 'image/x-icon'
+        document.head.appendChild(favicon)
+
+        // Also create shortcut icon
+        const shortcutIcon = document.createElement('link')
+        shortcutIcon.rel = 'shortcut icon'
+        shortcutIcon.href = logoUrl
+        document.head.appendChild(shortcutIcon)
+    } else {
+        // Reset to default favicon (you can customize this path)
+        const defaultFavicon = document.createElement('link')
+        defaultFavicon.rel = 'icon'
+        defaultFavicon.href = '/favicon.ico'
+        document.head.appendChild(defaultFavicon)
+
+        const defaultShortcutIcon = document.createElement('link')
+        defaultShortcutIcon.rel = 'shortcut icon'
+        defaultShortcutIcon.href = '/favicon.ico'
+        document.head.appendChild(defaultShortcutIcon)
+    }
+}
+
 export default function SettingsPage() {
     const { showToast } = useToast()
     const [storeName, setStoreName] = useState('')
@@ -46,6 +78,11 @@ export default function SettingsPage() {
             setStoreName(savedName || DEFAULT_STORE_NAME)
             setStoreLogo(savedLogo || null)
             setPromptpayId(savedPromptpayId || '')
+            
+            // Update favicon if there's a saved logo
+            if (savedLogo) {
+                updateFavicon(savedLogo)
+            }
         } catch {
             showToast('ไม่สามารถโหลดการตั้งค่าได้', 'error')
             setStoreName(DEFAULT_STORE_NAME)
@@ -92,8 +129,12 @@ export default function SettingsPage() {
             localStorage.setItem(PROMPTPAY_ID_STORAGE_KEY, promptpayId.trim())
             if (storeLogo) {
                 localStorage.setItem(STORE_LOGO_STORAGE_KEY, storeLogo)
+                // Update favicon
+                updateFavicon(storeLogo)
             } else {
                 localStorage.removeItem(STORE_LOGO_STORAGE_KEY)
+                // Reset to default favicon
+                updateFavicon(null)
             }
             setStoreName(storeName.trim())
             setPromptpayId(promptpayId.trim())
@@ -116,7 +157,7 @@ export default function SettingsPage() {
                     ตั้งค่าระบบ
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
-                    แก้ไขข้อมูลชื่อร้านสำหรับการแสดงผลในระบบและงานพิมพ์
+                    แก้ไขข้อมูลชื่อร้านสำหรับการแสดงผลในระบบ งานพิมพ์ และไอคอนแท็บเบราว์เซอร์
                 </p>
 
                 <form onSubmit={handleSave} className="mt-6 space-y-4">
@@ -147,7 +188,7 @@ export default function SettingsPage() {
                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                         />
                         <p className="mt-1 text-xs text-slate-500">
-                            รองรับไฟล์ภาพขนาดไม่เกิน 2MB
+                            รองรับไฟล์ภาพขนาดไม่เกิน 2MB • จะถูกใช้เป็นไอคอนแท็บเบราว์เซอร์ด้วย
                         </p>
 
                         {storeLogo && (

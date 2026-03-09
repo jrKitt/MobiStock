@@ -357,12 +357,20 @@ export default function DashboardPage() {
                                     className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
                                         product.item_status === 'Available'
                                             ? 'bg-green-100 text-green-600'
-                                            : 'bg-slate-100 text-slate-500'
+                                            : product.item_status === 'Sold'
+                                                ? 'bg-gray-100 text-gray-600'
+                                                : product.item_status === 'Reserved'
+                                                    ? 'bg-orange-100 text-orange-600'
+                                                    : 'bg-slate-100 text-slate-500'
                                     }`}
                                 >
                                     {product.item_status === 'Available'
                                         ? 'พร้อม'
-                                        : product.item_status}
+                                        : product.item_status === 'Sold'
+                                            ? 'ขายแล้ว'
+                                            : product.item_status === 'Reserved'
+                                                ? 'จองแล้ว'
+                                                : product.item_status}
                                 </span>
                             </div>
                         </div>

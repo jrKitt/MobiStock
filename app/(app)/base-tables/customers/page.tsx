@@ -101,9 +101,9 @@ export default function CustomersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         ลูกค้า
-                    </h1>
+                    </h1> */}
                 </div>
                 <button
                     onClick={() => {

@@ -70,16 +70,16 @@ export default function ProductModelsPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this model?')) return
+        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรุ่นสินค้านี้?')) return
         try {
             const response = await fetch(`/api/product-models/${id}`, {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete model')
-            showToast('Model deleted successfully', 'success')
+            showToast('ลบรุ่นสินค้าสำเร็จ', 'success')
             fetchData()
         } catch (err) {
-            showToast('Failed to delete model', 'error')
+            showToast('ไม่สามารถลบรุ่นสินค้าได้', 'error')
         }
     }
 
@@ -113,12 +113,12 @@ export default function ProductModelsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         Product Models
                     </h1>
                     <p className="text-sm text-slate-500">
                         Manage device models and technical specifications
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {
