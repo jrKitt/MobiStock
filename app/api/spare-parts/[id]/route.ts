@@ -30,10 +30,10 @@ export async function PUT(
     try {
         const { id } = await params
         const body = (await req.json()) as SparePart
-        const { part_name, part_status, image_url } = body
+        const { part_name, part_quantity, image_url } = body
         await query(
-            'UPDATE SPARE_PART SET part_name = ?, part_status = ?, image_url = ? WHERE part_id = ?',
-            [part_name, part_status, image_url || null, id]
+            'UPDATE SPARE_PART SET part_name = ?, part_quantity = ?, image_url = ? WHERE part_id = ?',
+            [part_name, part_quantity || 0, image_url || null, id]
         )
         return successResponse(
             { id, ...body },

@@ -13,7 +13,7 @@ export default function SparePartsPage() {
     const [selectedPart, setSelectedPart] = useState<SparePart | null>(null)
     const [formData, setFormData] = useState({
         part_name: '',
-        part_status: 'Available',
+        part_quantity: 0,
         image_url: '' as string | null,
     })
 
@@ -39,7 +39,7 @@ export default function SparePartsPage() {
         setSelectedPart(part)
         setFormData({
             part_name: part.part_name,
-            part_status: part.part_status || 'Available',
+            part_quantity: part.part_quantity || 0,
             image_url: part.image_url || null,
         })
         setIsModalOpen(true)
@@ -81,7 +81,7 @@ export default function SparePartsPage() {
             setSelectedPart(null)
             setFormData({
                 part_name: '',
-                part_status: 'Available',
+                part_quantity: 0,
                 image_url: null,
             })
             fetchParts()
@@ -106,7 +106,7 @@ export default function SparePartsPage() {
                         setSelectedPart(null)
                         setFormData({
                             part_name: '',
-                            part_status: 'Available',
+                            part_quantity: 0,
                             image_url: null,
                         })
                         setIsModalOpen(true)
@@ -133,7 +133,7 @@ export default function SparePartsPage() {
                                     Part Name
                                 </th>
                                 <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    Status
+                                    Quantity (In Stock)
                                 </th>
                                 <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
                                     Actions
@@ -165,9 +165,11 @@ export default function SparePartsPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span
-                                            className={`text-xs font-bold ${part.part_status === 'Available' ? 'text-green-600' : 'text-slate-400'}`}
+                                            className={`text-xs font-bold ${(part.part_quantity || 0) > 0 ? 'text-green-600' : 'text-rose-600'}`}
                                         >
-                                            {part.part_status}
+                                            {(part.part_quantity || 0) > 0
+                                                ? `${part.part_quantity} In Stock`
+                                                : 'Out of Stock'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
@@ -222,26 +224,22 @@ export default function SparePartsPage() {
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    Status
+                                    Quantity
                                 </label>
-                                <select
-                                    value={formData.part_status}
+                                <input
+                                    type="number"
+                                    min="0"
+                                    required
+                                    value={formData.part_quantity}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            part_status: e.target.value,
+                                            part_quantity:
+                                                parseInt(e.target.value) || 0,
                                         })
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                                >
-                                    <option value="Available">Available</option>
-                                    <option value="Out of Stock">
-                                        Out of Stock
-                                    </option>
-                                    <option value="Discontinued">
-                                        Discontinued
-                                    </option>
-                                </select>
+                                />
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">

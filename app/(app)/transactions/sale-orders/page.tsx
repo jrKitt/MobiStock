@@ -605,183 +605,154 @@ export default function SaleOrdersPage() {
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    รหัสใบสั่ง
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    ลูกค้า
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    จำนวน / สถานะ
-                                </th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    จัดการ
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {orders.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={4}
-                                        className="h-32 text-center text-sm text-slate-500"
-                                    >
-                                        ไม่พบข้อมูลใบสั่งขาย
-                                    </td>
-                                </tr>
-                            ) : (
-                                orders.map((order) => (
-                                    <React.Fragment key={order.sale_id}>
-                                        <tr className="transition-colors hover:bg-slate-50/50">
-                                            <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                                                {order.sale_code}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600">
-                                                {(() => {
-                                                    const c = customers.find(
-                                                        (c) =>
-                                                            c.customer_id ===
-                                                            order.customer_id
-                                                    )
-                                                    return c
-                                                        ? `${c.customer_fname} ${c.customer_lname}`
-                                                        : 'Unknown'
-                                                })()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm font-bold text-slate-900">
-                                                    ฿
-                                                    {order.sale_total_amount?.toLocaleString() ||
-                                                        '0'}
-                                                </div>
-                                                <span
-                                                    className={`text-[10px] font-bold uppercase ${
-                                                        order.sale_status ===
-                                                        'Completed'
-                                                            ? 'text-green-600'
-                                                            : order.sale_status ===
-                                                                'Cancelled'
-                                                              ? 'text-red-600'
-                                                              : 'text-orange-500'
-                                                    }`}
+                <div className="space-y-4">
+                    {/* Header Desktop */}
+                    <div className="hidden grid-cols-4 rounded-lg border border-slate-200 bg-white px-6 py-4 text-left text-xs font-bold tracking-wider text-slate-500 uppercase shadow-sm md:grid">
+                        <div>รหัสใบสั่ง</div>
+                        <div>ลูกค้า</div>
+                        <div>จำนวน / สถานะ</div>
+                        <div className="text-right">จัดการ</div>
+                    </div>
+
+                    {/* End Header Desktop */}
+                    {orders.length === 0 ? (
+                        <div className="flex h-32 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
+                            <span className="text-sm text-slate-500">
+                                ไม่พบข้อมูลใบสั่งขาย
+                            </span>
+                        </div>
+                    ) : (
+                        orders.map((order) => (
+                            <div
+                                key={order.sale_id}
+                                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                            >
+                                <div className="grid grid-cols-1 items-center gap-4 px-6 py-5 md:grid-cols-4">
+                                    <div className="text-sm font-bold text-slate-900">
+                                        <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                            รหัสใบสั่ง
+                                        </div>
+                                        {order.sale_code}
+                                    </div>
+                                    <div className="text-sm text-slate-600">
+                                        <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                            ลูกค้า
+                                        </div>
+                                        {(() => {
+                                            const c = customers.find(
+                                                (c) =>
+                                                    c.customer_id ===
+                                                    order.customer_id
+                                            )
+                                            return c
+                                                ? `${c.customer_fname} ${c.customer_lname}`
+                                                : 'Unknown'
+                                        })()}
+                                    </div>
+                                    <div>
+                                        <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                            จำนวน / สถานะ
+                                        </div>
+                                        <div className="text-sm font-bold text-slate-900">
+                                            ฿
+                                            {order.sale_total_amount?.toLocaleString() ||
+                                                '0'}
+                                        </div>
+                                        <span
+                                            className={`text-[10px] font-bold uppercase ${
+                                                order.sale_status ===
+                                                'Completed'
+                                                    ? 'text-green-600'
+                                                    : order.sale_status ===
+                                                        'Cancelled'
+                                                      ? 'text-red-600'
+                                                      : 'text-orange-500'
+                                            }`}
+                                        >
+                                            {order.sale_status}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-start gap-2 pt-2 md:justify-end md:pt-0">
+                                        {order.sale_status === 'Pending' && (
+                                            <button
+                                                onClick={() =>
+                                                    handleQRPayment(order)
+                                                }
+                                                className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                            >
+                                                <QrCodeIcon className="h-4 w-4" />
+                                                QR ชำระเงิน
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handlePrint(order)}
+                                            className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
+                                        >
+                                            <PrintIcon className="h-4 w-4" />
+                                            ออกบิลลูกค้า
+                                        </button>
+                                        <button
+                                            onClick={() => handleEdit(order)}
+                                            className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                                        >
+                                            <EditIcon className="h-4 w-4" />
+                                            แก้ไข
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                handleDelete(order.sale_id!)
+                                            }
+                                            className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                                        >
+                                            <DeleteIcon className="h-4 w-4" />
+                                            ลบ
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {order.items && order.items.length > 0 && (
+                                    <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+                                        <div className="mb-2 space-y-2 border-l-2 border-slate-200 pl-4">
+                                            <p className="text-xs font-bold text-slate-500 uppercase">
+                                                รายการสินค้า:
+                                            </p>
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                            {order.items.map((item: any) => (
+                                                <div
+                                                    key={item.sale_item_id}
+                                                    className="grid grid-cols-1 gap-2 text-sm text-slate-600 sm:grid-cols-3"
                                                 >
-                                                    {order.sale_status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {order.sale_status ===
-                                                        'Pending' && (
-                                                        <button
-                                                            onClick={() =>
-                                                                handleQRPayment(
-                                                                    order
-                                                                )
-                                                            }
-                                                            className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
-                                                        >
-                                                            <QrCodeIcon className="h-4 w-4" />
-                                                            QR ชำระเงิน
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() =>
-                                                            handlePrint(order)
-                                                        }
-                                                        className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
-                                                    >
-                                                        <PrintIcon className="h-4 w-4" />
-                                                        ออกบิลลูกค้า
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            handleEdit(order)
-                                                        }
-                                                        className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-                                                    >
-                                                        <EditIcon className="h-4 w-4" />
-                                                        แก้ไข
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                order.sale_id!
-                                                            )
-                                                        }
-                                                        className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                                                    >
-                                                        <DeleteIcon className="h-4 w-4" />
-                                                        ลบ
-                                                    </button>
+                                                    <div>
+                                                        {item.brand_name}{' '}
+                                                        {item.model_name}
+                                                    </div>
+                                                    <div>
+                                                        {item.item_serial_number
+                                                            ? `SN: ${item.item_serial_number}`
+                                                            : item.item_imei
+                                                              ? `IMEI: ${item.item_imei}`
+                                                              : ''}
+                                                    </div>
+                                                    <div className="font-semibold sm:text-right md:text-left">
+                                                        ฿
+                                                        {Number(
+                                                            item.sale_price
+                                                        ).toLocaleString()}
+                                                    </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                        {order.items &&
-                                            order.items.length > 0 && (
-                                                <tr
-                                                    key={`${order.sale_id}-items`}
-                                                    className="bg-slate-50/30"
-                                                >
-                                                    <td
-                                                        colSpan={4}
-                                                        className="border-b border-slate-100 px-6 py-3"
-                                                    >
-                                                        <div className="mb-2 space-y-2 border-l-2 border-slate-200 pl-4">
-                                                            <p className="text-xs font-bold text-slate-500 uppercase">
-                                                                รายการสินค้า:
-                                                            </p>
-                                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                            {order.items.map(
-                                                                (item: any) => (
-                                                                    <div
-                                                                        key={
-                                                                            item.sale_item_id
-                                                                        }
-                                                                        className="grid grid-cols-3 gap-2 text-sm text-slate-600"
-                                                                    >
-                                                                        <div>
-                                                                            {
-                                                                                item.brand_name
-                                                                            }{' '}
-                                                                            {
-                                                                                item.model_name
-                                                                            }
-                                                                        </div>
-                                                                        <div>
-                                                                            {item.item_serial_number
-                                                                                ? `SN: ${item.item_serial_number}`
-                                                                                : item.item_imei
-                                                                                  ? `IMEI: ${item.item_imei}`
-                                                                                  : ''}
-                                                                        </div>
-                                                                        <div className="font-semibold">
-                                                                            ฿
-                                                                            {Number(
-                                                                                item.sale_price
-                                                                            ).toLocaleString()}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            )}
-                                                            <div className="mt-2 w-64 border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
-                                                                รวมยอด: ฿
-                                                                {Number(
-                                                                    order.sale_total_amount
-                                                                ).toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                    </React.Fragment>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                            ))}
+                                            <div className="mt-2 w-full max-w-[200px] border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
+                                                รวมยอด: ฿
+                                                {Number(
+                                                    order.sale_total_amount
+                                                ).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
 
