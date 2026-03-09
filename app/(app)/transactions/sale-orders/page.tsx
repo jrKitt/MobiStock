@@ -54,6 +54,12 @@ export default function SaleOrdersPage() {
     const [confirmImages, setConfirmImages] = useState<
         { url: string; uploading: boolean }[]
     >([])
+    const [podImages, setPodImages] = useState<
+        { url: string; uploading: boolean }[]
+    >([])
+    const [paymentBillImages, setPaymentBillImages] = useState<
+        { url: string; uploading: boolean }[]
+    >([])
     const [selectedOrder, setSelectedOrder] = useState<SaleOrder | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
     const [searchItemQuery, setSearchItemQuery] = useState('')
@@ -168,64 +174,109 @@ export default function SaleOrdersPage() {
     }
 
     const handleConfirmImageUpload = async (
-        e: React.ChangeEvent<HTMLInputElement>
+        e: React.ChangeEvent<HTMLInputElement>,
+        type: 'pod' | 'paymentBill'
     ) => {
         const files = Array.from(e.target.files || [])
         if (!files.length) return
-        const placeholders = files.map(() => ({ url: '', uploading: true }))
-        setConfirmImages((prev) => [...prev, ...placeholders])
-        const startIndex = confirmImages.length
-        await Promise.all(
-            files.map(async (file, i) => {
-                const fd = new FormData()
-                fd.append('file', file)
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: fd,
-                })
-                if (res.ok) {
-                    const data = await res.json()
-                    setConfirmImages((prev) => {
-                        const updated = [...prev]
-                        updated[startIndex + i] = {
-                            url: data.url,
-                            uploading: false,
-                        }
-                        return updated
+
+        if (type === 'pod') {
+            const placeholders = files.map(() => ({ url: '', uploading: true }))
+            setPodImages((prev) => [...prev, ...placeholders])
+            const startIndex = podImages.length
+            await Promise.all(
+                files.map(async (file, i) => {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: fd,
                     })
-                } else {
-                    setConfirmImages((prev) =>
-                        prev.filter((_, idx) => idx !== startIndex + i)
-                    )
-                    showToast('อัปโหลดรูปภาพไม่สำเร็จ', 'error')
-                }
-            })
-        )
+                    if (res.ok) {
+                        const data = await res.json()
+                        setPodImages((prev) => {
+                            const updated = [...prev]
+                            updated[startIndex + i] = {
+                                url: data.url,
+                                uploading: false,
+                            }
+                            return updated
+                        })
+                    } else {
+                        setPodImages((prev) =>
+                            prev.filter((_, idx) => idx !== startIndex + i)
+                        )
+                        showToast('อัปโหลดรูปภาพ POD ไม่สำเร็จ', 'error')
+                    }
+                })
+            )
+        } else {
+            const placeholders = files.map(() => ({ url: '', uploading: true }))
+            setPaymentBillImages((prev) => [...prev, ...placeholders])
+            const startIndex = paymentBillImages.length
+            await Promise.all(
+                files.map(async (file, i) => {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: fd,
+                    })
+                    if (res.ok) {
+                        const data = await res.json()
+                        setPaymentBillImages((prev) => {
+                            const updated = [...prev]
+                            updated[startIndex + i] = {
+                                url: data.url,
+                                uploading: false,
+                            }
+                            return updated
+                        })
+                    } else {
+                        setPaymentBillImages((prev) =>
+                            prev.filter((_, idx) => idx !== startIndex + i)
+                        )
+                        showToast('อัปโหลดรูปภาพใบเสร็จไม่สำเร็จ', 'error')
+                    }
+                })
+            )
+        }
         e.target.value = ''
     }
 
     const confirmPayment = async () => {
         if (!selectedOrder?.sale_id) return
-        const readyImages = confirmImages.filter((img) => !img.uploading)
-        if (readyImages.length < 3) {
-            showToast('กรุณาอัปโหลดรูปภาพอย่างน้อย 3 รูปก่อนยืนยัน', 'warning')
+        const readyPodImages = podImages.filter((img) => !img.uploading)
+        const readyPaymentBillImages = paymentBillImages.filter((img) => !img.uploading)
+        
+        if (readyPodImages.length < 1) {
+            showToast('กรุณาอัปโหลดรูปภาพหลักฐานการโอนเงิน (POD) อย่างน้อย 1 รูป', 'warning')
             return
         }
+        
+        if (readyPaymentBillImages.length < 1) {
+            showToast('กรุณาอัปโหลดรูปภาพใบเสร็จรับเงิน อย่างน้อย 1 รูป', 'warning')
+            return
+        }
+        
         try {
             setIsSubmitting(true)
             // Save confirmation images first
+            const allImages = [...readyPodImages, ...readyPaymentBillImages]
             await Promise.all(
-                readyImages.map((img) =>
+                allImages.map((img: any) =>
                     fetch('/api/sale-order-images', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             sale_id: selectedOrder.sale_id,
                             image_url: img.url,
+                            image_caption: readyPodImages.includes(img) ? 'หลักฐานการโอนเงิน (POD)' : 'ใบเสร็จรับเงิน',
                         }),
                     })
                 )
             )
+            
             // Then mark order as completed
             const res = await fetch(
                 `/api/sale-orders/${selectedOrder.sale_id}`,
@@ -240,7 +291,8 @@ export default function SaleOrdersPage() {
                 fetchData()
                 setIsConfirmPaymentOpen(false)
                 setIsQROpen(false)
-                setConfirmImages([])
+                setPodImages([])
+                setPaymentBillImages([])
             } else {
                 showToast('ชำระเงินไม่สำเร็จ กรุณาลองใหม่', 'error')
             }
@@ -935,7 +987,8 @@ export default function SaleOrdersPage() {
                             <button
                                 onClick={() => {
                                     setIsConfirmPaymentOpen(false)
-                                    setConfirmImages([])
+                                    setPodImages([])
+                                    setPaymentBillImages([])
                                 }}
                                 className="text-slate-400 hover:text-slate-600"
                             >
@@ -943,109 +996,239 @@ export default function SaleOrdersPage() {
                             </button>
                         </div>
                         <div className="p-6">
-                            <p className="mb-4 text-sm text-slate-600">
+                            <p className="mb-6 text-sm text-slate-600">
                                 กรุณาอัปโหลดหลักฐานการชำระเงิน
                                 <span className="font-semibold text-red-600">
                                     {' '}
-                                    อย่างน้อย 3 รูปภาพ
+                                    2 ประเภท
                                 </span>{' '}
                                 ก่อนยืนยัน
                             </p>
 
-                            {/* Upload button */}
-                            <label className="mb-4 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-blue-400 hover:text-blue-600">
-                                <svg
-                                    className="h-4 w-4 shrink-0"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
+                            {/* POD Section */}
+                            <div className="mb-6">
+                                <h4 className="mb-3 text-sm font-semibold text-slate-700">
+                                    หลักฐานการโอนเงิน (POD)
+                                    <span className="ml-2 text-xs font-normal text-slate-500">
+                                        {podImages.filter((i) => !i.uploading).length >= 1 ? '✓ อัปโหลดแล้ว' : 'จำเป็นต้องอัปโหลด 1 รูป'}
+                                    </span>
+                                </h4>
+                                <label
+                                    htmlFor="pod-images"
+                                    className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition-colors ${
+                                        podImages.filter((i) => !i.uploading).length >= 1
+                                            ? 'border-green-300 bg-green-50'
+                                            : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+                                    }`}
                                 >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                    <svg
+                                        className="h-4 w-4 shrink-0"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                        />
+                                    </svg>
+                                    <span className="text-xs">คลิกเพื่ออัปโหลดรูปภาพ POD</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        id="pod-images"
+                                        onChange={(e) => handleConfirmImageUpload(e, 'pod')}
                                     />
-                                </svg>
-                                <span>คลิกเพื่ออัปโหลดรูปภาพ</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    className="hidden"
-                                    onChange={handleConfirmImageUpload}
-                                />
-                            </label>
+                                </label>
 
-                            {/* Image grid */}
-                            {confirmImages.length > 0 && (
-                                <div className="mb-4 grid grid-cols-3 gap-2">
-                                    {confirmImages.map((img, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
-                                        >
-                                            {img.uploading ? (
-                                                <div className="flex h-full items-center justify-center">
-                                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Image
-                                                        src={img.url}
-                                                        alt={`หลักฐาน ${idx + 1}`}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setConfirmImages(
-                                                                (prev) =>
-                                                                    prev.filter(
-                                                                        (
-                                                                            _,
-                                                                            i
-                                                                        ) =>
-                                                                            i !==
-                                                                            idx
-                                                                    )
-                                                            )
-                                                        }
-                                                        className="absolute top-1 right-1 rounded-full bg-black/50 p-0.5 text-white hover:bg-black/70"
-                                                    >
-                                                        <CloseIcon />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    ))}
+                                {/* POD Images Grid */}
+                                {podImages.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                        {podImages.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                                            >
+                                                {img.uploading ? (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <Image
+                                                            src={img.url}
+                                                            alt={`POD ${idx + 1}`}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setPodImages(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (_,
+                                                                                i
+                                                                            ) =>
+                                                                                i !==
+                                                                                idx
+                                                                        )
+                                                                )
+                                                            }
+                                                            className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                                        >
+                                                            <CloseIcon className="h-3 w-3" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Payment Bill Section */}
+                            <div className="mb-6">
+                                <h4 className="mb-3 text-sm font-semibold text-slate-700">
+                                    ใบเสร็จรับเงิน
+                                    <span className="ml-2 text-xs font-normal text-slate-500">
+                                        {paymentBillImages.filter((i) => !i.uploading).length >= 1 ? '✓ อัปโหลดแล้ว' : 'จำเป็นต้องอัปโหลด 1 รูป'}
+                                    </span>
+                                </h4>
+                                <label
+                                    htmlFor="payment-bill-images"
+                                    className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition-colors ${
+                                        paymentBillImages.filter((i) => !i.uploading).length >= 1
+                                            ? 'border-green-300 bg-green-50'
+                                            : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+                                    }`}
+                                >
+                                    <svg
+                                        className="h-4 w-4 shrink-0"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                        />
+                                    </svg>
+                                    <span className="text-xs">คลิกเพื่ออัปโหลดรูปภาพใบเสร็จ</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        id="payment-bill-images"
+                                        onChange={(e) => handleConfirmImageUpload(e, 'paymentBill')}
+                                    />
+                                </label>
+
+                                {/* Payment Bill Images Grid */}
+                                {paymentBillImages.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                        {paymentBillImages.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                                            >
+                                                {img.uploading ? (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <Image
+                                                            src={img.url}
+                                                            alt={`ใบเสร็จ ${idx + 1}`}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setPaymentBillImages(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (_,
+                                                                                i
+                                                                            ) =>
+                                                                                i !==
+                                                                                idx
+                                                                        )
+                                                                )
+                                                            }
+                                                            className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                                        >
+                                                            <CloseIcon className="h-3 w-3" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Status Summary */}
+                            <div className="mb-4 rounded-lg bg-slate-50 p-3">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-slate-600">สถานะการอัปโหลด:</span>
+                                    <span
+                                        className={`font-semibold ${
+                                            podImages.filter((i) => !i.uploading).length >= 1 &&
+                                            paymentBillImages.filter((i) => !i.uploading).length >= 1
+                                                ? 'text-green-600'
+                                                : 'text-orange-500'
+                                        }`}
+                                    >
+                                        {podImages.filter((i) => !i.uploading).length >= 1 &&
+                                        paymentBillImages.filter((i) => !i.uploading).length >= 1
+                                            ? '✓ พร้อมยืนยัน'
+                                            : '⏳ รอการอัปโหลด'}
+                                    </span>
                                 </div>
-                            )}
-
-                            {/* Counter */}
-                            <p
-                                className={`mb-4 text-xs font-medium ${
-                                    confirmImages.filter((i) => !i.uploading)
-                                        .length >= 3
-                                        ? 'text-green-600'
-                                        : 'text-slate-400'
-                                }`}
-                            >
-                                {
-                                    confirmImages.filter((i) => !i.uploading)
-                                        .length
-                                }{' '}
-                                / 3 รูปภาพ
-                                {confirmImages.filter((i) => !i.uploading)
-                                    .length >= 3 && ' ✓'}
-                            </p>
+                                <div className="mt-2 space-y-1 text-xs text-slate-500">
+                                    <div className="flex justify-between">
+                                        <span>• หลักฐานการโอนเงิน (POD):</span>
+                                        <span
+                                            className={
+                                                podImages.filter((i) => !i.uploading).length >= 1
+                                                    ? 'text-green-600'
+                                                    : 'text-slate-400'
+                                            }
+                                        >
+                                            {podImages.filter((i) => !i.uploading).length} / 1
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>• ใบเสร็จรับเงิน:</span>
+                                        <span
+                                            className={
+                                                paymentBillImages.filter((i) => !i.uploading).length >= 1
+                                                    ? 'text-green-600'
+                                                    : 'text-slate-400'
+                                            }
+                                        >
+                                            {paymentBillImages.filter((i) => !i.uploading).length} / 1
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => {
                                         setIsConfirmPaymentOpen(false)
-                                        setConfirmImages([])
+                                        setPodImages([])
+                                        setPaymentBillImages([])
                                     }}
                                     disabled={isSubmitting}
                                     className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
@@ -1056,9 +1239,8 @@ export default function SaleOrdersPage() {
                                     onClick={confirmPayment}
                                     disabled={
                                         isSubmitting ||
-                                        confirmImages.filter(
-                                            (i) => !i.uploading
-                                        ).length < 3
+                                        podImages.filter((i) => !i.uploading).length < 1 ||
+                                        paymentBillImages.filter((i) => !i.uploading).length < 1
                                     }
                                     className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                                 >

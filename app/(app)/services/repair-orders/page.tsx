@@ -49,11 +49,16 @@ export default function RepairOrdersPage() {
     // Complete modal (in_progress → waiting_payment): Image Upload
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
     const [isQROpen, setIsQROpen] = useState(false)
+    const [isConfirmPaymentOpen, setIsConfirmPaymentOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [completeRepair, setCompleteRepair] = useState<
         (RepairOrder & { parts?: RepairOrderPart[] }) | null
     >(null)
     const [completeImages, setCompleteImages] = useState<
         { url: string; caption: string; uploading: boolean }[]
+    >([])
+    const [confirmImages, setConfirmImages] = useState<
+        { url: string; uploading: boolean }[]
     >([])
 
     const [formData, setFormData] = useState({
@@ -545,6 +550,45 @@ export default function RepairOrdersPage() {
         e.target.value = ''
     }
 
+    const handleConfirmImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+
+        const placeholders = files.map(() => ({ url: '', uploading: true }))
+        setConfirmImages((prev) => [...prev, ...placeholders])
+        const startIndex = confirmImages.length
+
+        await Promise.all(
+            files.map(async (file, i) => {
+                const fd = new FormData()
+                fd.append('file', file)
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: fd,
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    setConfirmImages((prev) => {
+                        const updated = [...prev]
+                        updated[startIndex + i] = {
+                            url: data.url,
+                            uploading: false,
+                        }
+                        return updated
+                    })
+                } else {
+                    setConfirmImages((prev) =>
+                        prev.filter((_, idx) => idx !== startIndex + i)
+                    )
+                    showToast('อัปโหลดรูปภาพไม่สำเร็จ', 'error')
+                }
+            })
+        )
+        e.target.value = ''
+    }
+
     const handleConfirmComplete = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!completeRepair?.repair_id) return
@@ -594,6 +638,63 @@ export default function RepairOrdersPage() {
             fetchData()
         } catch {
             showToast('อัปเดตสถานะไม่สำเร็จ', 'error')
+        }
+    }
+
+    const confirmPayment = async () => {
+        if (!completeRepair?.repair_id) return
+        const readyImages = confirmImages.filter((img) => !img.uploading)
+        
+        if (readyImages.length < 1) {
+            showToast('กรุณาอัปโหลดรูปภาพหลักฐานการโอนและส่งมอบ อย่างน้อย 1 รูป', 'warning')
+            return
+        }
+        
+        try {
+            setIsSubmitting(true)
+            // Save confirmation images first
+            await Promise.all(
+                readyImages.map((img: any) =>
+                    fetch('/api/repair-order-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            repair_id: completeRepair.repair_id,
+                            image_url: img.url,
+                            image_caption: 'หลักฐานการโอนและส่งมอบ',
+                            image_type: 'completed',
+                        }),
+                    })
+                )
+            )
+            
+            // Then mark repair as completed
+            const res = await fetch(
+                `/api/repair-orders/${completeRepair.repair_id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...completeRepair,
+                        repair_status: 'completed',
+                        update_by: 'staff', // You might want to get this from session
+                    }),
+                }
+            )
+            if (res.ok) {
+                showToast('ชำระเงินสำเร็จ', 'success')
+                fetchData()
+                setIsConfirmPaymentOpen(false)
+                setIsQROpen(false)
+                setConfirmImages([])
+                setCompleteRepair(null)
+            } else {
+                showToast('ชำระเงินไม่สำเร็จ กรุณาลองใหม่', 'error')
+            }
+        } catch {
+            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -2557,20 +2658,184 @@ export default function RepairOrdersPage() {
 
                             <div className="mt-8 flex flex-col gap-3">
                                 <button
-                                    onClick={() => {
-                                        if (completeRepair) {
-                                            handleMarkCompleted(completeRepair)
-                                        }
-                                    }}
+                                    onClick={() => setIsConfirmPaymentOpen(true)}
                                     className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
                                 >
-                                    ชำระสำเร็จ
+                                    ยืนยันการชำระเงิน
                                 </button>
                                 <button
                                     onClick={() => setIsQROpen(false)}
                                     className="w-full rounded-xl bg-slate-100 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-200"
                                 >
                                     ปิด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Confirmation Modal */}
+            {isConfirmPaymentOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                ยืนยันการชำระเงิน
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setIsConfirmPaymentOpen(false)
+                                    setConfirmImages([])
+                                }}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="mb-6 text-sm text-slate-600">
+                                กรุณาอัปโหลดหลักฐานการชำระเงิน
+                                <span className="font-semibold text-red-600">
+                                    {' '}
+                                    หลักฐานการโอนและส่งมอบ
+                                </span>{' '}
+                                ก่อนยืนยัน
+                            </p>
+
+                            {/* Upload Section */}
+                            <div className="mb-6">
+                                <label
+                                    htmlFor="confirm-images"
+                                    className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors ${
+                                        confirmImages.filter((i) => !i.uploading).length >= 1
+                                            ? 'border-green-300 bg-green-50'
+                                            : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+                                    }`}
+                                >
+                                    <svg
+                                        className="h-4 w-4 shrink-0"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                        />
+                                    </svg>
+                                    <span className="text-xs">คลิกเพื่ออัปโหลดรูปภาพหลักฐานการโอนและส่งมอบ</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        id="confirm-images"
+                                        onChange={handleConfirmImageUpload}
+                                    />
+                                </label>
+
+                                {/* Images Grid */}
+                                {confirmImages.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                        {confirmImages.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                                            >
+                                                {img.uploading ? (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <img
+                                                            src={img.url}
+                                                            alt={`หลักฐาน ${idx + 1}`}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setConfirmImages(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (_,
+                                                                                i
+                                                                            ) =>
+                                                                                i !==
+                                                                                idx
+                                                                        )
+                                                                )
+                                                            }
+                                                            className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                                        >
+                                                            <CloseIcon className="h-3 w-3" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Status Summary */}
+                            <div className="mb-4 rounded-lg bg-slate-50 p-3">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-slate-600">สถานะการอัปโหลด:</span>
+                                    <span
+                                        className={`font-semibold ${
+                                            confirmImages.filter((i) => !i.uploading).length >= 1
+                                                ? 'text-green-600'
+                                                : 'text-orange-500'
+                                        }`}
+                                    >
+                                        {confirmImages.filter((i) => !i.uploading).length >= 1
+                                            ? '✓ พร้อมยืนยัน'
+                                            : '⏳ รอการอัปโหลด'}
+                                    </span>
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs text-slate-500">
+                                    <div className="flex justify-between">
+                                        <span>• หลักฐานการโอนและส่งมอบ:</span>
+                                        <span
+                                            className={
+                                                confirmImages.filter((i) => !i.uploading).length >= 1
+                                                    ? 'text-green-600'
+                                                    : 'text-slate-400'
+                                            }
+                                        >
+                                            {confirmImages.filter((i) => !i.uploading).length} / 1
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setIsConfirmPaymentOpen(false)
+                                        setConfirmImages([])
+                                    }}
+                                    disabled={isSubmitting}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={confirmPayment}
+                                    disabled={
+                                        isSubmitting ||
+                                        confirmImages.filter((i) => !i.uploading).length < 1
+                                    }
+                                    className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    {isSubmitting
+                                        ? 'กำลังยืนยัน...'
+                                        : 'ยืนยันชำระเงิน'}
                                 </button>
                             </div>
                         </div>
