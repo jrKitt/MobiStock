@@ -249,10 +249,24 @@ async function seed() {
         // ── 11. Claim Orders ─────────────────────────────────────────────────
         console.log('Seeding Claim Orders...')
         await query(
-            `INSERT INTO CLAIM_ORDER (claim_code, claim_date_received, claim_status, claim_resolution, supplier_id, customer_id, item_id, create_by, update_by)
+            `INSERT INTO CLAIM_ORDER (claim_code, claim_date_received, claim_date_returned, claim_status, claim_resolution, supplier_id, customer_id, item_id, create_by, update_by)
              VALUES
-             ('CLM-20260210-00001', '2026-02-10 09:00:00', 'resolved', 'replacement', 1, 1, 3, 'admin', 'admin'),
-             ('CLM-20260305-00002', '2026-03-05 14:30:00', 'in_review', 'unknown', 2, 4, 4, 'admin', 'admin')`
+             -- Pending claims (รอพิจารณา)
+             ('CLM-20260308-00001', '2026-03-08 10:00:00', NULL, 'pending', 'unknown', NULL, 1, 1, 'admin', 'admin'),
+             ('CLM-20260309-00002', '2026-03-09 14:30:00', NULL, 'pending', 'unknown', 3, 2, 12, 'admin', 'admin'),
+             
+             -- In Review claims (กำลังตรวจสอบ)
+             ('CLM-20260305-00003', '2026-03-05 09:15:00', NULL, 'in_review', 'unknown', 2, 3, 4, 'admin', 'admin'),
+             ('CLM-20260307-00004', '2026-03-07 11:45:00', NULL, 'in_review', 'unknown', 1, 4, 5, 'admin', 'admin'),
+             
+             -- Resolved claims (แก้ไขแล้ว) with different resolutions
+             ('CLM-20260210-00005', '2026-02-10 09:00:00', '2026-02-15 16:30:00', 'resolved', 'replacement', 1, 5, 6, 'admin', 'admin'),
+             ('CLM-20260215-00006', '2026-02-15 13:20:00', '2026-02-18 10:15:00', 'resolved', 'refund', 2, 6, 7, 'admin', 'admin'),
+             ('CLM-20260220-00007', '2026-02-20 10:30:00', '2026-02-22 14:45:00', 'resolved', 'repair', 3, 1, 8, 'admin', 'admin'),
+             
+             -- Rejected claims (ปฏิเสธ)
+             ('CLM-20260225-00008', '2026-02-25 15:00:00', '2026-02-26 09:30:00', 'rejected', 'unknown', NULL, 2, 9, 'admin', 'admin'),
+             ('CLM-20260301-00009', '2026-03-01 11:15:00', '2026-03-02 16:00:00', 'rejected', 'unknown', NULL, 3, 10, 'admin', 'admin')`
         )
 
         // ── 12. Users ─────────────────────────────────────────────────────────

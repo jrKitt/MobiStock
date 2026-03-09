@@ -1,24 +1,50 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ClaimOrder, Customer, ProductItem, Supplier } from '@/types/api'
-import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
+import { PrintIcon, EditIcon, DeleteIcon, CloseIcon, QrCodeIcon } from '@/lib/icons'
+import generatePayload from 'promptpay-qr'
+import { QRCodeCanvas } from 'qrcode.react'
 
 export default function ClaimOrdersPage() {
     const { showToast } = useToast()
-    const [storeName, setStoreName] = useState('MobiStock')
-    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const [claims, setClaims] = useState<ClaimOrder[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [items, setItems] = useState<ProductItem[]>([])
+    const [filterQuery, setFilterQuery] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
+    const itemsPerPage = 10
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+    const [isQROpen, setIsQROpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [confirmAction, setConfirmAction] = useState<{
+        type: string
+        claimId: number
+        message: string
+        onConfirm: () => void
+    } | null>(null)
+    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false)
+    const [selectedSupplier, setSelectedSupplier] = useState(0)
+    const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false)
+    const [resolutionData, setResolutionData] = useState({
+        claim_resolution: 'unknown',
+        claim_date_returned: new Date().toISOString().split('T')[0],
+    })
     const [selectedClaim, setSelectedClaim] = useState<ClaimOrder | null>(null)
+    const [confirmImages, setConfirmImages] = useState<
+        { url: string; uploading: boolean }[]
+    >([])
+    const [storeName, setStoreName] = useState('MobiStock')
+    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
     const [formData, setFormData] = useState({
         claim_code: '',
@@ -137,6 +163,16 @@ export default function ClaimOrdersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
+            // For new claims, ensure default values
+            const submitData = selectedClaim 
+                ? formData 
+                : {
+                    ...formData,
+                    claim_status: 'pending',
+                    claim_resolution: 'unknown',
+                    claim_date_returned: '',
+                }
+            
             const url = selectedClaim
                 ? `/api/claim-orders/${selectedClaim.claim_id}`
                 : '/api/claim-orders'
@@ -144,7 +180,7 @@ export default function ClaimOrdersPage() {
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(submitData),
             })
 
             if (!response.ok) throw new Error('Failed to save claim')
@@ -176,8 +212,8 @@ export default function ClaimOrdersPage() {
 
     const getStatusLabel = (status: string) => {
         const statusMap: { [key: string]: string } = {
-            pending: 'รอพิจารณา',
-            in_review: 'กำลังตรวจสอบ',
+            pending: 'รอส่งเคลม',
+            in_review: 'กำลังดำเนินการ',
             resolved: 'แก้ไขแล้ว',
             rejected: 'ปฏิเสธ',
         }
@@ -192,6 +228,117 @@ export default function ClaimOrdersPage() {
             unknown: 'ยังไม่ทราบ',
         }
         return resolutionMap[resolution] || resolution
+    }
+
+    const handleConfirmImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+
+        const placeholders = files.map(() => ({ url: '', uploading: true }))
+        setConfirmImages((prev) => [...prev, ...placeholders])
+        const startIndex = confirmImages.length
+
+        await Promise.all(
+            files.map(async (file, i) => {
+                const fd = new FormData()
+                fd.append('file', file)
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: fd,
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    setConfirmImages((prev) => {
+                        const updated = [...prev]
+                        updated[startIndex + i] = {
+                            url: data.url,
+                            uploading: false,
+                        }
+                        return updated
+                    })
+                } else {
+                    setConfirmImages((prev) =>
+                        prev.filter((_, idx) => idx !== startIndex + i)
+                    )
+                    showToast('อัปโหลดรูปภาพไม่สำเร็จ', 'error')
+                }
+            })
+        )
+        e.target.value = ''
+    }
+
+    const handleOpenQRModal = (claim: ClaimOrder) => {
+        const promptpayId = localStorage.getItem('mobistock_promptpay_id')
+        if (!promptpayId) {
+            showToast('กรุณาตั้งค่ารหัสพร้อมเพย์ที่หน้าระบบก่อน', 'warning')
+            return
+        }
+        setSelectedClaim(claim)
+        setIsQROpen(true)
+    }
+
+    const confirmClaimResolution = async () => {
+        if (!selectedClaim?.claim_id) return
+        const readyImages = confirmImages.filter((img) => !img.uploading)
+        
+        if (readyImages.length < 1) {
+            showToast('กรุณาอัปโหลดรูปภาพหลักฐานการแก้ไข อย่างน้อย 1 รูป', 'warning')
+            return
+        }
+        
+        try {
+            setIsSubmitting(true)
+            // Save confirmation images first
+            await Promise.all(
+                readyImages.map((img: any) =>
+                    fetch('/api/claim-order-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            claim_id: selectedClaim.claim_id,
+                            image_url: img.url,
+                            image_caption: 'หลักฐานการแก้ไข',
+                        }),
+                    })
+                )
+            )
+            
+            // Then mark claim as resolved with resolution data
+            const res = await fetch(
+                `/api/claim-orders/${selectedClaim.claim_id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...selectedClaim,
+                        claim_status: 'resolved',
+                        claim_resolution: resolutionData.claim_resolution,
+                        claim_date_returned: resolutionData.claim_date_returned,
+                        update_by: 'staff',
+                    }),
+                }
+            )
+            if (res.ok) {
+                showToast('แก้ไขเคลมสำเร็จ', 'success')
+                fetchData()
+                setIsConfirmModalOpen(false)
+                setIsQROpen(false)
+                setConfirmImages([])
+                setSelectedClaim(null)
+                setResolutionData({
+                    claim_resolution: 'unknown',
+                    claim_date_returned: new Date().toISOString().split('T')[0],
+                })
+            } else {
+                showToast('แก้ไขเคลมไม่สำเร็จ กรุณาลองใหม่', 'error')
+            }
+        } catch {
+            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error')
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
@@ -216,7 +363,7 @@ export default function ClaimOrdersPage() {
                             claim_date_returned: '',
                             claim_status: 'pending',
                             claim_resolution: 'unknown',
-                            supplier_id: suppliers[0]?.supplier_id || 0,
+                            supplier_id: 0,
                             customer_id: customers[0]?.customer_id || 0,
                             item_id: items[0]?.item_id || 0,
                         })
@@ -228,12 +375,44 @@ export default function ClaimOrdersPage() {
                 </button>
             </div>
 
-            {/* Status Tabs */}
+            {/* Filter Section */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="ค้นหารหัสเคลม, ลูกค้า, Serial, IMEI"
+                            value={filterQuery}
+                            onChange={(e) => {
+                                setFilterQuery(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        />
+                    </div>
+                    <div>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => {
+                                setFilterStatus(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        >
+                            <option value="">ทุกสถานะ</option>
+                            <option value="pending">รอส่งเคลม</option>
+                            <option value="in_review">กำลังดำเนินการ</option>
+                            <option value="resolved">แก้ไขแล้ว</option>
+                            <option value="rejected">ปฏิเสธ</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
             <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
                 {[
                     { id: '', label: 'ทั้งหมด' },
-                    { id: 'pending', label: 'รอพิจารณา' },
-                    { id: 'in_review', label: 'กำลังตรวจสอบ' },
+                    { id: 'pending', label: 'รอส่งเคลม' },
+                    { id: 'in_review', label: 'กำลังดำเนินการ' },
                     { id: 'resolved', label: 'แก้ไขแล้ว' },
                     { id: 'rejected', label: 'ปฏิเสธ' },
                 ].map((tab) => (
@@ -315,11 +494,19 @@ export default function ClaimOrdersPage() {
                                         })()}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div
-                                            className={`text-xs font-bold uppercase ${getStatusColor(claim.claim_status)}`}
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${
+                                                claim.claim_status === 'resolved'
+                                                    ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20 ring-inset'
+                                                    : claim.claim_status === 'rejected'
+                                                      ? 'bg-red-50 text-red-700 ring-1 ring-red-600/10 ring-inset'
+                                                      : claim.claim_status === 'in_review'
+                                                        ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-700/10 ring-inset'
+                                                        : 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20 ring-inset'
+                                            }`}
                                         >
                                             {getStatusLabel(claim.claim_status)}
-                                        </div>
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
@@ -330,11 +517,146 @@ export default function ClaimOrdersPage() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
+                                            {/* Pending Status - Start Review */}
+                                            {claim.claim_status === 'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (claim.claim_id) {
+                                                                setSelectedClaim(claim)
+                                                                setSelectedSupplier(0)
+                                                                setIsSupplierModalOpen(true)
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                    >
+                                                        <EditIcon className="h-4 w-4" />
+                                                        เริ่มตรวจสอบ
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (claim.claim_id) {
+                                                                setConfirmAction({
+                                                                    type: 'cancel_claim',
+                                                                    claimId: claim.claim_id,
+                                                                    message: 'ยกเลิกเคลมนี้หรือไม่?',
+                                                                    onConfirm: () => {
+                                                                        setSelectedClaim(claim)
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            claim_status: 'rejected',
+                                                                            claim_date_returned: new Date().toISOString().split('T')[0],
+                                                                        })
+                                                                        fetch(`/api/claim-orders/${claim.claim_id}`, {
+                                                                            method: 'PUT',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({
+                                                                                ...claim,
+                                                                                claim_status: 'rejected',
+                                                                                claim_date_returned: new Date().toISOString().split('T')[0],
+                                                                                update_by: 'staff',
+                                                                            }),
+                                                                        }).then(res => {
+                                                                            if (res.ok) {
+                                                                                showToast('ยกเลิกเคลมแล้ว', 'success')
+                                                                                fetchData()
+                                                                            } else {
+                                                                                showToast('อัปเดตสถานะไม่สำเร็จ', 'error')
+                                                                            }
+                                                                        })
+                                                                    }
+                                                                })
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                                                    >
+                                                        <CloseIcon className="h-4 w-4" />
+                                                        ยกเลิกเคลม
+                                                    </button>
+                                                </>
+                                            )}
+                                            
+                                            {/* In Review Status - Confirm Resolution or Cancel */}
+                                            {claim.claim_status === 'in_review' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (claim.claim_id) {
+                                                                setSelectedClaim(claim)
+                                                                setResolutionData({
+                                                                    claim_resolution: 'unknown',
+                                                                    claim_date_returned: new Date().toISOString().split('T')[0],
+                                                                })
+                                                                setIsResolutionModalOpen(true)
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        ยืนยันแก้ไข
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (claim.claim_id) {
+                                                                setConfirmAction({
+                                                                    type: 'cancel_claim',
+                                                                    claimId: claim.claim_id,
+                                                                    message: 'ยกเลิกเคลมนี้หรือไม่?',
+                                                                    onConfirm: () => {
+                                                                        setSelectedClaim(claim)
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            claim_status: 'rejected',
+                                                                            claim_date_returned: new Date().toISOString().split('T')[0],
+                                                                        })
+                                                                        fetch(`/api/claim-orders/${claim.claim_id}`, {
+                                                                            method: 'PUT',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({
+                                                                                ...claim,
+                                                                                claim_status: 'rejected',
+                                                                                claim_date_returned: new Date().toISOString().split('T')[0],
+                                                                                update_by: 'staff',
+                                                                            }),
+                                                                        }).then(res => {
+                                                                            if (res.ok) {
+                                                                                showToast('ยกเลิกเคลมแล้ว', 'success')
+                                                                                fetchData()
+                                                                            } else {
+                                                                                showToast('อัปเดตสถานะไม่สำเร็จ', 'error')
+                                                                            }
+                                                                        })
+                                                                    }
+                                                                })
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                                                    >
+                                                        <CloseIcon className="h-4 w-4" />
+                                                        ยกเลิกเคลม
+                                                    </button>
+                                                </>
+                                            )}
+                                            
+                                            {/* Resolved/Rejected Status - View Details */}
+                                            {(claim.claim_status === 'resolved' || claim.claim_status === 'rejected') && (
+                                                <button
+                                                    onClick={() => handlePrint(claim)}
+                                                    className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                                                >
+                                                    <PrintIcon className="h-4 w-4" />
+                                                    ดูรายละเอียด
+                                                </button>
+                                            )}
+                                            
+                                            {/* Always available actions */}
                                             <button
                                                 onClick={() =>
                                                     handlePrint(claim)
                                                 }
-                                                className="p-1 text-slate-400 transition-colors hover:text-green-600"
+                                                className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
                                                 title="พิมพ์"
                                             >
                                                 <PrintIcon />
@@ -343,19 +665,29 @@ export default function ClaimOrdersPage() {
                                                 onClick={() =>
                                                     handleEdit(claim)
                                                 }
-                                                className="p-1 text-slate-400 transition-colors hover:text-blue-600"
+                                                className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
                                             >
                                                 <EditIcon />
                                             </button>
-                                            <button
-                                                onClick={() =>
-                                                    claim.claim_id &&
-                                                    handleDelete(claim.claim_id)
-                                                }
-                                                className="p-1 text-slate-400 transition-colors hover:text-red-500"
-                                            >
-                                                <DeleteIcon />
-                                            </button>
+                                            {claim.claim_status === 'pending' && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (claim.claim_id) {
+                                                            setConfirmAction({
+                                                                type: 'delete_claim',
+                                                                claimId: claim.claim_id,
+                                                                message: 'ลบเคลมนี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้',
+                                                                onConfirm: () => {
+                                                                    handleDelete(claim.claim_id!)
+                                                                }
+                                                            })
+                                                        }
+                                                    }}
+                                                    className="p-1 text-slate-400 transition-colors hover:text-red-500"
+                                                >
+                                                    <DeleteIcon />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -425,35 +757,6 @@ export default function ClaimOrdersPage() {
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    ซัพพลายเออร์ที่ส่งเคลมต่อ (ถ้ามี)
-                                </label>
-                                <select
-                                    value={formData.supplier_id}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            supplier_id: parseInt(
-                                                e.target.value
-                                            ),
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value={0}>
-                                        ไม่ส่งต่อซัพพลายเออร์
-                                    </option>
-                                    {suppliers.map((s) => (
-                                        <option
-                                            key={s.supplier_id}
-                                            value={s.supplier_id}
-                                        >
-                                            {s.supplier_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
                                     สินค้า *
                                 </label>
                                 <select
@@ -494,66 +797,6 @@ export default function ClaimOrdersPage() {
                                     }
                                     className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    วันที่ส่งคืน
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.claim_date_returned}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            claim_date_returned: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    สถานะ
-                                </label>
-                                <select
-                                    value={formData.claim_status}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            claim_status: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value="pending">รอพิจารณา</option>
-                                    <option value="in_review">
-                                        กำลังตรวจสอบ
-                                    </option>
-                                    <option value="resolved">แก้ไขแล้ว</option>
-                                    <option value="rejected">ปฏิเสธ</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    การแก้ไข
-                                </label>
-                                <select
-                                    value={formData.claim_resolution}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            claim_resolution: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value="unknown">ยังไม่ทราบ</option>
-                                    <option value="replacement">
-                                        แลกของใหม่
-                                    </option>
-                                    <option value="refund">คืนเงิน</option>
-                                    <option value="repair">ซ่อม</option>
-                                </select>
                             </div>
                             <div className="col-span-2 flex justify-end gap-3 pt-4">
                                 <button
@@ -768,6 +1011,440 @@ export default function ClaimOrdersPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* QR Modal */}
+            {isQROpen && selectedClaim && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="bg-bg w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+                            <h3 className="font-bold text-slate-900">
+                                QR Code ยืนยันการแก้ไข
+                            </h3>
+                            <button
+                                onClick={() => setIsQROpen(false)}
+                                className="text-slate-400 transition-colors hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-8 text-center">
+                            <div className="mb-6">
+                                <p className="mb-1 text-sm font-medium text-slate-500">
+                                    รหัสเคลม
+                                </p>
+                                <p className="text-lg font-bold text-slate-900">
+                                    {selectedClaim.claim_code}
+                                </p>
+                            </div>
+
+                            <div className="mb-6">
+                                <QRCodeCanvas
+                                    value={generatePayload(
+                                        localStorage.getItem(
+                                            'mobistock_promptpay_id'
+                                        ) || '',
+                                        {
+                                            amount: 0, // Claims typically don't have payment amounts
+                                        }
+                                    )}
+                                    size={200}
+                                    level="H"
+                                    includeMargin={false}
+                                />
+                            </div>
+
+                            <div className="mt-8 flex flex-col gap-3">
+                                <button
+                                    onClick={() => setIsConfirmModalOpen(true)}
+                                    className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                >
+                                    ยืนยันการแก้ไข
+                                </button>
+                                <button
+                                    onClick={() => setIsQROpen(false)}
+                                    className="w-full rounded-xl bg-slate-100 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                    ปิด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                ยืนยันการแก้ไขเคลม
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setIsConfirmModalOpen(false)
+                                    setConfirmImages([])
+                                }}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="mb-6 text-sm text-slate-600">
+                                กรุณาอัปโหลดหลักฐานการแก้ไข
+                                <span className="font-semibold text-red-600">
+                                    {' '}
+                                    หลักฐานการแก้ไข
+                                </span>{' '}
+                                ก่อนยืนยัน
+                            </p>
+
+                            {/* Upload Section */}
+                            <div className="mb-6">
+                                <label
+                                    htmlFor="confirm-images"
+                                    className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors ${
+                                        confirmImages.filter((i) => !i.uploading).length >= 1
+                                            ? 'border-green-300 bg-green-50'
+                                            : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+                                    }`}
+                                >
+                                    <svg
+                                        className="h-4 w-4 shrink-0"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                                        />
+                                    </svg>
+                                    <span className="text-xs">คลิกเพื่ออัปโหลดรูปภาพหลักฐานการแก้ไข</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        id="confirm-images"
+                                        onChange={handleConfirmImageUpload}
+                                    />
+                                </label>
+
+                                {/* Images Grid */}
+                                {confirmImages.length > 0 && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                        {confirmImages.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                                            >
+                                                {img.uploading ? (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <img
+                                                            src={img.url}
+                                                            alt={`หลักฐาน ${idx + 1}`}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setConfirmImages(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (_,
+                                                                                i
+                                                                            ) =>
+                                                                                i !==
+                                                                                idx
+                                                                        )
+                                                                )
+                                                            }
+                                                            className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                                        >
+                                                            <CloseIcon className="h-3 w-3" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Status Summary */}
+                            <div className="mb-4 rounded-lg bg-slate-50 p-3">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-slate-600">สถานะการอัปโหลด:</span>
+                                    <span
+                                        className={`font-semibold ${
+                                            confirmImages.filter((i) => !i.uploading).length >= 1
+                                                ? 'text-green-600'
+                                                : 'text-orange-500'
+                                        }`}
+                                    >
+                                        {confirmImages.filter((i) => !i.uploading).length >= 1
+                                            ? '✓ พร้อมยืนยัน'
+                                            : '⏳ รอการอัปโหลด'}
+                                    </span>
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs text-slate-500">
+                                    <div className="flex justify-between">
+                                        <span>• หลักฐานการแก้ไข:</span>
+                                        <span
+                                            className={
+                                                confirmImages.filter((i) => !i.uploading).length >= 1
+                                                    ? 'text-green-600'
+                                                    : 'text-slate-400'
+                                            }
+                                        >
+                                            {confirmImages.filter((i) => !i.uploading).length} / 1
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setIsConfirmModalOpen(false)
+                                        setConfirmImages([])
+                                    }}
+                                    disabled={isSubmitting}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={confirmClaimResolution}
+                                    disabled={
+                                        isSubmitting ||
+                                        confirmImages.filter((i) => !i.uploading).length < 1
+                                    }
+                                    className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    {isSubmitting
+                                        ? 'กำลังยืนยัน...'
+                                        : 'ยืนยันการแก้ไข'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Resolution Selection Modal */}
+            {isResolutionModalOpen && selectedClaim && (
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                ยืนยันการแก้ไขเคลม
+                            </h3>
+                            <button
+                                onClick={() => setIsResolutionModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <p className="text-sm font-medium text-slate-900">
+                                    เคลม: {selectedClaim.claim_code}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    ลูกค้า: {(() => {
+                                        const customer = customers.find(c => c.customer_id === selectedClaim.customer_id)
+                                        return customer ? `${customer.customer_fname} ${customer.customer_lname}` : 'ไม่ระบุ'
+                                    })()}
+                                </p>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    ผลการแก้ไข *
+                                </label>
+                                <select
+                                    value={resolutionData.claim_resolution}
+                                    onChange={(e) => setResolutionData({
+                                        ...resolutionData,
+                                        claim_resolution: e.target.value
+                                    })}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                >
+                                    <option value="replacement">แลกของใหม่</option>
+                                    <option value="refund">คืนเงิน</option>
+                                    <option value="repair">ซ่อม</option>
+                                </select>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    วันที่ส่งคืน *
+                                </label>
+                                <input
+                                    type="date"
+                                    value={resolutionData.claim_date_returned}
+                                    onChange={(e) => setResolutionData({
+                                        ...resolutionData,
+                                        claim_date_returned: e.target.value
+                                    })}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsResolutionModalOpen(false)}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (selectedClaim.claim_id && resolutionData.claim_resolution !== 'unknown') {
+                                            // Open image upload modal after selecting resolution
+                                            setIsResolutionModalOpen(false)
+                                            setIsConfirmModalOpen(true)
+                                        } else {
+                                            showToast('กรุณาเลือกผลการแก้ไข', 'warning')
+                                        }
+                                    }}
+                                    className="flex-1 rounded-xl bg-teal-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-teal-700"
+                                >
+                                    ถัดไป (อัปโหลดหลักฐาน)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Supplier Selection Modal */}
+            {isSupplierModalOpen && selectedClaim && (
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                เลือกซัพพลายเออร์
+                            </h3>
+                            <button
+                                onClick={() => setIsSupplierModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="mb-4 text-sm text-slate-600">
+                                เลือกซัพพลายเออร์ที่จะส่งเคลมต่อ หรือจัดการเอง
+                            </p>
+                            <div className="mb-6">
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    ซัพพลายเออร์
+                                </label>
+                                <select
+                                    value={selectedSupplier}
+                                    onChange={(e) => setSelectedSupplier(parseInt(e.target.value))}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                >
+                                    <option value={0}>จัดการเอง (ไม่ส่งต่อซัพพลายเออร์)</option>
+                                    {suppliers.map((s) => (
+                                        <option key={s.supplier_id} value={s.supplier_id}>
+                                            {s.supplier_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsSupplierModalOpen(false)}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (selectedClaim.claim_id) {
+                                            fetch(`/api/claim-orders/${selectedClaim.claim_id}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    ...selectedClaim,
+                                                    claim_status: 'in_review',
+                                                    supplier_id: selectedSupplier || null,
+                                                    update_by: 'staff',
+                                                }),
+                                            }).then(res => {
+                                                if (res.ok) {
+                                                    showToast('เริ่มตรวจสอบเคลมแล้ว', 'success')
+                                                    fetchData()
+                                                    setIsSupplierModalOpen(false)
+                                                    setSelectedClaim(null)
+                                                    setSelectedSupplier(0)
+                                                } else {
+                                                    showToast('อัปเดตสถานะไม่สำเร็จ', 'error')
+                                                }
+                                            })
+                                        }
+                                    }}
+                                    className="flex-1 rounded-xl bg-indigo-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
+                                >
+                                    เริ่มตรวจสอบ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Dialog */}
+            {confirmAction && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="p-6 text-center">
+                            <div className="mb-4 flex justify-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+                                    <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 className="mb-2 text-lg font-semibold text-slate-900">
+                                ยืนยันการดำเนินการ
+                            </h3>
+                            <p className="mb-6 text-sm text-slate-600">
+                                {confirmAction.message}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        confirmAction.onConfirm()
+                                        setConfirmAction(null)
+                                    }}
+                                    className="flex-1 rounded-xl bg-red-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-red-700"
+                                >
+                                    ยืนยัน
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     )
