@@ -50,7 +50,6 @@ export type QueryParams = (
     | boolean
     | null
     | Date
-    | undefined
 )[]
 
 export async function query<T = unknown>(

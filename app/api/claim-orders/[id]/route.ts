@@ -46,7 +46,7 @@ export async function PUT(
             [
                 claim_code,
                 claim_date_received,
-                claim_date_returned,
+                claim_date_returned || null,
                 claim_status,
                 claim_resolution,
                 supplier_id || null,

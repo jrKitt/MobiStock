@@ -392,12 +392,6 @@ export default function SaleOrdersPage() {
                 const orderData = await res.json()
                 setSelectedOrder(orderData)
                 setIsPrintOpen(true)
-                setTimeout(() => {
-                    if (printRef.current) {
-                        printRef.current.innerHTML = generateReceiptHTML(orderData)
-                        window.print()
-                    }
-                }, 100)
             }
         } catch (error) {
             console.error('Error fetching order:', error)

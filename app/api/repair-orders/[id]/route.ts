@@ -47,7 +47,7 @@ export async function PUT(
                 repair_problem_desc,
                 repair_technician_note,
                 repair_date_received,
-                repair_date_completed,
+                repair_date_completed || null,
                 repair_labor_cost,
                 repair_status,
                 customer_id,

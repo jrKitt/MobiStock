@@ -166,12 +166,6 @@ export default function ClaimOrdersPage() {
     const handlePrint = (claim: ClaimOrder) => {
         setSelectedClaim(claim)
         setIsPrintOpen(true)
-        setTimeout(() => {
-            if (printRef.current) {
-                printRef.current.innerHTML = generateReceiptHTML(claim)
-                window.print()
-            }
-        }, 100)
     }
 
     const handleViewImages = async (claim: ClaimOrder) => {

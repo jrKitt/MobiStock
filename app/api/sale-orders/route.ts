@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
                 LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
                 WHERE soi.sale_id IN (${placeholders})
                 `,
-                saleIds as (number | undefined)[]
+                saleIds.filter(id => id !== undefined) as number[]
             )) as Record<string, unknown>[]
 
             // Attach items to orders
