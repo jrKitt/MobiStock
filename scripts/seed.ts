@@ -124,8 +124,8 @@ async function seed() {
             ('SN-SAM-003', '359876543210989', 'LOT-2023-B', 'Sold', 4),
             ('SN-SAM-004', '359876543210990', 'LOT-2023-C', 'Available', 5),
             ('SN-XIA-001', '861234567890123', 'LOT-2024-A', 'Available', 7),
-            ('SN-APP-W01', 'N/A', 'LOT-2024-W', 'Available', 10),
-            ('SN-APP-A01', 'N/A', 'LOT-2024-E', 'Available', 11)
+            ('SN-APP-W01', NULL, 'LOT-2024-W', 'Available', 10),
+            ('SN-APP-A01', NULL, 'LOT-2024-E', 'Available', 11)
         `)
 
         // ── 7. Spare Parts ───────────────────────────────────────────────────
