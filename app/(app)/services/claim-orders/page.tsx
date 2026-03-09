@@ -1,12 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ClaimOrder, Customer, ProductItem, Supplier } from '@/types/api'
-import { PrintIcon, EditIcon, DeleteIcon, CloseIcon, QrCodeIcon } from '@/lib/icons'
-import generatePayload from 'promptpay-qr'
-import { QRCodeCanvas } from 'qrcode.react'
+import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
 
 export default function ClaimOrdersPage() {
     const { showToast } = useToast()
@@ -26,7 +24,6 @@ export default function ClaimOrdersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
-    const [isQROpen, setIsQROpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [confirmAction, setConfirmAction] = useState<{
         type: string
@@ -60,6 +57,30 @@ export default function ClaimOrdersPage() {
         customer_id: 0,
         item_id: 0,
     })
+
+    // Client-side filtering for claims
+    const filteredClaims = useMemo(() => {
+        if (!filterQuery.trim()) return claims
+        
+        const query = filterQuery.toLowerCase()
+        return claims.filter((claim) => {
+            // Filter by claim code
+            if (claim.claim_code.toLowerCase().includes(query)) return true
+            
+            // Filter by customer name
+            const customer = customers.find(c => c.customer_id === claim.customer_id)
+            if (customer) {
+                const fullName = `${customer.customer_fname} ${customer.customer_lname}`.toLowerCase()
+                if (fullName.includes(query)) return true
+            }
+            
+            // Filter by item serial/IMEI
+            const item = items.find(i => i.item_id === claim.item_id)
+            if (item && item.item_serial_number.toLowerCase().includes(query)) return true
+            
+            return false
+        })
+    }, [claims, customers, items, filterQuery])
 
     const fetchData = useCallback(async () => {
         try {
@@ -99,7 +120,7 @@ export default function ClaimOrdersPage() {
             setSuppliers(suppliersData.data)
             setItems(itemsData.data)
         } catch {
-            showToast('ไม่สามารถโหลดข้อมูลการแจ้งเรียกร้องได้', 'error')
+            showToast('ไม่สามารถโหลดข้อมูลการเคลมได้', 'error')
         } finally {
             setLoading(false)
         }
@@ -171,23 +192,22 @@ export default function ClaimOrdersPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('ต้องการลบการแจ้งเรียกร้องนี้หรือไม่?')) return
+        if (!confirm('ต้องการลบการเคลมนี้หรือไม่?')) return
         try {
             const response = await fetch(`/api/claim-orders/${id}`, {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete claim')
-            showToast('การแจ้งเรียกร้องลบสำเร็จ', 'success')
+            showToast('การเคลมลบสำเร็จ', 'success')
             fetchData()
         } catch {
-            showToast('ไม่สามารถลบการแจ้งเรียกร้องได้', 'error')
+            showToast('ไม่สามารถลบการเคลมได้', 'error')
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            // For new claims, ensure default values
             const submitData = selectedClaim 
                 ? formData 
                 : {
@@ -209,14 +229,14 @@ export default function ClaimOrdersPage() {
 
             if (!response.ok) throw new Error('Failed to save claim')
             showToast(
-                `การแจ้งเรียกร้อง${selectedClaim ? 'อัปเดต' : 'สร้าง'}สำเร็จ`,
+                `การเคลม${selectedClaim ? 'อัปเดต' : 'สร้าง'}สำเร็จ`,
                 'success'
             )
             setIsModalOpen(false)
             setSelectedClaim(null)
             fetchData()
         } catch {
-            showToast('ไม่สามารถบันทึกการแจ้งเรียกร้องได้', 'error')
+            showToast('ไม่สามารถบันทึกการเคลมได้', 'error')
         }
     }
 
@@ -261,18 +281,26 @@ export default function ClaimOrdersPage() {
         if (!files.length) return
 
         const placeholders = files.map(() => ({ url: '', uploading: true }))
-        setConfirmImages((prev) => [...prev, ...placeholders])
-        const startIndex = confirmImages.length
+        let startIndex = 0
+        setConfirmImages((prev) => {
+            startIndex = prev.length
+            return [...prev, ...placeholders]
+        })
 
         await Promise.all(
             files.map(async (file, i) => {
-                const fd = new FormData()
-                fd.append('file', file)
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: fd,
-                })
-                if (res.ok) {
+                try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: fd,
+                    })
+
+                    if (!res.ok) {
+                        throw new Error('upload failed')
+                    }
+
                     const data = await res.json()
                     setConfirmImages((prev) => {
                         const updated = [...prev]
@@ -282,7 +310,7 @@ export default function ClaimOrdersPage() {
                         }
                         return updated
                     })
-                } else {
+                } catch {
                     setConfirmImages((prev) =>
                         prev.filter((_, idx) => idx !== startIndex + i)
                     )
@@ -293,31 +321,24 @@ export default function ClaimOrdersPage() {
         e.target.value = ''
     }
 
-    const handleOpenQRModal = (claim: ClaimOrder) => {
-        const promptpayId = localStorage.getItem('mobistock_promptpay_id')
-        if (!promptpayId) {
-            showToast('กรุณาตั้งค่ารหัสพร้อมเพย์ที่หน้าระบบก่อน', 'warning')
-            return
-        }
-        setSelectedClaim(claim)
-        setIsQROpen(true)
-    }
-
     const confirmClaimResolution = async () => {
         if (!selectedClaim?.claim_id) return
         const readyImages = confirmImages.filter((img) => !img.uploading)
-        
+
         if (readyImages.length < 1) {
-            showToast('กรุณาอัปโหลดรูปภาพหลักฐานการแก้ไข อย่างน้อย 1 รูป', 'warning')
+            showToast(
+                'กรุณาอัปโหลดรูปภาพหลักฐานการแก้ไข อย่างน้อย 1 รูป',
+                'warning'
+            )
             return
         }
-        
+
         try {
             setIsSubmitting(true)
             // Save confirmation images first
             await Promise.all(
-                readyImages.map((img: any) =>
-                    fetch('/api/claim-order-images', {
+                readyImages.map(async (img) => {
+                    const imgRes = await fetch('/api/claim-order-images', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -326,9 +347,12 @@ export default function ClaimOrdersPage() {
                             image_caption: 'หลักฐานการแก้ไข',
                         }),
                     })
-                )
+                    if (!imgRes.ok) {
+                        throw new Error('failed to save claim evidence image')
+                    }
+                })
             )
-            
+
             // Then mark claim as resolved with resolution data
             const res = await fetch(
                 `/api/claim-orders/${selectedClaim.claim_id}`,
@@ -344,20 +368,20 @@ export default function ClaimOrdersPage() {
                     }),
                 }
             )
-            if (res.ok) {
-                showToast('แก้ไขเคลมสำเร็จ', 'success')
-                fetchData()
-                setIsConfirmModalOpen(false)
-                setIsQROpen(false)
-                setConfirmImages([])
-                setSelectedClaim(null)
-                setResolutionData({
-                    claim_resolution: 'unknown',
-                    claim_date_returned: new Date().toISOString().split('T')[0],
-                })
-            } else {
+            if (!res.ok) {
                 showToast('แก้ไขเคลมไม่สำเร็จ กรุณาลองใหม่', 'error')
+                return
             }
+
+            showToast('แก้ไขเคลมสำเร็จ', 'success')
+            fetchData()
+            setIsConfirmModalOpen(false)
+            setConfirmImages([])
+            setSelectedClaim(null)
+            setResolutionData({
+                claim_resolution: 'unknown',
+                claim_date_returned: new Date().toISOString().split('T')[0],
+            })
         } catch {
             showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error')
         } finally {
@@ -875,7 +899,7 @@ export default function ClaimOrdersPage() {
                         <div className="mx-auto max-w-4xl print:max-w-none">
                             <div className="mb-8 flex items-center justify-between print:hidden">
                                 <h1 className="text-3xl font-bold text-slate-900">
-                                    แบบแจ้งเรียกร้อง
+                                    แบบเคลม
                                 </h1>
                                 <button
                                     onClick={() => setIsPrintOpen(false)}
@@ -1043,69 +1067,9 @@ export default function ClaimOrdersPage() {
                 </>
             )}
 
-            {/* QR Modal */}
-            {isQROpen && selectedClaim && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
-                    <div className="bg-bg w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-200">
-                        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-                            <h3 className="font-bold text-slate-900">
-                                QR Code ยืนยันการแก้ไข
-                            </h3>
-                            <button
-                                onClick={() => setIsQROpen(false)}
-                                className="text-slate-400 transition-colors hover:text-slate-600"
-                            >
-                                <CloseIcon />
-                            </button>
-                        </div>
-                        <div className="p-8 text-center">
-                            <div className="mb-6">
-                                <p className="mb-1 text-sm font-medium text-slate-500">
-                                    รหัสเคลม
-                                </p>
-                                <p className="text-lg font-bold text-slate-900">
-                                    {selectedClaim.claim_code}
-                                </p>
-                            </div>
-
-                            <div className="mb-6">
-                                <QRCodeCanvas
-                                    value={generatePayload(
-                                        localStorage.getItem(
-                                            'mobistock_promptpay_id'
-                                        ) || '',
-                                        {
-                                            amount: 0, // Claims typically don't have payment amounts
-                                        }
-                                    )}
-                                    size={200}
-                                    level="H"
-                                    includeMargin={false}
-                                />
-                            </div>
-
-                            <div className="mt-8 flex flex-col gap-3">
-                                <button
-                                    onClick={() => setIsConfirmModalOpen(true)}
-                                    className="w-full rounded-xl bg-blue-600 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
-                                >
-                                    ยืนยันการแก้ไข
-                                </button>
-                                <button
-                                    onClick={() => setIsQROpen(false)}
-                                    className="w-full rounded-xl bg-slate-100 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                                >
-                                    ปิด
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Confirmation Modal */}
             {isConfirmModalOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -1179,10 +1143,13 @@ export default function ClaimOrdersPage() {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <img
+                                                        <Image
                                                             src={img.url}
                                                             alt={`หลักฐาน ${idx + 1}`}
-                                                            className="h-full w-full object-cover"
+                                                            fill
+                                                            unoptimized
+                                                            sizes="(max-width: 768px) 50vw, 200px"
+                                                            className="object-cover"
                                                         />
                                                         <button
                                                             type="button"
@@ -1273,7 +1240,7 @@ export default function ClaimOrdersPage() {
 
             {/* Resolution Selection Modal */}
             {isResolutionModalOpen && selectedClaim && (
-                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -1361,7 +1328,7 @@ export default function ClaimOrdersPage() {
 
             {/* Supplier Selection Modal */}
             {isSupplierModalOpen && selectedClaim && (
-                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -1439,7 +1406,7 @@ export default function ClaimOrdersPage() {
 
             {/* Confirmation Dialog */}
             {confirmAction && (
-                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="p-6 text-center">
                             <div className="mb-4 flex justify-center">

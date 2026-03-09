@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
         const offset = (page - 1) * limit
         const status = searchParams.get('status')
 
-        const queryParams: any[] = []
+        const queryParams: Array<string | number> = []
         const conditions: string[] = []
 
         if (status) {
