@@ -45,6 +45,14 @@ const routeInfo: Record<string, { title: string; subtitle: string }> = {
         title: 'ตั้งค่า',
         subtitle: 'จัดการค่าพื้นฐานของร้าน',
     },
+    '/services/repair-orders': {
+        title: 'ใบแจ้งซ่อม',
+        subtitle: 'จัดการใบแจ้งซ่อม',
+    },
+    '/services/claim-orders': {
+        title: 'ใบเคลม',
+        subtitle: 'จัดการใบเคลม',
+    },
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
@@ -100,7 +108,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                             {currentRoute.title}
                         </h1>
                         <p className="mt-1 hidden items-center gap-2 text-sm text-gray-600 sm:flex">
-                            <svg
+                            {/* <svg
                                 className="h-4 w-4"
                                 fill="none"
                                 stroke="currentColor"
@@ -112,7 +120,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     strokeWidth={2}
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                                 />
-                            </svg>
+                            </svg> */}
                             {currentRoute.subtitle}
                         </p>
                     </div>

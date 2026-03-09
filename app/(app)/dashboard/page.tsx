@@ -445,7 +445,6 @@ export default function DashboardPage() {
                     <MetricCard
                         title="หมวดหมู่"
                         value={categoryData?.pagination?.total || 0}
-                        icon={<FiBarChart2 />}
                         color="green"
                     />
                 </div>
@@ -597,12 +596,14 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <span className="text-red-600 font-semibold text-sm">%</span>
+                            </div>
                             <div>
                                 <p className="text-sm text-slate-500">อัตราการเคลม</p>
                                 <p className="text-xl font-bold text-slate-900">2.3%</p>
                             </div>
-                            <FiPieChart className="h-8 w-8 text-red-500" />
                         </div>
                     </div>
                 </div>
