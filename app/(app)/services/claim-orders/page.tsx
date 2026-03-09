@@ -16,6 +16,8 @@ export default function ClaimOrdersPage() {
     const [items, setItems] = useState<ProductItem[]>([])
     const [filterQuery, setFilterQuery] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
+    const [filterStartDate, setFilterStartDate] = useState('')
+    const [filterEndDate, setFilterEndDate] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
     const [totalItems, setTotalItems] = useState(0)
@@ -43,6 +45,8 @@ export default function ClaimOrdersPage() {
     const [confirmImages, setConfirmImages] = useState<
         { url: string; uploading: boolean }[]
     >([])
+    const [isImagesModalOpen, setIsImagesModalOpen] = useState(false)
+    const [selectedClaimImages, setSelectedClaimImages] = useState<string[]>([])
     const [storeName, setStoreName] = useState('MobiStock')
     const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
@@ -142,8 +146,28 @@ export default function ClaimOrdersPage() {
         setSelectedClaim(claim)
         setIsPrintOpen(true)
         setTimeout(() => {
-            window.print()
+            if (printRef.current) {
+                printRef.current.innerHTML = generateReceiptHTML(claim)
+                window.print()
+            }
         }, 100)
+    }
+
+    const handleViewImages = async (claim: ClaimOrder) => {
+        try {
+            // Fetch images for this claim
+            const response = await fetch(`/api/claim-order-images?claim_id=${claim.claim_id}`)
+            if (response.ok) {
+                const images = await response.json()
+                setSelectedClaimImages(images.map((img: any) => img.image_url))
+                setIsImagesModalOpen(true)
+            } else {
+                showToast('ไม่พบรูปภาพ', 'warning')
+            }
+        } catch (error) {
+            console.error('Error fetching images:', error)
+            showToast('เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ', 'error')
+        }
     }
 
     const handleDelete = async (id: number) => {
@@ -374,41 +398,7 @@ export default function ClaimOrdersPage() {
                     + สร้างการแจ้งเคลมสินค้า
                 </button>
             </div>
-
-            {/* Filter Section */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="ค้นหารหัสเคลม, ลูกค้า, Serial, IMEI"
-                            value={filterQuery}
-                            onChange={(e) => {
-                                setFilterQuery(e.target.value)
-                                setCurrentPage(1)
-                            }}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        />
-                    </div>
-                    <div>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => {
-                                setFilterStatus(e.target.value)
-                                setCurrentPage(1)
-                            }}
-                            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        >
-                            <option value="">ทุกสถานะ</option>
-                            <option value="pending">รอส่งเคลม</option>
-                            <option value="in_review">กำลังดำเนินการ</option>
-                            <option value="resolved">แก้ไขแล้ว</option>
-                            <option value="rejected">ปฏิเสธ</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
+             <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
                 {[
                     { id: '', label: 'ทั้งหมด' },
                     { id: 'pending', label: 'รอส่งเคลม' },
@@ -430,93 +420,127 @@ export default function ClaimOrdersPage() {
                 ))}
             </div>
 
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="md:col-span-2">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="ค้นหารหัสเคลม, ชื่อลูกค้า, รุ่นสินค้า, Serial, IMEI..."
+                                value={filterQuery}
+                                onChange={(e) => {
+                                    setFilterQuery(e.target.value)
+                                    setCurrentPage(1)
+                                }}
+                                className="w-full rounded-lg border border-slate-200 pl-10 pr-4 py-3 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="date"
+                                placeholder="วันที่"
+                                value={filterStartDate}
+                                onChange={(e) => {
+                                    setFilterStartDate(e.target.value)
+                                    setCurrentPage(1)
+                                }}
+                                className="w-full rounded-lg border border-slate-200 pl-10 pr-4 py-3 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+           
+
             {loading ? (
                 <div className="bg-bg flex items-center justify-center rounded-lg border border-slate-200 p-24">
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
                 </div>
             ) : (
-                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-slate-100 bg-slate-50/50">
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    รหัสแจ้ง
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    ลูกค้า
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    ซัพพลายเออร์
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    สถานะ
-                                </th>
-                                <th className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    การแก้ไข
-                                </th>
-                                <th className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                    จัดการ
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {claims.map((claim) => (
-                                <tr
+            
+                <div className="space-y-4">
+                    {/* Header Desktop */}
+                    <div className="hidden grid-cols-5 rounded-lg border border-slate-200 bg-white px-6 py-4 text-left text-xs font-bold tracking-wider text-slate-500 uppercase shadow-sm md:grid">
+                        <div>รหัสแจ้ง</div>
+                        <div>ลูกค้า</div>
+                        <div>ซัพพลายเออร์</div>
+                        <div>สถานะ / การแก้ไข</div>
+                        <div className="text-right">จัดการ</div>
+                    </div>
+
+                    {/* End Header Desktop */}
+                    {claims.length === 0 ? (
+                        <div className="flex h-32 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
+                            <span className="text-sm text-slate-500">
+                                ไม่พบข้อมูลการเคลม
+                            </span>
+                        </div>
+                    ) : (
+                        claims.map((claim) => {
+                            const customer = customers.find(c => c.customer_id === claim.customer_id)
+                            const supplier = suppliers.find(s => s.supplier_id === claim.supplier_id)
+                            
+                            return (
+                                <div
                                     key={claim.claim_id}
-                                    className="transition-colors hover:bg-slate-50/50"
+                                    className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                                 >
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                                        {claim.claim_code}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                        {(() => {
-                                            const customer = customers.find(
-                                                (c) =>
-                                                    c.customer_id ===
-                                                    claim.customer_id
-                                            )
-                                            return customer
-                                                ? `${customer.customer_fname} ${customer.customer_lname}`
-                                                : 'ไม่ระบุ'
-                                        })()}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                        {(() => {
-                                            const supplier = suppliers.find(
-                                                (s) =>
-                                                    s.supplier_id ===
-                                                    claim.supplier_id
-                                            )
-                                            return (
-                                                supplier?.supplier_name ||
-                                                'ไม่ระบุ'
-                                            )
-                                        })()}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${
-                                                claim.claim_status === 'resolved'
-                                                    ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20 ring-inset'
-                                                    : claim.claim_status === 'rejected'
-                                                      ? 'bg-red-50 text-red-700 ring-1 ring-red-600/10 ring-inset'
-                                                      : claim.claim_status === 'in_review'
-                                                        ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-700/10 ring-inset'
-                                                        : 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20 ring-inset'
-                                            }`}
-                                        >
-                                            {getStatusLabel(claim.claim_status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-                                            {getResolutionLabel(
-                                                claim.claim_resolution
-                                            )}
+                                    <div className="grid grid-cols-1 items-center gap-4 px-6 py-5 md:grid-cols-5">
+                                        <div className="text-sm font-bold text-slate-900">
+                                            <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                                รหัสแจ้ง
+                                            </div>
+                                            {claim.claim_code}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
+                                        <div className="text-sm text-slate-600">
+                                            <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                                ลูกค้า
+                                            </div>
+                                            {customer ? `${customer.customer_fname} ${customer.customer_lname}` : 'ไม่ระบุ'}
+                                        </div>
+                                        <div className="text-sm text-slate-600">
+                                            <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                                ซัพพลายเออร์
+                                            </div>
+                                            {supplier?.supplier_name || 'จัดการเอง'}
+                                        </div>
+                                        <div>
+                                            <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase md:hidden">
+                                                สถานะ / การแก้ไข
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span
+                                                    className={`text-[10px] font-bold uppercase ${
+                                                        claim.claim_status === 'resolved'
+                                                            ? 'text-green-600'
+                                                            : claim.claim_status === 'rejected'
+                                                              ? 'text-red-600'
+                                                              : claim.claim_status === 'in_review'
+                                                                ? 'text-blue-600'
+                                                                : 'text-orange-500'
+                                                    }`}
+                                                >
+                                                    {getStatusLabel(claim.claim_status)}
+                                                </span>
+                                                <span className="text-[10px] font-semibold text-slate-500 uppercase">
+                                                    {getResolutionLabel(claim.claim_resolution)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-start gap-2 pt-2 md:justify-end md:pt-0">
                                             {/* Pending Status - Start Review */}
                                             {claim.claim_status === 'pending' && (
                                                 <>
@@ -595,7 +619,7 @@ export default function ClaimOrdersPage() {
                                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        ยืนยันแก้ไข
+                                                        ยืนยันการเคลม
                                                     </button>
                                                     <button
                                                         onClick={() => {
@@ -642,33 +666,39 @@ export default function ClaimOrdersPage() {
                                             
                                             {/* Resolved/Rejected Status - View Details */}
                                             {(claim.claim_status === 'resolved' || claim.claim_status === 'rejected') && (
-                                                <button
-                                                    onClick={() => handlePrint(claim)}
-                                                    className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
-                                                >
-                                                    <PrintIcon className="h-4 w-4" />
-                                                    ดูรายละเอียด
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => handleViewImages(claim)}
+                                                        className="flex items-center gap-1 rounded bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-600 transition-colors hover:bg-purple-100"
+                                                        title="ดูรูปภาพ"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        ดูรูปภาพ
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePrint(claim)}
+                                                        className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        ดูรายละเอียด
+                                                    </button>
+                                                </>
                                             )}
                                             
-                                            {/* Always available actions */}
-                                            <button
-                                                onClick={() =>
-                                                    handlePrint(claim)
-                                                }
-                                                className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
-                                                title="พิมพ์"
-                                            >
-                                                <PrintIcon />
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleEdit(claim)
-                                                }
-                                                className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-                                            >
-                                                <EditIcon />
-                                            </button>
+                                            {/* Always available actions - only show if not already showing above */}
+                                            {claim.claim_status !== 'resolved' && claim.claim_status !== 'rejected' && (
+                                                <button
+                                                    onClick={() => handleEdit(claim)}
+                                                    className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                                                >
+                                                    <EditIcon />
+                                                </button>
+                                            )}
                                             {claim.claim_status === 'pending' && (
                                                 <button
                                                     onClick={() => {
@@ -689,11 +719,11 @@ export default function ClaimOrdersPage() {
                                                 </button>
                                             )}
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
                 </div>
             )}
 
@@ -1442,6 +1472,61 @@ export default function ClaimOrdersPage() {
                                     ยืนยัน
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Viewing Modal */}
+            {isImagesModalOpen && (
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                รูปภาพการแก้ไขเคลม
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setIsImagesModalOpen(false)
+                                    setSelectedClaimImages([])
+                                }}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            {selectedClaimImages.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    {selectedClaimImages.map((imageUrl, index) => (
+                                        <div key={index} className="group relative overflow-hidden rounded-lg border border-slate-200">
+                                            <img
+                                                src={imageUrl}
+                                                alt={`Claim Image ${index + 1}`}
+                                                className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                                            />
+                                            <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10" />
+                                            <button
+                                                onClick={() => window.open(imageUrl, '_blank')}
+                                                className="absolute bottom-2 right-2 rounded-lg bg-white/90 p-2 opacity-0 transition-opacity group-hover:opacity-100"
+                                                title="ดูรูปภาพขนาดใหญ่"
+                                            >
+                                                <svg className="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <svg className="mb-4 h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p className="text-sm font-medium text-slate-900">ไม่พบรูปภาพ</p>
+                                    <p className="mt-1 text-sm text-slate-500">ไม่มีรูปภาพสำหรับเคลมนี้</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

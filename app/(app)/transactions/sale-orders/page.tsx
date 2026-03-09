@@ -60,6 +60,8 @@ export default function SaleOrdersPage() {
     const [paymentBillImages, setPaymentBillImages] = useState<
         { url: string; uploading: boolean }[]
     >([])
+    const [isImagesModalOpen, setIsImagesModalOpen] = useState(false)
+    const [selectedOrderImages, setSelectedOrderImages] = useState<string[]>([])
     const [selectedOrder, setSelectedOrder] = useState<SaleOrder | null>(null)
     const printRef = useRef<HTMLDivElement>(null)
     const [searchItemQuery, setSearchItemQuery] = useState('')
@@ -387,17 +389,38 @@ export default function SaleOrdersPage() {
             setLoading(true)
             const res = await fetch(`/api/sale-orders/${order.sale_id}`)
             if (res.ok) {
-                const data = await res.json()
-                setSelectedOrder(data.data) // data.data includes items
+                const orderData = await res.json()
+                setSelectedOrder(orderData)
                 setIsPrintOpen(true)
                 setTimeout(() => {
-                    window.print()
-                }, 500)
+                    if (printRef.current) {
+                        printRef.current.innerHTML = generateReceiptHTML(orderData)
+                        window.print()
+                    }
+                }, 100)
             }
-        } catch {
-            showToast('ไม่สามารถโหลดข้อมูลสำหรับพิมพ์ได้', 'error')
+        } catch (error) {
+            console.error('Error fetching order:', error)
+            showToast('เกิดข้อผิดพลาดในการดึงข้อมูล', 'error')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleViewImages = async (order: SaleOrder) => {
+        try {
+            // Fetch images for this sale order
+            const response = await fetch(`/api/sale-order-images?sale_id=${order.sale_id}`)
+            if (response.ok) {
+                const images = await response.json()
+                setSelectedOrderImages(images.map((img: any) => img.image_url))
+                setIsImagesModalOpen(true)
+            } else {
+                showToast('ไม่พบรูปภาพ', 'warning')
+            }
+        } catch (error) {
+            console.error('Error fetching images:', error)
+            showToast('เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ', 'error')
         }
     }
 
@@ -734,6 +757,18 @@ export default function SaleOrdersPage() {
                                             >
                                                 <QrCodeIcon className="h-4 w-4" />
                                                 QR ชำระเงิน
+                                            </button>
+                                        )}
+                                        {order.sale_status === 'Completed' && (
+                                            <button
+                                                onClick={() => handleViewImages(order)}
+                                                className="flex items-center gap-1 rounded bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-600 transition-colors hover:bg-purple-100"
+                                                title="ดูรูปภาพ"
+                                            >
+                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                ดูรูปภาพ
                                             </button>
                                         )}
                                         <button
