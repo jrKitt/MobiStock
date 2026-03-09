@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { Brand } from '@/types/api'
 import ImageUpload from '@/components/ImageUpload'
+import Pagination from '@/components/ui/Pagination'
 
 export default function BrandsPage() {
     const { showToast } = useToast()
@@ -11,19 +12,31 @@ export default function BrandsPage() {
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null)
-    const [formData, setFormData] = useState({
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
+    const [formData, setFormData] = useState<{
+        brand_name: string
+        brand_country: string
+        image_url: string | null
+        brand_image: string | null
+    }>({
         brand_name: '',
         brand_country: '',
-        image_url: '' as string | null,
+        image_url: null,
+        brand_image: null,
     })
 
-    const fetchBrands = async () => {
+    const fetchBrands = async (page: number = 1, limit: number = pageSize) => {
         try {
             setLoading(true)
-            const response = await fetch('/api/brands?page=1&limit=100')
+            const response = await fetch(`/api/brands?page=${page}&limit=${limit}`)
             if (!response.ok) throw new Error('Failed to fetch brands')
             const result = await response.json()
             setBrands(result.data)
+            setTotalPages(result.pagination?.totalPages || 1)
+            setTotalItems(result.pagination?.total || 0)
         } catch (err) {
             showToast('Failed to load brands', 'error')
         } finally {
@@ -32,8 +45,21 @@ export default function BrandsPage() {
     }
 
     useEffect(() => {
-        fetchBrands()
-    }, [])
+        fetchBrands(currentPage, pageSize)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, pageSize])
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page)
+        fetchBrands(page, pageSize)
+    }
+
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPageSize = parseInt(e.target.value)
+        setPageSize(newPageSize)
+        setCurrentPage(1)
+        fetchBrands(1, newPageSize)
+    }
 
     const handleEdit = (brand: Brand) => {
         setSelectedBrand(brand)
@@ -41,6 +67,7 @@ export default function BrandsPage() {
             brand_name: brand.brand_name,
             brand_country: brand.brand_country || '',
             image_url: brand.image_url || null,
+            brand_image: brand.brand_image || null,
         })
         setIsModalOpen(true)
     }
@@ -148,7 +175,7 @@ export default function BrandsPage() {
                                             <img
                                                 src={brand.image_url}
                                                 alt={brand.brand_name}
-                                                className="h-10 w-10 rounded-full border border-slate-200 bg-white object-cover"
+                                                className="h-10 w-10 rounded-lg object-cover"
                                             />
                                         ) : (
                                             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-medium text-slate-400">
@@ -263,6 +290,16 @@ export default function BrandsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Pagination */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageSizeChange={handlePageSizeChange}
+            />
         </div>
     )
 }

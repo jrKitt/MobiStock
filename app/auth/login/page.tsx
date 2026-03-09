@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { FaGithub } from 'react-icons/fa'
+import { useAppSettings } from '@/hooks/useAppSettings'
 
 interface Developer {
     name: string
@@ -29,6 +30,8 @@ export default function LoginPage() {
     const [passwordError, setPasswordError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [config, setConfig] = useState<AppConfig | null>(null)
+    
+    useAppSettings() // This will set tab icon and title based on settings
 
     useEffect(() => {
         // Load config.json

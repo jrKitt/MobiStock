@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import { useAppSettings } from '@/hooks/useAppSettings'
 
 export default function LayoutMain({
     children,
@@ -16,6 +17,8 @@ export default function LayoutMain({
     } | null
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    useAppSettings() // This will set tab icon and title based on settings
+    
     return (
         <div className="bg-bg flex min-h-screen">
             {/* Sidebar with overlay props */}

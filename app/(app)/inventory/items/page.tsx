@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ProductItem, ProductModel, Brand, Category } from '@/types/api'
+import Pagination from '@/components/ui/Pagination'
 
 export default function ProductItemsPage() {
     const { showToast } = useToast()
@@ -395,10 +396,192 @@ export default function ProductItemsPage() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-bg overflow-hidden rounded-lg border border-slate-200 shadow-xs">
-                    <div className="bg-bg border-b border-slate-100 p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex w-full items-center gap-6 max-sm:flex-col">
+                <div className="space-y-6">
+                    {/* Search and Filters Island */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+                        <h3 className="mb-4 font-semibold text-slate-900">ค้นหาและตัวกรองสินค้า</h3>
+                        
+                        {/* Search Row */}
+                        <form onSubmit={handleSearchSubmit} className="mb-6">
+                            <div className="relative max-w-md">
+                                <svg
+                                    className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหา (SN, IMEI)..."
+                                    value={search}
+                                    onChange={(e) =>
+                                        setSearch(e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-slate-200 py-2 pr-8 pl-9 text-sm outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                />
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearSearch}
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                    >
+                                        <svg
+                                            className="h-4 w-4"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M6 18L18 6M6 6l12 12"
+                                            />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        {/* Filters Grid */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    หมวดหมู่
+                                </label>
+                                <select
+                                    value={filterCategoryId}
+                                    onChange={(e) => {
+                                        setFilterCategoryId(
+                                            parseInt(e.target.value)
+                                        )
+                                        setCurrentPage(1)
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                >
+                                    <option value={0}>ทุกหมวดหมู่</option>
+                                    {categories.map((cat) => (
+                                        <option
+                                            key={cat.category_id}
+                                            value={cat.category_id}
+                                        >
+                                            {cat.category_name_th}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    ยี่ห้อ
+                                </label>
+                                <select
+                                    value={filterBrandId}
+                                    onChange={(e) => {
+                                        setFilterBrandId(
+                                            parseInt(e.target.value)
+                                        )
+                                        setFilterModelId(0)
+                                        setCurrentPage(1)
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                >
+                                    <option value={0}>ทุกยี่ห้อ</option>
+                                    {brands.map((brand) => (
+                                        <option
+                                            key={brand.brand_id}
+                                            value={brand.brand_id}
+                                        >
+                                            {brand.brand_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    รุ่น
+                                </label>
+                                <select
+                                    value={filterModelId}
+                                    onChange={(e) => {
+                                        setFilterModelId(
+                                            parseInt(e.target.value)
+                                        )
+                                        setCurrentPage(1)
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                >
+                                    <option value={0}>ทุกรุ่น</option>
+                                    {models.map((model) => (
+                                        <option
+                                            key={model.model_id}
+                                            value={model.model_id}
+                                        >
+                                            {model.model_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    สถานะ
+                                </label>
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => {
+                                        setFilterStatus(e.target.value)
+                                        setCurrentPage(1)
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                                >
+                                    <option value="All">ทุกสถานะ</option>
+                                    <option value="Available">
+                                        พร้อมใช้
+                                    </option>
+                                    <option value="Sold">ขายแล้ว</option>
+                                    <option value="Damaged">เสียหาย</option>
+                                    <option value="Reserved">
+                                        จองแล้ว
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        {/* Clear Filters Button */}
+                        {(search !== '' ||
+                            filterBrandId !== 0 ||
+                            filterCategoryId !== 0 ||
+                            filterModelId !== 0 ||
+                            filterStatus !== 'All') && (
+                            <div className="mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearch('')
+                                        setFilterBrandId(0)
+                                        setFilterCategoryId(0)
+                                        setFilterModelId(0)
+                                        setFilterStatus('All')
+                                        setCurrentPage(1)
+                                    }}
+                                    className="rounded-md border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 outline-hidden transition-colors hover:bg-rose-100 hover:text-rose-700"
+                                >
+                                    ล้างตัวกรอง
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Table */}
+                    <div className="bg-white overflow-hidden rounded-lg border border-slate-200 shadow-xs">
+                        <div className="bg-bg border-b border-slate-100 p-6">
+                            <div className="flex items-center justify-between">
                                 <div>
                                     <h2 className="text-lg font-bold text-slate-900">
                                         รายการสินค้า
@@ -414,158 +597,6 @@ export default function ProductItemsPage() {
                                         </span>
                                     </p>
                                 </div>
-
-                                {/* Filters */}
-                                <form
-                                    onSubmit={handleSearchSubmit}
-                                    className="flex flex-1 items-center gap-3"
-                                >
-                                    <div className="relative max-w-sm flex-1">
-                                        <svg
-                                            className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                            />
-                                        </svg>
-                                        <input
-                                            type="text"
-                                            placeholder="ค้นหา (SN, IMEI)..."
-                                            value={search}
-                                            onChange={(e) =>
-                                                setSearch(e.target.value)
-                                            }
-                                            className="w-full rounded-md border border-slate-200 py-1.5 pr-8 pl-9 text-sm outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                        />
-                                        {search && (
-                                            <button
-                                                type="button"
-                                                onClick={handleClearSearch}
-                                                className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                                            >
-                                                <svg
-                                                    className="h-4 w-4"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M6 18L18 6M6 6l12 12"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <select
-                                        value={filterCategoryId}
-                                        onChange={(e) => {
-                                            setFilterCategoryId(
-                                                parseInt(e.target.value)
-                                            )
-                                            setCurrentPage(1)
-                                        }}
-                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                    >
-                                        <option value={0}>ทุกหมวดหมู่</option>
-                                        {categories.map((cat) => (
-                                            <option
-                                                key={cat.category_id}
-                                                value={cat.category_id}
-                                            >
-                                                {cat.category_name_th}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        value={filterBrandId}
-                                        onChange={(e) => {
-                                            setFilterBrandId(
-                                                parseInt(e.target.value)
-                                            )
-                                            setFilterModelId(0)
-                                            setCurrentPage(1)
-                                        }}
-                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                    >
-                                        <option value={0}>ทุกยี่ห้อ</option>
-                                        {brands.map((brand) => (
-                                            <option
-                                                key={brand.brand_id}
-                                                value={brand.brand_id}
-                                            >
-                                                {brand.brand_name}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <select
-                                        value={filterModelId}
-                                        onChange={(e) => {
-                                            setFilterModelId(
-                                                parseInt(e.target.value)
-                                            )
-                                            setCurrentPage(1)
-                                        }}
-                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                    >
-                                        <option value={0}>ทุกรุ่น</option>
-                                        {models.map((model) => (
-                                            <option
-                                                key={model.model_id}
-                                                value={model.model_id}
-                                            >
-                                                {model.model_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        value={filterStatus}
-                                        onChange={(e) => {
-                                            setFilterStatus(e.target.value)
-                                            setCurrentPage(1)
-                                        }}
-                                        className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
-                                    >
-                                        <option value="All">ทุกสถานะ</option>
-                                        <option value="Available">
-                                            พร้อมใช้
-                                        </option>
-                                        <option value="Sold">ขายแล้ว</option>
-                                        <option value="Damaged">เสียหาย</option>
-                                        <option value="Reserved">
-                                            จองแล้ว
-                                        </option>
-                                    </select>
-                                    {(search !== '' ||
-                                        filterBrandId !== 0 ||
-                                        filterCategoryId !== 0 ||
-                                        filterModelId !== 0 ||
-                                        filterStatus !== 'All') && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setSearch('')
-                                                setFilterBrandId(0)
-                                                setFilterCategoryId(0)
-                                                setFilterModelId(0)
-                                                setFilterStatus('All')
-                                                setCurrentPage(1)
-                                            }}
-                                            className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 outline-hidden transition-colors hover:bg-rose-100 hover:text-rose-700"
-                                        >
-                                            ล้างตัวกรอง
-                                        </button>
-                                    )}
-                                </form>
 
                                 <div className="h-10 w-px bg-slate-100 max-sm:hidden"></div>
                                 <div className="flex items-center gap-3">
@@ -756,81 +787,15 @@ export default function ProductItemsPage() {
                         </table>
                     </div>
 
-                    {/* Pagination Controls */}
-                    <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/30 p-4 max-sm:flex-col">
-                        <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                            แสดง {(currentPage - 1) * pageSize + 1} -{' '}
-                            {Math.min(currentPage * pageSize, totalItems)} จาก{' '}
-                            {totalItems}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() =>
-                                    setCurrentPage(Math.max(1, currentPage - 1))
-                                }
-                                disabled={currentPage === 1}
-                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
-                            >
-                                ก่อนหน้า
-                            </button>
-
-                            <div className="flex gap-1">
-                                {Array.from(
-                                    { length: totalPages },
-                                    (_, i) => i + 1
-                                ).map((page) => {
-                                    if (
-                                        totalPages <= 5 ||
-                                        page === 1 ||
-                                        page === totalPages ||
-                                        (page >= currentPage - 1 &&
-                                            page <= currentPage + 1)
-                                    ) {
-                                        return (
-                                            <button
-                                                key={page}
-                                                onClick={() =>
-                                                    setCurrentPage(page)
-                                                }
-                                                className={`h-7 w-7 rounded text-xs font-bold transition-all ${
-                                                    currentPage === page
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-slate-400 hover:text-blue-600'
-                                                }`}
-                                            >
-                                                {page}
-                                            </button>
-                                        )
-                                    } else if (
-                                        page === currentPage - 2 ||
-                                        page === currentPage + 2
-                                    ) {
-                                        return (
-                                            <span
-                                                key={page}
-                                                className="px-1 text-slate-300"
-                                            >
-                                                ...
-                                            </span>
-                                        )
-                                    }
-                                    return null
-                                })}
-                            </div>
-
-                            <button
-                                onClick={() =>
-                                    setCurrentPage(
-                                        Math.min(totalPages, currentPage + 1)
-                                    )
-                                }
-                                disabled={currentPage === totalPages}
-                                className="rounded px-2 py-1 text-xs font-bold text-slate-400 hover:text-blue-600 disabled:opacity-30"
-                            >
-                                ถัดไป
-                            </button>
-                        </div>
-                    </div>
+                    {/* Pagination */}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        onPageSizeChange={handlePageSizeChange}
+                    />
                 </div>
             )}
 

@@ -63,6 +63,7 @@ interface TopBrand {
     brand_name: string
     revenue: number
     percentage: number
+    brand_image?: string
 }
 
 interface InventoryStatus {
@@ -396,7 +397,15 @@ export default function DashboardPage() {
                                         }`}>
                                             {index + 1}
                                         </div>
-                                        <span className="font-medium text-slate-900">{brand.brand_name}</span>
+                                        {brand.brand_image ? (
+                                            <img
+                                                src={brand.brand_image}
+                                                alt={brand.brand_name}
+                                                className="h-6 w-6 rounded object-cover"
+                                            />
+                                        ) : (
+                                            <span className="font-medium text-slate-900">{brand.brand_name}</span>
+                                        )}
                                     </div>
                                     <div className="text-right">
                                         <div className="font-semibold text-slate-900">฿{brand.revenue.toLocaleString()}</div>

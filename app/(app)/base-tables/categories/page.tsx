@@ -3,27 +3,33 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { Category } from '@/types/api'
+import ImageUpload from '@/components/ImageUpload'
+import Pagination from '@/components/ui/Pagination'
 
 export default function CategoriesPage() {
     const { showToast } = useToast()
     const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-        null
-    )
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [totalPages, setTotalPages] = useState(1)
+    const [totalItems, setTotalItems] = useState(0)
     const [formData, setFormData] = useState({
         category_name_th: '',
         category_name_en: '',
     })
 
-    const fetchCategories = async () => {
+    const fetchCategories = async (page: number = 1, limit: number = pageSize) => {
         try {
             setLoading(true)
-            const response = await fetch('/api/categories?page=1&limit=100')
+            const response = await fetch(`/api/categories?page=${page}&limit=${limit}`)
             if (!response.ok) throw new Error('Failed to fetch categories')
             const result = await response.json()
             setCategories(result.data)
+            setTotalPages(result.pagination?.totalPages || 1)
+            setTotalItems(result.pagination?.total || 0)
         } catch (err) {
             showToast('Failed to load categories', 'error')
         } finally {
@@ -32,8 +38,21 @@ export default function CategoriesPage() {
     }
 
     useEffect(() => {
-        fetchCategories()
-    }, [])
+        fetchCategories(currentPage, pageSize)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, pageSize])
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page)
+        fetchCategories(page, pageSize)
+    }
+
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPageSize = parseInt(e.target.value)
+        setPageSize(newPageSize)
+        setCurrentPage(1)
+        fetchCategories(1, newPageSize)
+    }
 
     const handleEdit = (category: Category) => {
         setSelectedCategory(category)
@@ -234,6 +253,16 @@ export default function CategoriesPage() {
                     </div>
                 </div>
             )}
+
+            {/* Pagination */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageSizeChange={handlePageSizeChange}
+            />
         </div>
     )
 }
