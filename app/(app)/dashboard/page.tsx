@@ -105,6 +105,8 @@ export default function DashboardPage() {
     const [claimResolutions, setClaimResolutions] = useState<ClaimResolution[]>([])
     const [modelData, setModelData] = useState<any>(null)
     const [categoryData, setCategoryData] = useState<any>(null)
+    const [products, setProducts] = useState<any[]>([])
+    const [brands, setBrands] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -160,6 +162,8 @@ export default function DashboardPage() {
                 // Set state for later use
                 setModelData(models)
                 setCategoryData(categories)
+                setProducts(productData.data || [])
+                setBrands(brands)
 
                 const sales = saleData.data || []
                 const repairs = repairData.data || []
@@ -436,61 +440,72 @@ export default function DashboardPage() {
                         color="green"
                     />
                 </div>
-                <div className="bg-white rounded-lg border border-slate-200 p-6">
-                    <h3 className="mb-4 font-semibold text-slate-900">สถานะสินค้า</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={inventoryStatus}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={2}
-                                    dataKey="count"
-                                >
-                                    {inventoryStatus.map((entry, index) => (
-                                        <Cell 
-                                            key={`cell-${index}`} 
-                                            fill={
-                                                entry.color === 'bg-green-500' ? '#10b981' :
-                                                entry.color === 'bg-blue-500' ? '#3b82f6' :
-                                                entry.color === 'bg-red-500' ? '#ef4444' :
-                                                entry.color === 'bg-orange-500' ? '#f97316' : '#6b7280'
-                                            } 
-                                        />
-                                    ))}
-                                </Pie>
-                                <Tooltip 
-                                    formatter={(value: any, name: any) => [value, 'จำนวน']}
-                                    contentStyle={{ 
-                                        backgroundColor: '#ffffff',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '6px'
-                                    }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="mt-4 flex flex-wrap justify-center gap-3">
-                            {inventoryStatus.map((item, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                    <div 
-                                        className="h-3 w-3 rounded-full" 
-                                        style={{
-                                            backgroundColor: 
-                                                item.color === 'bg-green-500' ? '#10b981' :
-                                                item.color === 'bg-blue-500' ? '#3b82f6' :
-                                                item.color === 'bg-red-500' ? '#ef4444' :
-                                                item.color === 'bg-orange-500' ? '#f97316' : '#6b7280'
-                                        }}
-                                    />
-                                    <span className="text-xs text-slate-600">{item.status} ({item.count})</span>
+                {/* <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <h3 className="mb-4 font-semibold text-slate-900">สินค้าตามหมวดหมู่</h3>
+                        <div className="space-y-3">
+                            {categoryData?.data?.slice(0, 6).map((category: any, index: number) => {
+                                const count = products.filter((p: any) => p.category_id === category.category_id).length
+                                if (count === 0) return null
+                                return (
+                                    <div key={category.category_id} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                                                index === 0 ? 'bg-blue-500' : 
+                                                index === 1 ? 'bg-green-500' : 
+                                                index === 2 ? 'bg-purple-500' : 
+                                                index === 3 ? 'bg-orange-500' : 
+                                                index === 4 ? 'bg-pink-500' : 'bg-slate-400'
+                                            }`}>
+                                                {index + 1}
+                                            </div>
+                                            <span className="font-medium text-slate-900">{category.category_name_th || category.category_name_en || `หมวดหมู่ ${index + 1}`}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-semibold text-slate-900">{count} รายการ</div>
+                                        </div>
+                                    </div>
+                                )
+                            }) || (
+                                <div className="text-center text-slate-500 py-4">
+                                    ไม่มีข้อมูลหมวดหมู่
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
-                </div>
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <h3 className="mb-4 font-semibold text-slate-900">สินค้าตามยี่ห้อ</h3>
+                        <div className="space-y-3">
+                            {brands?.data?.slice(0, 6).map((brand: any, index: number) => {
+                                const count = products.filter((p: any) => p.brand_id === brand.brand_id).length
+                                if (count === 0) return null
+                                return (
+                                    <div key={brand.brand_id} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                                                index === 0 ? 'bg-red-500' : 
+                                                index === 1 ? 'bg-blue-600' : 
+                                                index === 2 ? 'bg-green-600' : 
+                                                index === 3 ? 'bg-orange-600' : 
+                                                index === 4 ? 'bg-purple-600' : 'bg-slate-400'
+                                            }`}>
+                                                {index + 1}
+                                            </div>
+                                            <span className="font-medium text-slate-900">{brand.brand_name || `ยี่ห้อ ${index + 1}`}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-semibold text-slate-900">{count} รายการ</div>
+                                        </div>
+                                    </div>
+                                )
+                            }) || (
+                                <div className="text-center text-slate-500 py-4">
+                                    ไม่มีข้อมูลยี่ห้อ
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div> */}
             </div>
 
          
