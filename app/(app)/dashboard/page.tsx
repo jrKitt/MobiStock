@@ -301,8 +301,8 @@ export default function DashboardPage() {
             
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-                    <p className="text-slate-500">ภาพรวมธุรกิจของคุณ</p>
+                    {/* <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+                    <p className="text-slate-500">ภาพรวมธุรกิจของคุณ</p> */}
                 </div>
                 <div className="flex gap-3">
                     <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -344,43 +344,67 @@ export default function DashboardPage() {
                         color="purple"
                     />
                 </div>
-                <div className="bg-white rounded-lg border border-slate-200 p-6">
-                    <h3 className="mb-4 font-semibold text-slate-900">แนวโน้มยอดขาย 7 วัน</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={salesTrends}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis 
-                                    dataKey="date" 
-                                    tick={{ fontSize: 12 }}
-                                    stroke="#64748b"
-                                />
-                                <YAxis 
-                                    tick={{ fontSize: 12 }}
-                                    stroke="#64748b"
-                                />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: '#ffffff',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '6px'
-                                    }}
-                                    formatter={(value: any) => [`฿${value.toLocaleString()}`, 'รายได้']}
-                                />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="revenue" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={2}
-                                    dot={{ fill: '#3b82f6', r: 4 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <h3 className="mb-4 font-semibold text-slate-900">แนวโน้มยอดขาย 7 วัน</h3>
+                        <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={salesTrends}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                    <XAxis 
+                                        dataKey="date" 
+                                        tick={{ fontSize: 12 }}
+                                        stroke="#64748b"
+                                    />
+                                    <YAxis 
+                                        tick={{ fontSize: 12 }}
+                                        stroke="#64748b"
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ 
+                                            backgroundColor: '#ffffff',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '6px'
+                                        }}
+                                        formatter={(value: any) => [`฿${value.toLocaleString()}`, 'รายได้']}
+                                    />
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="revenue" 
+                                        stroke="#3b82f6" 
+                                        strokeWidth={2}
+                                        dot={{ fill: '#3b82f6', r: 4 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <h3 className="mb-4 font-semibold text-slate-900">ยี่ห้อที่ขายดีที่สุด</h3>
+                        <div className="space-y-3">
+                            {topBrands.slice(0, 5).map((brand, index) => (
+                                <div key={brand.brand_name} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                                            index === 0 ? 'bg-yellow-500' : 
+                                            index === 1 ? 'bg-gray-400' : 
+                                            index === 2 ? 'bg-orange-600' : 'bg-slate-400'
+                                        }`}>
+                                            {index + 1}
+                                        </div>
+                                        <span className="font-medium text-slate-900">{brand.brand_name}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-semibold text-slate-900">฿{brand.revenue.toLocaleString()}</div>
+                                        <div className="text-sm text-slate-500">{brand.percentage}%</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
 
-           
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
                     <FiPackage className="h-5 w-5 text-blue-600" />

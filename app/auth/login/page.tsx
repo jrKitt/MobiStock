@@ -79,14 +79,6 @@ export default function LoginPage() {
     return (
         <div
             className="flex min-h-screen items-center justify-center px-4"
-            style={{
-                backgroundImage: `
-                  linear-gradient(0deg, transparent 24%, rgba(100, 150, 255, 0.08) 25%, rgba(100, 150, 255, 0.08) 26%, transparent 27%, transparent 74%, rgba(100, 150, 255, 0.08) 75%, rgba(100, 150, 255, 0.08) 76%, transparent 77%, transparent),
-                  linear-gradient(90deg, transparent 24%, rgba(100, 150, 255, 0.08) 25%, rgba(100, 150, 255, 0.08) 26%, transparent 27%, transparent 74%, rgba(100, 150, 255, 0.08) 75%, rgba(100, 150, 255, 0.08) 76%, transparent 77%, transparent)
-                `,
-                backgroundSize: '40px 40px',
-                backgroundColor: '#ffffff',
-            }}
         >
             <div className="w-full max-w-md">
                 <div className="mb-8 text-center">
@@ -185,8 +177,7 @@ export default function LoginPage() {
                 {/* Footer with Build Info */}
                 {config && (
                     <div className="mt-10 text-center">
-                        <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white/80 px-5 py-4 text-xs text-gray-500 shadow-sm backdrop-blur-sm">
-                            {/* Developers */}
+                        {/* <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white/80 px-5 py-4 text-xs text-gray-500 shadow-sm backdrop-blur-sm">
                             <div className="flex flex-wrap items-center justify-center gap-2">
                                 <span className="text-gray-400">Built by</span>
 
@@ -204,14 +195,12 @@ export default function LoginPage() {
                                 ))}
                             </div>
 
-                            {/* Divider */}
                             <div className="my-3 h-px w-full bg-gray-100" />
 
-                            {/* Meta */}
                             <div className="flex flex-col items-center gap-1 text-gray-400 sm:flex-row sm:justify-center sm:gap-3">
                                 <span>Last updated: {config.lastUpdated}</span>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 )}
             </div>

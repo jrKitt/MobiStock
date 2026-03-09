@@ -239,10 +239,10 @@ export default function EnhancedDashboardPage() {
             {/* Enhanced Header */}
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">แผงควบคุมหลัก</h1>
+                    {/* <h1 className="text-3xl font-bold text-slate-900">แผงควบคุมหลัก</h1>
                     <p className="text-slate-500">
                         ภาพรวมธุรกิจของคุณ • อัปเดตล่าสุด: {lastRefresh.toLocaleTimeString('th-TH')}
-                    </p>
+                    </p> */}
                 </div>
                 <div className="flex gap-3">
                     <button
