@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { query, ResultSetHeader } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { Brand } from '@/types/api'
+import { validateBrand, formatValidationErrors } from '@/lib/validation-simple'
 
 export async function GET(req: NextRequest) {
     try {
@@ -35,19 +36,62 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const body = (await req.json()) as Brand
+        const body = await req.json()
+        
+        // Simple validation
+        const validation = validateBrand(body)
+        if (!validation.isValid) {
+            return errorResponse(
+                'Validation failed',
+                formatValidationErrors(validation),
+                400
+            )
+        }
+
         const { brand_name, brand_country, image_url } = body
+        
+        // Check for duplicate brand name
+        try {
+            const existingBrand = await query(
+                'SELECT brand_id FROM BRAND WHERE brand_name = ?',
+                [brand_name.trim()]
+            )
+            
+            if (Array.isArray(existingBrand) && existingBrand.length > 0) {
+                return errorResponse(
+                    'Brand already exists',
+                    ['ชื่อแบรนด์นี้มีอยู่แล้วในระบบ'],
+                    409
+                )
+            }
+        } catch (dbError) {
+            // Continue with creation if check fails
+        }
+
         const result = await query(
             'INSERT INTO BRAND (brand_name, brand_country, image_url) VALUES (?, ?, ?)',
-            [brand_name, brand_country, image_url || null]
+            [brand_name.trim(), brand_country?.trim() || null, image_url?.trim() || null]
         )
+        
         return successResponse(
             { id: (result as ResultSetHeader).insertId, ...body },
-            'Brand created successfully',
+            'สร้างแบรนด์สำเร็จ',
             201
         )
     } catch (error) {
         console.error(error)
+        
+        // Handle basic database constraint errors
+        if (error instanceof Error) {
+            if (error.message.includes('chk_brand_name_not_empty')) {
+                return errorResponse(
+                    'Validation failed',
+                    ['ชื่อแบรนด์ต้องไม่ว่างเปล่า'],
+                    400
+                )
+            }
+        }
+        
         return errorResponse('Error creating brand', error)
     }
 }
