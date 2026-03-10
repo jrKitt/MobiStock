@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
     HiHome,
@@ -20,6 +21,10 @@ import {
     HiShieldCheck,
 } from 'react-icons/hi2'
 
+const STORE_CONFIG_UPDATED_EVENT = 'mobistock_store_config_updated'
+const STORE_NAME_STORAGE_KEY = 'mobistock_store_name'
+const STORE_LOGO_STORAGE_KEY = 'mobistock_store_logo'
+
 interface SidebarProps {
     isOpen?: boolean
     onClose?: () => void
@@ -34,6 +39,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [storeName, setStoreName] = useState('MobiStock')
+    const [storeLogo, setStoreLogo] = useState<string | null>(null)
     const menuRef = useRef<HTMLDivElement>(null)
     const pathname = usePathname()
     const router = useRouter()
@@ -55,13 +61,27 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
     }, [])
 
     useEffect(() => {
-        // โหลดชื่อร้านจาก localStorage
-        try {
-            const savedName = localStorage.getItem('mobistock_store_name')
-            if (savedName && savedName.trim()) {
-                setStoreName(savedName)
-            }
-        } catch {}
+        const loadStoreConfig = () => {
+            try {
+                const savedName = localStorage.getItem(STORE_NAME_STORAGE_KEY)
+                const savedLogo = localStorage.getItem(STORE_LOGO_STORAGE_KEY)
+
+                if (savedName && savedName.trim()) {
+                    setStoreName(savedName)
+                }
+                setStoreLogo(savedLogo || null)
+            } catch {}
+        }
+
+        loadStoreConfig()
+        window.addEventListener(STORE_CONFIG_UPDATED_EVENT, loadStoreConfig)
+
+        return () => {
+            window.removeEventListener(
+                STORE_CONFIG_UPDATED_EVENT,
+                loadStoreConfig
+            )
+        }
     }, [])
 
     const handleLogout = async () => {
@@ -82,26 +102,21 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                     label: 'แดชบอร์ด',
                     href: '/dashboard',
                 },
+            ],
+        },
+        {
+            title: 'การทำงานหลัก',
+            items: [
                 {
                     icon: <HiClipboardDocumentList className="h-4 w-4" />,
                     label: 'ใบสั่งขาย',
                     href: '/transactions/sale-orders',
                 },
-            ],
-        },
-        {
-            title: 'บริการซ่อม',
-            items: [
                 {
                     icon: <HiWrench className="h-4 w-4" />,
                     label: 'คำขอซ่อม',
                     href: '/services/repair-orders',
                 },
-            ],
-        },
-        {
-            title: 'การรับประกัน',
-            items: [
                 {
                     icon: <HiShieldCheck className="h-4 w-4" />,
                     label: 'การเคลมสินค้า',
@@ -109,6 +124,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                 },
             ],
         },
+
         {
             title: 'คลังสินค้า / อะไหล่',
             items: [
@@ -251,6 +267,16 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                     <div className="flex items-center justify-between">
                         {(!isCollapsed || isOpen) && (
                             <div className="flex items-center gap-3">
+                                {storeLogo && (
+                                    <Image
+                                        src={storeLogo}
+                                        alt="Store logo"
+                                        width={40}
+                                        height={40}
+                                        unoptimized
+                                        className="h-10 w-10 rounded-md border border-slate-200 object-cover"
+                                    />
+                                )}
                                 <div>
                                     <h1 className="text-lg font-bold tracking-tight text-slate-900">
                                         {storeName}

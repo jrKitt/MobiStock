@@ -22,9 +22,11 @@ export async function GET(
         // Fetch items associated
         const items = await query(
             `
-            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number 
+            SELECT soi.*, pi.item_serial_number, pi.item_imei, pi.item_lot_number, pm.model_name, b.brand_name
             FROM SALE_ORDER_ITEM soi
             JOIN PRODUCT_ITEM pi ON soi.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
             WHERE soi.sale_id = ?
         `,
             [id]
@@ -50,6 +52,8 @@ export async function PUT(
             sale_date,
             sale_status,
             customer_id,
+            update_by,
+            sale_additional_cost = 0,
             items, // Array of { item_id, sale_price }
         } = body
 
@@ -61,24 +65,27 @@ export async function PUT(
             )
         }
 
-        const sale_total_amount = items.reduce(
-            (sum: number, item: { sale_price: string | number }) =>
-                sum + Number(item.sale_price || 0),
-            0
-        )
+        const sale_total_amount =
+            items.reduce(
+                (sum: number, item: { sale_price: string | number }) =>
+                    sum + Number(item.sale_price || 0),
+                0
+            ) + Number(sale_additional_cost || 0)
 
         connection = await getConnection()
         await connection.beginTransaction()
 
         // 1. Update Sale Order
         await connection.query(
-            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_status = ?, customer_id = ? WHERE sale_id = ?',
+            'UPDATE SALE_ORDER SET sale_code = ?, sale_date = ?, sale_total_amount = ?, sale_additional_cost = ?, sale_status = ?, customer_id = ?, update_by = ? WHERE sale_id = ?',
             [
                 sale_code,
                 sale_date,
                 sale_total_amount,
+                Number(sale_additional_cost || 0),
                 sale_status,
                 customer_id,
+                update_by || null,
                 id,
             ]
         )
@@ -136,6 +143,26 @@ export async function PUT(
             )
         }
 
+        // Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'sale',
+                id,
+                'updated',
+                'Sale order updated',
+                JSON.stringify({
+                    sale_code,
+                    sale_date,
+                    sale_total_amount,
+                    sale_status,
+                    customer_id,
+                    items,
+                }),
+                update_by || null,
+            ]
+        )
+
         await connection.commit()
         connection.release()
 
@@ -150,6 +177,79 @@ export async function PUT(
         }
         console.error(error)
         return errorResponse('Error updating sale order', error)
+    }
+}
+
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    let connection
+    try {
+        const { id } = await params
+        const body = await req.json()
+        const { sale_status, update_by } = body
+
+        if (!sale_status) {
+            return errorResponse('Sale status is required', null, 400)
+        }
+
+        connection = await getConnection()
+        await connection.beginTransaction()
+
+        // 1. Update Sale Order Status
+        await connection.query(
+            'UPDATE SALE_ORDER SET sale_status = ?, update_by = ? WHERE sale_id = ?',
+            [sale_status, update_by || null, id]
+        )
+
+        // 2. Fetch Existing Items and update their statuses
+        const existingItems = (await connection.query(
+            'SELECT item_id FROM SALE_ORDER_ITEM WHERE sale_id = ?',
+            [id]
+        )) as [{ item_id: number }[], unknown]
+
+        const newItemStatus =
+            sale_status === 'Completed'
+                ? 'Sold'
+                : sale_status === 'Pending'
+                  ? 'Reserved'
+                  : 'Available'
+
+        for (const row of existingItems[0]) {
+            await connection.query(
+                'UPDATE PRODUCT_ITEM SET item_status = ? WHERE item_id = ?',
+                [newItemStatus, row.item_id]
+            )
+        }
+
+        // 3. Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'sale',
+                id,
+                'status_changed',
+                `Sale order status updated to ${sale_status}`,
+                JSON.stringify({ sale_status }),
+                update_by || null,
+            ]
+        )
+
+        await connection.commit()
+        connection.release()
+
+        return successResponse(
+            { id, sale_status },
+            'Sale order status updated successfully'
+        )
+    } catch (error) {
+        if (connection) {
+            await connection.rollback()
+            connection.release()
+        }
+        console.error(error)
+        return errorResponse('Error updating sale order status', error)
     }
 }
 
@@ -181,6 +281,12 @@ export async function DELETE(
             [id]
         )
         await connection.query('DELETE FROM SALE_ORDER WHERE sale_id = ?', [id])
+
+        // Log history
+        await connection.query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, action_by) VALUES (?, ?, ?, ?, ?)',
+            ['sale', id, 'deleted', 'Sale order deleted', null]
+        )
 
         await connection.commit()
         connection.release()

@@ -46,16 +46,16 @@ export default function BrandsPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this brand?')) return
+        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบแบรนด์นี้?')) return
         try {
             const response = await fetch(`/api/brands/${id}`, {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete brand')
-            showToast('Brand deleted successfully', 'success')
+            showToast('ลบแบรนด์สำเร็จ', 'success')
             fetchBrands()
         } catch (err) {
-            showToast('Failed to delete brand', 'error')
+            showToast('ไม่สามารถลบแบรนด์ได้', 'error')
         }
     }
 
@@ -90,12 +90,12 @@ export default function BrandsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         Brands
                     </h1>
                     <p className="text-sm text-slate-500">
                         Manage your product brands and origins
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {

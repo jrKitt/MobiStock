@@ -1,17 +1,17 @@
 @import 'tailwindcss';
 
 @theme {
-    --color-bg: #fffbf5;
+    --color-bg: #ffffff;
     --color-fg: #c3acd0;
     --color-prim: #674188;
-    --color-prim-fg: #f7efe5;
+    --color-prim-fg: #ffffff;
 }
 
 :root {
-    --background: #fffbf5;
+    --background: #ffffff;
     --foreground: #c3acd0; /* Slate 900 */
     --primary: #674188; /* Blue 600 */
-    --primary-foreground: #f7efe5;
+    --primary-foreground: #ffffff;
 }
 
 body {
