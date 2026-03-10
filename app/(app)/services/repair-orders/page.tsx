@@ -644,12 +644,12 @@ export default function RepairOrdersPage() {
     const confirmPayment = async () => {
         if (!completeRepair?.repair_id) return
         const readyImages = confirmImages.filter((img) => !img.uploading)
-        
+
         if (readyImages.length < 1) {
             showToast('กรุณาอัปโหลดรูปภาพหลักฐานการโอนและส่งมอบ อย่างน้อย 1 รูป', 'warning')
             return
         }
-        
+
         try {
             setIsSubmitting(true)
             // Save confirmation images first
@@ -667,7 +667,7 @@ export default function RepairOrdersPage() {
                     })
                 )
             )
-            
+
             // Then mark repair as completed
             const res = await fetch(
                 `/api/repair-orders/${completeRepair.repair_id}`,
@@ -978,7 +978,7 @@ export default function RepairOrdersPage() {
                                         สถานะ
                                     </div>
                                     <span
-                                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${
+                                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold text-nowrap ${
                                             repair.repair_status === 'completed'
                                                 ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20 ring-inset'
                                                 : repair.repair_status ===
@@ -2578,7 +2578,7 @@ export default function RepairOrdersPage() {
             )}
             {/* QR Payment Modal */}
             {isQROpen && completeRepair && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="bg-bg w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
                             <h3 className="font-bold text-slate-900">
@@ -2679,7 +2679,7 @@ export default function RepairOrdersPage() {
 
             {/* Payment Confirmation Modal */}
             {isConfirmPaymentOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
