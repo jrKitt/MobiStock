@@ -61,8 +61,13 @@ export default function SaleOrdersPage() {
         { url: string; uploading: boolean }[]
     >([])
     const [isImagesModalOpen, setIsImagesModalOpen] = useState(false)
-    const [selectedOrderImages, setSelectedOrderImages] = useState<string[]>([])
+    const [selectedOrderImages, setSelectedOrderImages] = useState<
+        { url: string; label: string }[]
+    >([])
     const [selectedOrder, setSelectedOrder] = useState<SaleOrder | null>(null)
+    const [printDocumentType, setPrintDocumentType] = useState<
+        'invoice' | 'taxInvoice'
+    >('invoice')
     const printRef = useRef<HTMLDivElement>(null)
     const [searchItemQuery, setSearchItemQuery] = useState('')
     const [availableItems, setAvailableItems] = useState<ProductItem[]>([])
@@ -164,6 +169,14 @@ export default function SaleOrdersPage() {
             setStoreLogo(savedLogo || null)
         } catch {}
     }, [])
+
+    useEffect(() => {
+        if (!isPrintOpen || !selectedOrder) return
+        const timer = setTimeout(() => {
+            window.print()
+        }, 150)
+        return () => clearTimeout(timer)
+    }, [isPrintOpen, selectedOrder])
 
     const handleQRPayment = (order: SaleOrder) => {
         const promptpayId = localStorage.getItem('mobistock_promptpay_id')
@@ -384,14 +397,20 @@ export default function SaleOrdersPage() {
         }
     }
 
-    const handlePrint = async (order: SaleOrder) => {
+    const handlePrint = async (
+        order: SaleOrder,
+        documentType: 'invoice' | 'taxInvoice' = 'invoice'
+    ) => {
         try {
             setLoading(true)
             const res = await fetch(`/api/sale-orders/${order.sale_id}`)
             if (res.ok) {
                 const orderData = await res.json()
-                setSelectedOrder(orderData)
+                setSelectedOrder(orderData.data || orderData)
+                setPrintDocumentType(documentType)
                 setIsPrintOpen(true)
+            } else {
+                showToast('ไม่สามารถดึงข้อมูลสำหรับพิมพ์ได้', 'error')
             }
         } catch (error) {
             console.error('Error fetching order:', error)
@@ -406,8 +425,16 @@ export default function SaleOrdersPage() {
             // Fetch images for this sale order
             const response = await fetch(`/api/sale-order-images?sale_id=${order.sale_id}`)
             if (response.ok) {
-                const images = await response.json()
-                setSelectedOrderImages(images.map((img: any) => img.image_url))
+                const result = await response.json()
+                const images = result?.data || []
+                setSelectedOrderImages(
+                    images
+                        .map((img: any) => ({
+                            url: img.image_url,
+                            label: img.image_caption || 'หลักฐานการชำระเงิน',
+                        }))
+                        .filter((img: { url: string; label: string }) => !!img.url)
+                )
                 setIsImagesModalOpen(true)
             } else {
                 showToast('ไม่พบรูปภาพ', 'warning')
@@ -511,7 +538,7 @@ export default function SaleOrdersPage() {
     return (
         <div className="space-y-6">
             {isSubmitting && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 font-prompt backdrop-blur-sm">
                     <div className="flex items-center justify-center rounded-xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
                         <span className="ml-4 font-semibold text-slate-700">
@@ -766,11 +793,18 @@ export default function SaleOrdersPage() {
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => handlePrint(order)}
+                                            onClick={() => handlePrint(order, 'invoice')}
                                             className="flex items-center gap-1 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-600 transition-colors hover:bg-teal-100"
                                         >
                                             <PrintIcon className="h-4 w-4" />
                                             ออกบิลลูกค้า
+                                        </button>
+                                        <button
+                                            onClick={() => handlePrint(order, 'taxInvoice')}
+                                            className="flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                                        >
+                                            <PrintIcon className="h-4 w-4" />
+                                            ออกใบกำกับภาษี
                                         </button>
                                         <button
                                             onClick={() => handleEdit(order)}
@@ -938,7 +972,7 @@ export default function SaleOrdersPage() {
             )}
 
             {isQROpen && selectedOrder && (
-                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/20 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/20 p-4 font-prompt text-black backdrop-blur-sm sm:p-6">
                     <div className="bg-bg w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
                             <h3 className="font-bold text-slate-900">
@@ -1007,8 +1041,8 @@ export default function SaleOrdersPage() {
             )}
 
             {isConfirmPaymentOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
-                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 font-prompt text-black backdrop-blur-sm sm:p-6">
+                    <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
                                 ยืนยันการชำระเงิน
@@ -1024,7 +1058,7 @@ export default function SaleOrdersPage() {
                                 <CloseIcon />
                             </button>
                         </div>
-                        <div className="p-6">
+                        <div className="overflow-y-auto p-6">
                             <p className="mb-6 text-sm text-slate-600">
                                 กรุณาอัปโหลดหลักฐานการชำระเงิน
                                 <span className="font-semibold text-red-600">
@@ -1206,52 +1240,6 @@ export default function SaleOrdersPage() {
                                 )}
                             </div>
 
-                            {/* Status Summary */}
-                            <div className="mb-4 rounded-lg bg-slate-50 p-3">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="font-medium text-slate-600">สถานะการอัปโหลด:</span>
-                                    <span
-                                        className={`font-semibold ${
-                                            podImages.filter((i) => !i.uploading).length >= 1 &&
-                                            paymentBillImages.filter((i) => !i.uploading).length >= 1
-                                                ? 'text-green-600'
-                                                : 'text-orange-500'
-                                        }`}
-                                    >
-                                        {podImages.filter((i) => !i.uploading).length >= 1 &&
-                                        paymentBillImages.filter((i) => !i.uploading).length >= 1
-                                            ? '✓ พร้อมยืนยัน'
-                                            : '⏳ รอการอัปโหลด'}
-                                    </span>
-                                </div>
-                                <div className="mt-2 space-y-1 text-xs text-slate-500">
-                                    <div className="flex justify-between">
-                                        <span>• หลักฐานการโอนเงิน (POD):</span>
-                                        <span
-                                            className={
-                                                podImages.filter((i) => !i.uploading).length >= 1
-                                                    ? 'text-green-600'
-                                                    : 'text-slate-400'
-                                            }
-                                        >
-                                            {podImages.filter((i) => !i.uploading).length} / 1
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>• ใบเสร็จรับเงิน:</span>
-                                        <span
-                                            className={
-                                                paymentBillImages.filter((i) => !i.uploading).length >= 1
-                                                    ? 'text-green-600'
-                                                    : 'text-slate-400'
-                                            }
-                                        >
-                                            {paymentBillImages.filter((i) => !i.uploading).length} / 1
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => {
@@ -1284,7 +1272,7 @@ export default function SaleOrdersPage() {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 font-prompt text-black backdrop-blur-sm sm:p-6">
                     <div className="bg-bg flex max-h-[90vh] w-full max-w-5xl flex-col rounded-xl shadow-2xl ring-1 ring-slate-200">
                         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-8 py-6">
                             <h2 className="text-xl font-bold text-slate-900">
@@ -1848,13 +1836,15 @@ export default function SaleOrdersPage() {
                     <div
                         id="printArea"
                         ref={printRef}
-                        className="bg-bg fixed inset-0 z-50 overflow-auto p-8 print:p-0"
+                        className="bg-bg fixed inset-0 z-50 overflow-auto p-8 font-prompt print:p-0"
                     >
                         <div className="mx-auto max-w-4xl print:max-w-none">
                             {/* Close button - only visible on screen */}
                             <div className="mb-8 flex items-center justify-between print:hidden">
                                 <h1 className="text-3xl font-bold text-slate-900">
-                                    ใบสั่งขาย
+                                    {printDocumentType === 'taxInvoice'
+                                        ? 'ใบกำกับภาษี'
+                                        : 'ใบสั่งขาย'}
                                 </h1>
                                 <button
                                     onClick={() => setIsPrintOpen(false)}
@@ -1890,7 +1880,9 @@ export default function SaleOrdersPage() {
                                     <div></div>
                                     <div className="text-right">
                                         <p className="text-sm font-bold text-slate-600">
-                                            ใบสั่งขาย
+                                            {printDocumentType === 'taxInvoice'
+                                                ? 'ใบกำกับภาษี'
+                                                : 'ใบสั่งขาย'}
                                         </p>
                                         <p className="text-2xl font-bold text-slate-900">
                                             {selectedOrder.sale_code}
@@ -1928,6 +1920,38 @@ export default function SaleOrdersPage() {
                                                 return c?.customer_phone || '-'
                                             })()}
                                         </p>
+                                        {printDocumentType === 'taxInvoice' && (
+                                            <>
+                                                <p className="text-sm text-slate-600">
+                                                    เลขประจำตัวผู้เสียภาษี:{' '}
+                                                    {(() => {
+                                                        const c = customers.find(
+                                                            (c) =>
+                                                                c.customer_id ===
+                                                                selectedOrder.customer_id
+                                                        )
+                                                        return (
+                                                            c?.customer_tax_number ||
+                                                            '-'
+                                                        )
+                                                    })()}
+                                                </p>
+                                                <p className="text-sm text-slate-600">
+                                                    ที่อยู่:{' '}
+                                                    {(() => {
+                                                        const c = customers.find(
+                                                            (c) =>
+                                                                c.customer_id ===
+                                                                selectedOrder.customer_id
+                                                        )
+                                                        return (
+                                                            c?.customer_address ||
+                                                            '-'
+                                                        )
+                                                    })()}
+                                                </p>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="space-y-2 text-right">
@@ -1988,7 +2012,8 @@ export default function SaleOrdersPage() {
                                             <tr key={index}>
                                                 <td className="py-3">
                                                     <div className="font-bold text-slate-900">
-                                                        โทรศัพท์มือถือ / อุปกรณ์
+                                                        {item.brand_name || '-'}{' '}
+                                                        {item.model_name || '-'}
                                                     </div>
                                                     <div className="text-xs text-slate-500">
                                                         SN:{' '}
@@ -2054,9 +2079,62 @@ export default function SaleOrdersPage() {
                 </>
             )}
 
-            {/* Customer Creation Modal */}
+            {isImagesModalOpen && (
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-4 font-prompt text-black backdrop-blur-sm sm:p-6">
+                    <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-slate-900">
+                                รูปภาพหลักฐานการชำระเงิน
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setIsImagesModalOpen(false)
+                                    setSelectedOrderImages([])
+                                }}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+
+                        <div className="max-h-[75vh] overflow-y-auto p-6">
+                            {selectedOrderImages.length === 0 ? (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                                    ไม่พบรูปภาพ
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                                    {selectedOrderImages.map((img, idx) => (
+                                        <a
+                                            key={`${img.url}-${idx}`}
+                                            href={img.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="group block overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                                            title="คลิกเพื่อเปิดรูปเต็ม"
+                                        >
+                                            <div className="relative aspect-square">
+                                                <Image
+                                                    src={img.url}
+                                                    alt={`หลักฐาน ${idx + 1}`}
+                                                    fill
+                                                    className="object-cover transition-transform group-hover:scale-105"
+                                                />
+                                            </div>
+                                            <div className="border-t border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+                                                {img.label}
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isCustomerModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 text-black backdrop-blur-sm">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 font-prompt text-black backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-2xl ring-1 ring-slate-200">
                         <h2 className="mb-6 text-xl font-bold text-slate-900">
                             เพิ่มลูกค้าใหม่
