@@ -3,6 +3,21 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
+// CORS headers helper
+function corsHeaders() {
+    return {
+        'Access-Control-Allow-Origin': 'https://mobistock.jrkitt.com',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+    }
+}
+
+// Handle preflight OPTIONS request
+export async function OPTIONS() {
+    return NextResponse.json({}, { headers: corsHeaders() })
+}
+
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData()
@@ -11,7 +26,7 @@ export async function POST(req: NextRequest) {
         if (!file) {
             return NextResponse.json(
                 { error: 'No file received.' },
-                { status: 400 }
+                { status: 400, headers: corsHeaders() }
             )
         }
 
@@ -34,12 +49,15 @@ export async function POST(req: NextRequest) {
         // Return the public URL for the image
         const url = `/uploads/${filename}`
 
-        return NextResponse.json({ url, success: true }, { status: 201 })
+        return NextResponse.json(
+            { url, success: true }, 
+            { status: 201, headers: corsHeaders() }
+        )
     } catch (error) {
         console.error('Upload Error:', error)
         return NextResponse.json(
             { error: 'Failed to upload file.' },
-            { status: 500 }
+            { status: 500, headers: corsHeaders() }
         )
     }
 }
