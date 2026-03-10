@@ -84,6 +84,8 @@ export default function RepairOrdersPage() {
 
     const [isPartsSearchOpen, setIsPartsSearchOpen] = useState(false)
     const [partSearchQuery, setPartSearchQuery] = useState('')
+    const findSparePartById = (partId: number) =>
+        spareParts.find((part) => part.part_id === partId)
 
     // Auto-focus on search input when modal opens
     // (Optional, can be added later if needed)
@@ -1025,6 +1027,7 @@ export default function RepairOrdersPage() {
                                                 onClick={() =>
                                                     handleOpenParts(repair)
                                                 }
+                                                title="จัดการอะไหล่"
                                                 className="flex items-center gap-1 rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 hover:text-purple-800"
                                             >
                                                 <EditIcon className="h-4 w-4" />
@@ -1585,11 +1588,35 @@ export default function RepairOrdersPage() {
                                             >
                                                 {partFormData.part_id === 0
                                                     ? 'เลือกอะไหล่'
-                                                    : spareParts.find(
-                                                          (p) =>
-                                                              p.part_id ===
-                                                              partFormData.part_id
-                                                      )?.part_name}
+                                                    : (() => {
+                                                          const selectedPart =
+                                                              findSparePartById(
+                                                                  partFormData.part_id
+                                                              )
+                                                          return (
+                                                               <div className="flex items-center gap-2 pr-6">
+                                                                   {selectedPart?.image_url ? (
+                                                                       /* eslint-disable-next-line @next/next/no-img-element */
+                                                                       <img
+                                                                          src={
+                                                                              selectedPart.image_url
+                                                                          }
+                                                                          alt={
+                                                                              selectedPart.part_name
+                                                                          }
+                                                                           className="h-6 w-6 rounded object-cover"
+                                                                       />
+                                                                   ) : (
+                                                                       <div className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[8px] font-medium text-slate-400">
+                                                                           N/A
+                                                                       </div>
+                                                                   )}
+                                                                   <span className="truncate">
+                                                                       {selectedPart?.part_name}
+                                                                   </span>
+                                                               </div>
+                                                          )
+                                                      })()}
                                                 <div className="pointer-events-none absolute top-2.5 right-2 text-slate-400">
                                                     <svg
                                                         className="h-4 w-4"
@@ -1691,16 +1718,36 @@ export default function RepairOrdersPage() {
                                                                         }
                                                                     }}
                                                                 >
-                                                                    {
-                                                                        p.part_name
-                                                                    }
-                                                                    {p.part_quantity !=
-                                                                    null
-                                                                        ? p.part_quantity ===
-                                                                          0
-                                                                            ? ' (หมด)'
-                                                                            : ` (${p.part_quantity})`
-                                                                        : ''}
+                                                                    <div className="flex items-center gap-2">
+                                                                        {p.image_url ? (
+                                                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                                                            <img
+                                                                                src={
+                                                                                    p.image_url
+                                                                                }
+                                                                                alt={
+                                                                                    p.part_name
+                                                                                }
+                                                                                className="h-6 w-6 rounded object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[8px] font-medium text-slate-400">
+                                                                                N/A
+                                                                            </div>
+                                                                        )}
+                                                                        <span>
+                                                                            {
+                                                                                p.part_name
+                                                                            }
+                                                                            {p.part_quantity !=
+                                                                            null
+                                                                                ? p.part_quantity ===
+                                                                                  0
+                                                                                    ? ' (หมด)'
+                                                                                    : ` (${p.part_quantity})`
+                                                                                : ''}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             )
                                                         })}
@@ -1785,12 +1832,14 @@ export default function RepairOrdersPage() {
                                                             จำนวน
                                                         </th>
                                                         <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                                            ราคา/หน่วย
+                                                            ราคาต่อหน่วย
                                                         </th>
                                                         <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
                                                             รวม
                                                         </th>
-                                                        <th className="px-3 py-2"></th>
+                                                        <th className="px-3 py-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                            ลบ
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
@@ -1800,10 +1849,8 @@ export default function RepairOrdersPage() {
                                                             className="hover:bg-slate-50/50"
                                                         >
                                                             <td className="px-3 py-2 text-slate-700">
-                                                                {spareParts.find(
-                                                                    (p) =>
-                                                                        p.part_id ===
-                                                                        part.part_id
+                                                                {findSparePartById(
+                                                                    part.part_id
                                                                 )?.part_name ||
                                                                     'ไม่ระบุ'}
                                                             </td>
@@ -1846,13 +1893,13 @@ export default function RepairOrdersPage() {
                                                 <tfoot>
                                                     <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold">
                                                         <td
-                                                            colSpan={3}
+                                                            colSpan={2}
                                                             className="px-3 py-2 text-right text-slate-600"
                                                         >
                                                             รวมอะไหล่:
                                                         </td>
                                                         <td
-                                                            colSpan={2}
+                                                            colSpan={3}
                                                             className="px-3 py-2 text-slate-900"
                                                         >
                                                             ฿
@@ -2217,19 +2264,40 @@ export default function RepairOrdersPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
-                                                    {repairParts.map((part) => (
-                                                        <tr
-                                                            key={`${part.repair_id}-${part.part_id}`}
-                                                            className="hover:bg-slate-50/50"
-                                                        >
-                                                            <td className="px-4 py-3 text-sm text-slate-600">
-                                                                {spareParts.find(
-                                                                    (p) =>
-                                                                        p.part_id ===
-                                                                        part.part_id
-                                                                )?.part_name ||
-                                                                    'ไม่ระบุ'}
-                                                            </td>
+                                                    {repairParts.map((part) => {
+                                                        const sparePart =
+                                                            findSparePartById(
+                                                                part.part_id
+                                                            )
+                                                        return (
+                                                            <tr
+                                                                key={`${part.repair_id}-${part.part_id}`}
+                                                                className="hover:bg-slate-50/50"
+                                                            >
+                                                                <td className="px-4 py-3 text-sm text-slate-600">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {sparePart?.image_url ? (
+                                                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                                                            <img
+                                                                                src={
+                                                                                    sparePart.image_url
+                                                                                }
+                                                                                alt={
+                                                                                    sparePart.part_name
+                                                                                }
+                                                                                className="h-6 w-6 rounded-full border border-slate-200 bg-white object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-[8px] font-medium text-slate-400">
+                                                                                N/A
+                                                                            </div>
+                                                                        )}
+                                                                        <span>
+                                                                            {sparePart?.part_name ||
+                                                                                'ไม่ระบุ'}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
                                                             <td className="px-4 py-3 text-sm text-slate-600">
                                                                 {
                                                                     part.repair_part_quantity
@@ -2263,8 +2331,9 @@ export default function RepairOrdersPage() {
                                                                     ลบ
                                                                 </button>
                                                             </td>
-                                                        </tr>
-                                                    ))}
+                                                            </tr>
+                                                        )
+                                                    })}
                                                 </tbody>
                                                 <tfoot>
                                                     <tr className="border-t-2 border-slate-200 bg-slate-50/50 font-bold">
