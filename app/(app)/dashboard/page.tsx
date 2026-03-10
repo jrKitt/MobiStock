@@ -198,15 +198,47 @@ export default function DashboardPage() {
                 }
                 setSalesTrends(last7Days)
 
-                // Calculate Top Brands (mock data for now - would need complex joins)
-                const brandPerformance = [
-                    { brand_name: 'Apple', revenue: totalRevenue * 0.35, percentage: 35 },
-                    { brand_name: 'Samsung', revenue: totalRevenue * 0.25, percentage: 25 },
-                    { brand_name: 'Xiaomi', revenue: totalRevenue * 0.20, percentage: 20 },
-                    { brand_name: 'Oppo', revenue: totalRevenue * 0.12, percentage: 12 },
-                    { brand_name: 'อื่นๆ', revenue: totalRevenue * 0.08, percentage: 8 },
-                ]
-                setTopBrands(brandPerformance)
+                const brandRevenueMap: { [key: string]: { revenue: number; soldItems: number } } = {}
+
+                products.forEach((product: any) => {
+                    const brand = brands?.data?.find((b: any) => b.brand_id === product.brand_id)
+                    if (brand) {
+                        if (!brandRevenueMap[brand.brand_name]) {
+                            brandRevenueMap[brand.brand_name] = { revenue: 0, soldItems: 0 }
+                        }
+
+                        if (product.item_status === 'Sold') {
+                            brandRevenueMap[brand.brand_name].revenue += product.item_price || 0
+                            brandRevenueMap[brand.brand_name].soldItems += 1
+                        }
+                    }
+                })
+
+                const brandPerformance = Object.entries(brandRevenueMap)
+                    .map(([brandName, data]) => ({
+                        brand_name: brandName,
+                        revenue: data.revenue,
+                        soldItems: data.soldItems,
+                        percentage: totalRevenue > 0 ? Math.round((data.revenue / totalRevenue) * 100) : 0
+                    }))
+                    .filter(b => b.revenue > 0) // Only show brands with sales
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .slice(0, 5)
+
+                // Fallback: if no sales data, show brands with most products
+                const finalBrandPerformance = brandPerformance.length > 0 
+                    ? brandPerformance 
+                    : brands?.data?.map((brand: any) => {
+                        const brandProducts = products.filter((p: any) => p.brand_id === brand.brand_id)
+                        return {
+                            brand_name: brand.brand_name,
+                            revenue: 0,
+                            soldItems: brandProducts.length,
+                            percentage: 0
+                        }
+                    }).slice(0, 5) || []
+
+                setTopBrands(finalBrandPerformance)
 
                 // Calculate Inventory Status
                 const availableCount = products.filter((p: any) => p.item_status === 'Available').length
