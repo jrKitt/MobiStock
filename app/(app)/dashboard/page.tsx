@@ -387,37 +387,40 @@ export default function DashboardPage() {
                         <h3 className="mb-4 font-semibold text-slate-900">ยี่ห้อที่ขายดีที่สุด</h3>
                         <div className="space-y-3">
                             {topBrands.slice(0, 5).map((brand, index) => {
-                                const rankColors = [
-                                    { bg: 'bg-orange-500', text: 'text-orange-700', bar: 'bg-orange-500' },
-                                    { bg: 'bg-blue-500', text: 'text-slate-700', bar: 'bg-slate-500' },
-                                    { bg: 'bg-orange-500', text: 'text-orange-700', bar: 'bg-orange-500' },
-                                    { bg: 'bg-slate-500', text: 'text-blue-700', bar: 'bg-blue-500' },
-                                    { bg: 'bg-slate-500', text: 'text-slate-700', bar: 'bg-slate-500' },
-                                ]
-                                const color = rankColors[index]
+                                const brandData = brands?.data?.find((b: any) => b.brand_name === brand.brand_name)
                                 
                                 return (
                                     <div key={brand.brand_name} className="group rounded-lg border border-slate-100 bg-white p-4 hover:border-slate-300 hover:shadow-md transition-all duration-200">
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${color.bg}`}>
-                                                    {index + 1}
+                                                <div className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                    {brandData?.image_url ? (
+                                                        <img 
+                                                            src={brandData.image_url} 
+                                                            alt={brand.brand_name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-slate-400">
+                                                            {brand.brand_name.substring(0, 2).toUpperCase()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <span className="font-semibold text-slate-900">{brand.brand_name}</span>
-                                                    <div className={`text-xs font-medium mt-0.5 ${color.text}`}>
+                                                    <div className="text-xs font-medium mt-0.5 text-slate-600">
                                                         อันดับ {index + 1}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="font-bold text-slate-900 text-sm">฿{brand.revenue.toLocaleString()}</div>
-                                                <div className={`text-xs font-semibold ${color.text}`}>{brand.percentage}%</div>
+                                                <div className="text-xs font-semibold text-slate-600">{brand.percentage}%</div>
                                             </div>
                                         </div>
                                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div 
-                                                className={`h-full rounded-full ${color.bar}`}
+                                                className="h-full rounded-full bg-slate-500"
                                                 style={{ width: `${brand.percentage}%` }}
                                             ></div>
                                         </div>
