@@ -9,7 +9,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params
-        const rows = (await query('SELECT * FROM REPAIR_ORDER WHERE repair_id = ?', [id])) as RepairOrder[]
+        const rows = (await query(
+            'SELECT * FROM REPAIR_ORDER WHERE repair_id = ?',
+            [id]
+        )) as RepairOrder[]
         if (rows.length === 0) {
             return errorResponse('Repair order not found', null, 404)
         }
@@ -36,22 +39,50 @@ export async function PUT(
             repair_status,
             customer_id,
             item_id,
+            update_by,
         } = body
         await query(
-            'UPDATE REPAIR_ORDER SET repair_problem_desc = ?, repair_technician_note = ?, repair_date_received = ?, repair_date_completed = ?, repair_labor_cost = ?, repair_status = ?, customer_id = ?, item_id = ? WHERE repair_id = ?',
+            'UPDATE REPAIR_ORDER SET repair_problem_desc = ?, repair_technician_note = ?, repair_date_received = ?, repair_date_completed = ?, repair_labor_cost = ?, repair_status = ?, customer_id = ?, item_id = ?, update_by = ? WHERE repair_id = ?',
             [
                 repair_problem_desc,
                 repair_technician_note,
                 repair_date_received,
-                repair_date_completed,
+                repair_date_completed || null,
                 repair_labor_cost,
                 repair_status,
                 customer_id,
                 item_id,
+                update_by || null,
                 id,
             ]
         )
-        return successResponse({ id, ...body }, 'Repair order updated successfully')
+
+        // Log history
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, new_data, action_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                'repair',
+                id,
+                'updated',
+                'Repair order updated',
+                JSON.stringify({
+                    repair_problem_desc,
+                    repair_technician_note,
+                    repair_date_received,
+                    repair_date_completed,
+                    repair_labor_cost,
+                    repair_status,
+                    customer_id,
+                    item_id,
+                }),
+                update_by || null,
+            ]
+        )
+
+        return successResponse(
+            { id, ...body },
+            'Repair order updated successfully'
+        )
     } catch (error) {
         console.error(error)
         return errorResponse('Error updating repair order', error)
@@ -64,6 +95,13 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params
+
+        // Log history before deleting
+        await query(
+            'INSERT INTO ORDER_HISTORY_LOG (order_type, order_id, action, description, action_by) VALUES (?, ?, ?, ?, ?)',
+            ['repair', id, 'deleted', 'Repair order deleted', null]
+        )
+
         await query('DELETE FROM REPAIR_ORDER WHERE repair_id = ?', [id])
         return successResponse(null, 'Repair order deleted successfully')
     } catch (error) {

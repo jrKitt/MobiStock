@@ -54,16 +54,16 @@ export default function SuppliersPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this supplier?')) return
+        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบซัพพลายเออร์นี้?')) return
         try {
             const response = await fetch(`/api/suppliers/${id}`, {
                 method: 'DELETE',
             })
             if (!response.ok) throw new Error('Failed to delete supplier')
-            showToast('Supplier deleted successfully', 'success')
+            showToast('ลบซัพพลายเออร์สำเร็จ', 'success')
             fetchSuppliers()
         } catch (err) {
-            showToast('Failed to delete supplier', 'error')
+            showToast('ไม่สามารถลบซัพพลายเออร์ได้', 'error')
         }
     }
 
@@ -105,12 +105,12 @@ export default function SuppliersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    {/* <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         Suppliers
                     </h1>
                     <p className="text-sm text-slate-500">
                         Manage your product vendors and partners
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={() => {

@@ -65,9 +65,15 @@ export async function GET(req: NextRequest) {
         const totalPages = Math.ceil(total / limit)
 
         const itemsQuery = `
-            SELECT pi.* 
+            SELECT 
+                pi.*,
+                pm.model_name,
+                b.brand_name,
+                c.category_name_th
             FROM PRODUCT_ITEM pi 
             LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id 
+            LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
+            LEFT JOIN CATEGORY c ON pm.category_id = c.category_id
             ${whereClause} 
             ORDER BY pi.item_id DESC LIMIT ? OFFSET ?
         `

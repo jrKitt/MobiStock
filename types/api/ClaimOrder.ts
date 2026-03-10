@@ -8,6 +8,8 @@ export interface ClaimOrder {
     supplier_id?: number | null
     customer_id: number
     item_id: number
+    create_by?: string
+    update_by?: string
     create_at?: Date
     update_at?: Date
 }

@@ -36,10 +36,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = (await req.json()) as SparePart
-        const { part_name, part_status, image_url } = body
+        const { part_name, part_quantity, image_url } = body
         const result = await query(
-            'INSERT INTO SPARE_PART (part_name, part_status, image_url) VALUES (?, ?, ?)',
-            [part_name, part_status, image_url || null]
+            'INSERT INTO SPARE_PART (part_name, part_quantity, image_url) VALUES (?, ?, ?)',
+            [part_name, part_quantity || 0, image_url || null]
         )
         return successResponse(
             { id: (result as ResultSetHeader).insertId, ...body },
