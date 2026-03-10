@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { ClaimOrder, Customer, ProductItem, Supplier } from '@/types/api'
 import { PrintIcon, EditIcon, DeleteIcon, CloseIcon } from '@/lib/icons'
+import Pagination from '@/components/ui/Pagination'
 
 export default function ClaimOrdersPage() {
     const { showToast } = useToast()
@@ -19,7 +20,7 @@ export default function ClaimOrdersPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
     const [totalItems, setTotalItems] = useState(0)
-    const itemsPerPage = 10
+    const [itemsPerPage, setItemsPerPage] = useState(10)
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPrintOpen, setIsPrintOpen] = useState(false)
@@ -35,10 +36,13 @@ export default function ClaimOrdersPage() {
     const [selectedSupplier, setSelectedSupplier] = useState(0)
     const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false)
     const [resolutionData, setResolutionData] = useState({
-        claim_resolution: 'unknown',
+        claim_resolution: 'replacement',
         claim_date_returned: new Date().toISOString().split('T')[0],
     })
     const [selectedClaim, setSelectedClaim] = useState<ClaimOrder | null>(null)
+    const [customerPurchasedItems, setCustomerPurchasedItems] = useState<ProductItem[]>([])
+    const [isLoadingCustomerItems, setIsLoadingCustomerItems] = useState(false)
+    const [itemSearchQuery, setItemSearchQuery] = useState('')
     const [confirmImages, setConfirmImages] = useState<
         { url: string; uploading: boolean }[]
     >([])
@@ -58,65 +62,40 @@ export default function ClaimOrdersPage() {
         item_id: 0,
     })
 
-    // Client-side filtering for claims
-    const filteredClaims = useMemo(() => {
-        let filtered = claims
+    // Claims are now filtered on the server side
+    const filteredClaims = claims
 
-        // Filter by status
-        if (filterStatus) {
-            filtered = filtered.filter((claim) => claim.claim_status === filterStatus)
-        }
+    // Filter customer purchased items based on search query
+    const filteredCustomerItems = useMemo(() => {
+        if (!itemSearchQuery.trim()) return customerPurchasedItems
+        
+        const searchLower = itemSearchQuery.toLowerCase()
+        return customerPurchasedItems.filter(item => 
+            item.item_serial_number?.toLowerCase().includes(searchLower) ||
+            item.item_imei?.toLowerCase().includes(searchLower) ||
+            item.item_lot_number?.toLowerCase().includes(searchLower)
+        )
+    }, [customerPurchasedItems, itemSearchQuery])
 
-        // Filter by search query
-        if (filterQuery.trim()) {
-            const query = filterQuery.toLowerCase()
-            filtered = filtered.filter((claim) => {
-                // Filter by claim code
-                if (claim.claim_code.toLowerCase().includes(query)) return true
-                
-                // Filter by customer name
-                const customer = customers.find(c => c.customer_id === claim.customer_id)
-                if (customer) {
-                    const fullName = `${customer.customer_fname} ${customer.customer_lname}`.toLowerCase()
-                    if (fullName.includes(query)) return true
-                }
-                
-                // Filter by item serial/IMEI
-                const item = items.find(i => i.item_id === claim.item_id)
-                if (item && item.item_serial_number.toLowerCase().includes(query)) return true
-                
-                return false
-            })
-        }
+    const handlePageSizeChange = (newSize: number) => {
+        setItemsPerPage(newSize)
+        setCurrentPage(1) // Reset to first page when changing page size
+    }
 
-        // Filter by date range
-        if (filterStartDate) {
-            filtered = filtered.filter((claim) => {
-                const claimDate = new Date(claim.claim_date_received)
-                const startDate = new Date(filterStartDate)
-                return claimDate >= startDate
-            })
-        }
-
-        if (filterEndDate) {
-            filtered = filtered.filter((claim) => {
-                const claimDate = new Date(claim.claim_date_received)
-                const endDate = new Date(filterEndDate)
-                endDate.setHours(23, 59, 59, 999) // Include the entire end date
-                return claimDate <= endDate
-            })
-        }
-
-        return filtered
-    }, [claims, customers, items, filterQuery, filterStatus, filterStartDate, filterEndDate])
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page)
+    }
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true)
             const params = new URLSearchParams()
-            params.append('page', '1')
-            params.append('limit', '100')
+            params.append('page', currentPage.toString())
+            params.append('limit', itemsPerPage.toString())
             if (filterStatus) params.append('status', filterStatus)
+            if (filterQuery.trim()) params.append('search', filterQuery.trim())
+            if (filterStartDate) params.append('start_date', filterStartDate)
+            if (filterEndDate) params.append('end_date', filterEndDate)
 
             const [claimsRes, customersRes, suppliersRes, itemsRes] =
                 await Promise.all([
@@ -147,16 +126,31 @@ export default function ClaimOrdersPage() {
             setCustomers(customersData.data)
             setSuppliers(suppliersData.data)
             setItems(itemsData.data)
+            
+            // Set pagination data from API response
+            if (claimsData.pagination) {
+                setTotalPages(claimsData.pagination.totalPages)
+                setTotalItems(claimsData.pagination.total)
+            }
         } catch {
             showToast('ไม่สามารถโหลดข้อมูลการเคลมได้', 'error')
         } finally {
             setLoading(false)
         }
-    }, [showToast, filterStatus])
+    }, [showToast, filterStatus, filterQuery, filterStartDate, filterEndDate, currentPage, itemsPerPage])
 
     useEffect(() => {
         fetchData()
     }, [fetchData])
+
+    // Reset customer purchased items when modal closes
+    useEffect(() => {
+        if (!isModalOpen) {
+            setCustomerPurchasedItems([])
+            setIsLoadingCustomerItems(false)
+            setItemSearchQuery('')
+        }
+    }, [isModalOpen])
 
     useEffect(() => {
         // โหลดชื่อร้านจาก localStorage
@@ -189,6 +183,68 @@ export default function ClaimOrdersPage() {
             item_id: claim.item_id || 0,
         })
         setIsModalOpen(true)
+        // Fetch customer's purchased items for editing
+        if (claim.customer_id) {
+            fetchCustomerPurchasedItems(claim.customer_id)
+        }
+    }
+
+    const fetchCustomerPurchasedItems = async (customerId: number) => {
+        if (!customerId) {
+            setCustomerPurchasedItems([])
+            return
+        }
+
+        setIsLoadingCustomerItems(true)
+        try {
+            // Fetch sale orders for this customer
+            const saleResponse = await fetch(`/api/sale-orders?customer_id=${customerId}&limit=50`)
+            if (!saleResponse.ok) {
+                setCustomerPurchasedItems([])
+                return
+            }
+
+            const saleData = await saleResponse.json()
+            const saleOrders = saleData.data || []
+
+            // Extract all unique items from customer's purchase history
+            const purchasedItemsSet = new Set<number>()
+            const purchasedItemsMap = new Map<number, ProductItem>()
+
+            for (const order of saleOrders) {
+                if (order.items && Array.isArray(order.items)) {
+                    for (const item of order.items) {
+                        if (!purchasedItemsSet.has(item.item_id)) {
+                            purchasedItemsSet.add(item.item_id)
+                            purchasedItemsMap.set(item.item_id, {
+                                item_id: item.item_id,
+                                item_serial_number: item.item_serial_number || item.item_imei || 'ไม่ระบุ',
+                                item_imei: item.item_imei || item.item_serial_number || 'ไม่ระบุ',
+                                item_lot_number: '',
+                                model_id: item.model_id,
+                                item_status: 'Sold' as const,
+                                item_purchase_price: item.sale_price || 0,
+                                item_sale_price: item.sale_price || 0,
+                                created_at: order.sale_date,
+                                updated_at: order.sale_date,
+                                // Add model data if available
+                                model_name: item.model_name || '',
+                                brand_name: item.brand_name || '',
+                            } as ProductItem & { model_name?: string; brand_name?: string })
+                        }
+                    }
+                }
+            }
+
+            const purchasedItems = Array.from(purchasedItemsMap.values())
+            setCustomerPurchasedItems(purchasedItems)
+
+        } catch (error) {
+            console.error('Error fetching customer purchased items:', error)
+            setCustomerPurchasedItems([])
+        } finally {
+            setIsLoadingCustomerItems(false)
+        }
     }
 
     const handlePrint = (claim: ClaimOrder) => {
@@ -197,19 +253,67 @@ export default function ClaimOrdersPage() {
     }
 
     const handleViewImages = async (claim: ClaimOrder) => {
+        console.log('handleViewImages called with claim:', claim)
         try {
             // Fetch images for this claim
             const response = await fetch(`/api/claim-order-images?claim_id=${claim.claim_id}`)
+            console.log('API response status:', response.status)
+            
             if (response.ok) {
                 const images = await response.json()
-                setSelectedClaimImages(images.map((img: any) => img.image_url))
-                setIsImagesModalOpen(true)
+                console.log('API response data:', images)
+
+                
+                if(images.data ) {
+                    const imageUrls = images.data.map((img: any) => {
+                        const imageUrl = img.image_url
+                        // Combine with host URL if it's a relative path
+                        const fullUrl = imageUrl.startsWith('http') 
+                            ? imageUrl 
+                            : `${window.location.origin}${imageUrl}`
+                        console.log(`Converting ${imageUrl} to ${fullUrl}`)
+                        return fullUrl
+                    })
+                    console.log('Image URLs extracted:', imageUrls)
+                    
+                    // // Test each image URL to see if it loads
+                    // imageUrls.forEach(async (url: string, index: number) => {
+                    //     try {
+                    //         const testResponse = await fetch(url, { method: 'HEAD' })
+                    //         console.log(`Image ${index + 1} (${url}):`, testResponse.status === 200 ? '✅ Found' : '❌ Not found')
+                    //     } catch (error) {
+                    //         console.log(`Image ${index + 1} (${url}): ❌ Error -`, error.message)
+                    //     }
+                    // })
+                    
+                    console.log('About to set modal state to true')
+                    setSelectedClaimImages(imageUrls)
+                    setIsImagesModalOpen(true)
+                    console.log('Modal state set. isImagesModalOpen should now be true')
+                } else {
+                    console.log('No images found in response')
+                    showToast('ไม่พบรูปภาพ', 'warning')
+                }
             } else {
+                console.log('API response not ok:', response.statusText)
                 showToast('ไม่พบรูปภาพ', 'warning')
             }
         } catch (error) {
             console.error('Error fetching images:', error)
             showToast('เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ', 'error')
+        }
+    }
+
+    // Temporary debug function - remove after testing
+    const testImageAPI = async () => {
+        console.log('Testing image API...')
+        try {
+            const response = await fetch('/api/claim-order-images?claim_id=1')
+            console.log('Test API response status:', response.status)
+            const data = await response.json()
+            console.log('Test API response data:', data)
+        } catch (error) {
+            console.error('Test API error:', error)
         }
     }
 
@@ -280,7 +384,7 @@ export default function ClaimOrdersPage() {
         const statusMap: { [key: string]: string } = {
             pending: 'รอส่งเคลม',
             in_review: 'กำลังดำเนินการ',
-            resolved: 'แก้ไขแล้ว',
+            resolved: 'เคลมแล้ว',
             rejected: 'ปฏิเสธ',
         }
         return statusMap[status] || status
@@ -438,23 +542,32 @@ export default function ClaimOrdersPage() {
                             item_id: items[0]?.item_id || 0,
                         })
                         setIsModalOpen(true)
+                        // Reset customer purchased items for new claim
+                        setCustomerPurchasedItems([])
+                        setIsLoadingCustomerItems(false)
+                        setItemSearchQuery('')
                     }}
                     className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                 >
                     + สร้างการแจ้งเคลมสินค้า
                 </button>
+                {/* Temporary debug button - remove after testing */}
+               
             </div>
              <div className="flex space-x-1 rounded-lg bg-slate-100/50 p-1">
                 {[
                     { id: '', label: 'ทั้งหมด' },
                     { id: 'pending', label: 'รอส่งเคลม' },
                     { id: 'in_review', label: 'กำลังดำเนินการ' },
-                    { id: 'resolved', label: 'แก้ไขแล้ว' },
+                    { id: 'resolved', label: 'เคลมแล้ว' },
                     { id: 'rejected', label: 'ปฏิเสธ' },
                 ].map((tab) => (
                     <button
                         key={tab.id}
-                        onClick={() => setFilterStatus(tab.id)}
+                        onClick={() => {
+                            setFilterStatus(tab.id)
+                            setCurrentPage(1)
+                        }}
                         className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                             filterStatus === tab.id
                                 ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200'
@@ -540,6 +653,7 @@ export default function ClaimOrdersPage() {
                     <button
                         onClick={() => {
                             setFilterQuery('')
+                            setFilterStatus('')
                             setFilterStartDate('')
                             setFilterEndDate('')
                             setCurrentPage(1)
@@ -695,7 +809,7 @@ export default function ClaimOrdersPage() {
                                                             if (claim.claim_id) {
                                                                 setSelectedClaim(claim)
                                                                 setResolutionData({
-                                                                    claim_resolution: 'unknown',
+                                                                    claim_resolution: 'replacement',
                                                                     claim_date_returned: new Date().toISOString().split('T')[0],
                                                                 })
                                                                 setIsResolutionModalOpen(true)
@@ -755,7 +869,10 @@ export default function ClaimOrdersPage() {
                                             {(claim.claim_status === 'resolved' || claim.claim_status === 'rejected') && (
                                                 <>
                                                     <button
-                                                        onClick={() => handleViewImages(claim)}
+                                                        onClick={() => {
+                                                            console.log('ดูรูปภาพ button clicked for claim:', claim.claim_id)
+                                                            handleViewImages(claim)
+                                                        }}
                                                         className="flex items-center gap-1 rounded bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-600 transition-colors hover:bg-purple-100"
                                                         title="ดูรูปภาพ"
                                                     >
@@ -764,16 +881,7 @@ export default function ClaimOrdersPage() {
                                                         </svg>
                                                         ดูรูปภาพ
                                                     </button>
-                                                    <button
-                                                        onClick={() => handlePrint(claim)}
-                                                        className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
-                                                    >
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                        </svg>
-                                                        ดูรายละเอียด
-                                                    </button>
+                                                   
                                                 </>
                                             )}
                                             
@@ -814,6 +922,18 @@ export default function ClaimOrdersPage() {
                     )}
                 </div>
             )}
+            
+            {/* Pagination */}
+            {!loading && filteredClaims.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    totalItems={totalItems}
+                    pageSize={itemsPerPage}
+                    onPageSizeChange={handlePageSizeChange}
+                />
+            )}
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
@@ -841,7 +961,7 @@ export default function ClaimOrdersPage() {
                                             claim_code: e.target.value,
                                         })
                                     }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 />
                             </div>
                             <div>
@@ -851,15 +971,18 @@ export default function ClaimOrdersPage() {
                                 <select
                                     required
                                     value={formData.customer_id}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        const newCustomerId = parseInt(e.target.value)
                                         setFormData({
                                             ...formData,
-                                            customer_id: parseInt(
-                                                e.target.value
-                                            ),
+                                            customer_id: newCustomerId,
+                                            item_id: 0, // Reset item selection when customer changes
                                         })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                                        setItemSearchQuery('') // Reset search query
+                                        // Fetch customer's purchased items
+                                        fetchCustomerPurchasedItems(newCustomerId)
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
                                 >
                                     <option value={0}>เลือกลูกค้า</option>
                                     {customers.map((c) => (
@@ -873,48 +996,161 @@ export default function ClaimOrdersPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div>
+                            <div className="col-span-2">
                                 <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
                                     สินค้า *
                                 </label>
-                                <select
-                                    required
-                                    value={formData.item_id}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            item_id: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                >
-                                    <option value={0}>เลือกสินค้า</option>
-                                    {items.map((item) => (
-                                        <option
-                                            key={item.item_id}
-                                            value={item.item_id}
-                                        >
-                                            {item.item_serial_number}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">
-                                    วันที่ได้รับการแจ้ง *
-                                </label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={formData.claim_date_received}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            claim_date_received: e.target.value,
-                                        })
-                                    }
-                                    className="w-full rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none"
-                                />
+                                
+                                {!formData.customer_id ? (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+                                        <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        <p className="mt-2 text-sm text-slate-600">
+                                            กรุณาเลือกลูกค้าก่อนเพื่อแสดงสินค้าที่เคยซื้อ
+                                        </p>
+                                    </div>
+                                ) : isLoadingCustomerItems ? (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+                                        <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"></div>
+                                        <p className="mt-2 text-sm text-slate-600">
+                                            กำลังโหลดประวัติการซื้อสินค้า...
+                                        </p>
+                                    </div>
+                                ) : customerPurchasedItems.length === 0 ? (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
+                                        <svg className="mx-auto h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p className="mt-2 text-sm text-slate-600">
+                                            ไม่พบประวัติการซื้อสินค้าของลูกค้านี้
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            ลูกค้านี้ไม่เคยซื้อสินค้าจากร้าน
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {/* Search Input */}
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="ค้นหาหมายเลข Serial, IMEI, Lot Number..."
+                                                value={itemSearchQuery}
+                                                onChange={(e) => setItemSearchQuery(e.target.value)}
+                                                className="w-full rounded-lg border border-slate-200 pl-10 pr-4 py-3 text-sm placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                                            />
+                                        </div>
+
+                                        {/* Items List */}
+                                        <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                                            {filteredCustomerItems.length === 0 ? (
+                                                <div className="p-4 text-center text-slate-500">
+                                                    <svg className="mx-auto h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                    <p className="mt-2 text-sm">
+                                                        {itemSearchQuery ? 'ไม่พบสินค้าที่ตรงกับการค้นหา' : 'ไม่พบสินค้า'}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="divide-y divide-slate-100">
+                                                    {filteredCustomerItems.map((item) => (
+                                                        <label
+                                                            key={item.item_id}
+                                                            className={`flex cursor-pointer items-center py-2 px-3 transition-colors hover:bg-blue-50 ${
+                                                                formData.item_id === item.item_id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name="selected_item"
+                                                                value={item.item_id}
+                                                                checked={formData.item_id === item.item_id}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            item_id: parseInt(e.target.value),
+                                                                        })
+                                                                    }
+                                                                }}
+                                                                className="sr-only"
+                                                            />
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div>
+                                                                                <div className="font-medium text-slate-900 text-sm">
+                                                                                    {item.item_serial_number}
+                                                                                </div>
+                                                                                {(item as any).model_name && (
+                                                                                    <div className="text-xs text-slate-600">
+                                                                                        {(item as any).brand_name && `${(item as any).brand_name} `}{(item as any).model_name}
+                                                                                    </div>
+                                                                                )}
+                                                                                {item.item_imei && (
+                                                                                    <div className="text-xs text-slate-500">
+                                                                                        IMEI: {item.item_imei}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs text-slate-500">
+                                                                            {item.item_status === 'Sold' ? 'ขายแล้ว' : item.item_status}
+                                                                        </span>
+                                                                        {formData.item_id === item.item_id && (
+                                                                            <div className="rounded-full bg-blue-500 p-1">
+                                                                                <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Selected Item Info */}
+                                        {formData.item_id > 0 && (() => {
+                                            const selectedItem = customerPurchasedItems.find(item => item.item_id === formData.item_id)
+                                            return selectedItem && (
+                                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="text-xs">
+                                                            <span className="font-medium text-blue-900">เลือก:</span>
+                                                            <span className="ml-1 text-blue-800">
+                                                                {selectedItem.item_serial_number}
+                                                                {(selectedItem as any).model_name && ` - ${(selectedItem as any).brand_name && `${(selectedItem as any).brand_name} `}${(selectedItem as any).model_name}`}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData({...formData, item_id: 0})}
+                                                            className="text-blue-600 hover:text-blue-800 p-1"
+                                                        >
+                                                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                             <div className="col-span-2 flex justify-end gap-3 pt-4">
                                 <button
@@ -1242,7 +1478,7 @@ export default function ClaimOrdersPage() {
                             </div>
 
                             {/* Status Summary */}
-                            <div className="mb-4 rounded-lg bg-slate-50 p-3">
+                            {/* <div className="mb-4 rounded-lg bg-slate-50 p-3">
                                 <div className="flex items-center justify-between text-xs">
                                     <span className="font-medium text-slate-600">สถานะการอัปโหลด:</span>
                                     <span
@@ -1271,7 +1507,7 @@ export default function ClaimOrdersPage() {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             <div className="flex gap-3">
                                 <button
@@ -1392,7 +1628,7 @@ export default function ClaimOrdersPage() {
 
             {/* Supplier Selection Modal */}
             {isSupplierModalOpen && selectedClaim && (
-                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 text-black backdrop-blur-sm sm:p-6">
+                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -1400,7 +1636,7 @@ export default function ClaimOrdersPage() {
                             </h3>
                             <button
                                 onClick={() => setIsSupplierModalOpen(false)}
-                                className="text-slate-400 hover:text-slate-600"
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
                             >
                                 <CloseIcon />
                             </button>
@@ -1416,11 +1652,11 @@ export default function ClaimOrdersPage() {
                                 <select
                                     value={selectedSupplier}
                                     onChange={(e) => setSelectedSupplier(parseInt(e.target.value))}
-                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                 >
                                     <option value={0}>จัดการเอง (ไม่ส่งต่อซัพพลายเออร์)</option>
                                     {suppliers.map((s) => (
-                                        <option key={s.supplier_id} value={s.supplier_id}>
+                                        <option key={s.supplier_id} value={s.supplier_id} className="text-slate-900">
                                             {s.supplier_name}
                                         </option>
                                     ))}
@@ -1510,7 +1746,10 @@ export default function ClaimOrdersPage() {
 
             {/* Image Viewing Modal */}
             {isImagesModalOpen && (
-                <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
+                <>
+                    {/* Debug indicator - remove after testing */}
+              
+                    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-4 font-sans text-black backdrop-blur-sm sm:p-6">
                     <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -1530,13 +1769,20 @@ export default function ClaimOrdersPage() {
                             {selectedClaimImages.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {selectedClaimImages.map((imageUrl, index) => (
-                                        <div key={index} className="group relative overflow-hidden rounded-lg border border-slate-200">
+                                        <div key={index} className="group w-48 relative overflow-hidden rounded-lg border border-slate-200">
                                             <img
                                                 src={imageUrl}
                                                 alt={`Claim Image ${index + 1}`}
-                                                className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                                                className="h-48 w-48  object-cover transition-transform group-hover:scale-105"
+                                                onError={(e) => {
+                                                    console.error(`Image failed to load: ${imageUrl}`)
+                                                    e.currentTarget.style.display = 'none'
+                                                }}
+                                                onLoad={() => {
+                                                    console.log(`Image loaded successfully: ${imageUrl}`)
+                                                }}
                                             />
-                                            <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10" />
+                                            {/* <div className="absolute inset-0 bg-black bg-opacity-0 transition-opacity group-hover:bg-opacity-10" /> */}
                                             <button
                                                 onClick={() => window.open(imageUrl, '_blank')}
                                                 className="absolute bottom-2 right-2 rounded-lg bg-white/90 p-2 opacity-0 transition-opacity group-hover:opacity-100"
@@ -1561,6 +1807,7 @@ export default function ClaimOrdersPage() {
                         </div>
                     </div>
                 </div>
+                </>
             )}
         </div>
     )

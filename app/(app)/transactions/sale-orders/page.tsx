@@ -151,7 +151,7 @@ export default function SaleOrdersPage() {
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [fetchData])
 
     useEffect(() => {
         // โหลดชื่อร้านจาก localStorage
@@ -1383,6 +1383,7 @@ export default function SaleOrdersPage() {
                                             </button>
                                         </div>
                                     </div>
+                                    
                                     {selectedOrder && (
                                         <div>
                                             <label className="mb-1 block text-xs font-bold tracking-widest text-slate-400 uppercase">

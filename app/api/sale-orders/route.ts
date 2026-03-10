@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
         const endDate = searchParams.get('end_date')
         const categoryId = searchParams.get('category_id')
         const brandId = searchParams.get('brand_id')
+        const customerId = searchParams.get('customer_id')
         const status = searchParams.get('status')
 
         let baseQuery = `
@@ -75,6 +76,11 @@ export async function GET(req: NextRequest) {
         if (brandId) {
             conditions.push(`pm.brand_id = ?`)
             queryParams.push(brandId)
+        }
+
+        if (customerId) {
+            conditions.push(`so.customer_id = ?`)
+            queryParams.push(customerId)
         }
 
         if (status) {

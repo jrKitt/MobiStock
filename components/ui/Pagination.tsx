@@ -45,6 +45,9 @@ export default function Pagination({
     }
 
     const visiblePages = getVisiblePages()
+    
+    const startItem = (currentPage - 1) * pageSize + 1
+    const endItem = Math.min(currentPage * pageSize, totalItems)
 
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
@@ -58,16 +61,16 @@ export default function Pagination({
     }
 
     return (
-        <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white px-6 py-4 rounded-lg border border-slate-200">
             <div className="text-sm text-slate-600">
-                แสดง {totalItems} รายการ • หน้า {currentPage} จาก {totalPages}
+                แสดง {startItem} ถึง {endItem} จาก {totalItems} รายการ
             </div>
             
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage <= 1}
-                    className="px-3 py-1 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:z-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     ก่อนหน้า
                 </button>
@@ -76,7 +79,7 @@ export default function Pagination({
                     {visiblePages.map((page, index) => {
                         if (page === '...') {
                             return (
-                                <span key={`dots-${index}`} className="px-2 text-slate-300">
+                                <span key={`dots-${index}`} className="relative inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700">
                                     ...
                                 </span>
                             )
@@ -87,10 +90,10 @@ export default function Pagination({
                             <button
                                 key={page}
                                 onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                                className={`relative inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus:z-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                                     pageNum === currentPage
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-slate-700 bg-white border border-slate-300 hover:bg-slate-50'
+                                        ? 'z-10 border border-blue-500 bg-blue-600 text-white'
+                                        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                                 }`}
                             >
                                 {pageNum}
@@ -102,7 +105,7 @@ export default function Pagination({
                 <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage >= totalPages}
-                    className="px-3 py-1 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:z-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     หน้าถัดไป
                 </button>
@@ -115,13 +118,16 @@ export default function Pagination({
                 <select
                     value={pageSize}
                     onChange={handlePageSizeChange}
-                    className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700 bg-white outline-hidden transition-colors hover:border-blue-300 focus:border-blue-600"
+                    className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
-                    <option value={5}>5 รายการ</option>
-                    <option value={10}>10 รายการ</option>
-                    <option value={25}>25 รายการ</option>
-                    <option value={50}>50 รายการ</option>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
                 </select>
+                <label className="text-sm font-medium text-slate-700">
+                    รายการ
+                </label>
             </div>
         </div>
     )

@@ -10,19 +10,53 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
         const offset = (page - 1) * limit
         const status = searchParams.get('status')
+        const search = searchParams.get('search')
+        const startDate = searchParams.get('start_date')
+        const endDate = searchParams.get('end_date')
 
         const queryParams: Array<string | number> = []
         const conditions: string[] = []
 
         if (status) {
-            conditions.push(`claim_status = ?`)
+            conditions.push(`co.claim_status = ?`)
             queryParams.push(status)
+        }
+
+        if (search) {
+            conditions.push(`(
+                co.claim_code LIKE ? OR
+                c.customer_fname LIKE ? OR
+                c.customer_lname LIKE ? OR
+                pi.item_serial_number LIKE ? OR
+                pm.model_name LIKE ? OR
+                b.brand_name LIKE ?
+            )`)
+            const searchTerm = `%${search}%`
+            queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
+        }
+
+        if (startDate) {
+            conditions.push(`co.claim_date_received >= ?`)
+            queryParams.push(startDate)
+        }
+
+        if (endDate) {
+            conditions.push(`co.claim_date_received <= ?`)
+            queryParams.push(endDate)
         }
 
         const whereClause =
             conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-        const countQuery = `SELECT COUNT(*) as total FROM CLAIM_ORDER ${whereClause}`
+        const countQuery = `
+            SELECT COUNT(*) as total 
+            FROM CLAIM_ORDER co
+            LEFT JOIN CUSTOMER c ON co.customer_id = c.customer_id
+            LEFT JOIN PRODUCT_ITEM pi ON co.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
+            ${whereClause}
+        `
         const countResult = await query<{ total: number }[]>(
             countQuery,
             queryParams
@@ -31,9 +65,19 @@ export async function GET(req: NextRequest) {
         const totalPages = Math.ceil(total / limit)
 
         const selectQuery = `
-            SELECT * FROM CLAIM_ORDER 
+            SELECT co.*,
+                   c.customer_fname,
+                   c.customer_lname,
+                   pi.item_serial_number,
+                   pm.model_name,
+                   b.brand_name
+            FROM CLAIM_ORDER co
+            LEFT JOIN CUSTOMER c ON co.customer_id = c.customer_id
+            LEFT JOIN PRODUCT_ITEM pi ON co.item_id = pi.item_id
+            LEFT JOIN PRODUCT_MODEL pm ON pi.model_id = pm.model_id
+            LEFT JOIN BRAND b ON pm.brand_id = b.brand_id
             ${whereClause} 
-            ORDER BY claim_id DESC 
+            ORDER BY co.claim_id DESC 
             LIMIT ? OFFSET ?
         `
         const rows = (await query(selectQuery, [
