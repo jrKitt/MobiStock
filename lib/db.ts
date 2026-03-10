@@ -22,8 +22,9 @@ const dbConfig = {
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
+    connectTimeout: 60000, // 60 seconds
     ssl: {
-        rejectUnauthorized: true,
+        rejectUnauthorized: false, // For TiDB Cloud
     },
 }
 

@@ -386,24 +386,44 @@ export default function DashboardPage() {
                     <div className="bg-white rounded-lg border border-slate-200 p-6">
                         <h3 className="mb-4 font-semibold text-slate-900">ยี่ห้อที่ขายดีที่สุด</h3>
                         <div className="space-y-3">
-                            {topBrands.slice(0, 5).map((brand, index) => (
-                                <div key={brand.brand_name} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                                            index === 0 ? 'bg-yellow-500' : 
-                                            index === 1 ? 'bg-gray-400' : 
-                                            index === 2 ? 'bg-orange-600' : 'bg-slate-400'
-                                        }`}>
-                                            {index + 1}
+                            {topBrands.slice(0, 5).map((brand, index) => {
+                                const rankColors = [
+                                    { bg: 'bg-orange-500', text: 'text-orange-700', bar: 'bg-orange-500' },
+                                    { bg: 'bg-blue-500', text: 'text-slate-700', bar: 'bg-slate-500' },
+                                    { bg: 'bg-orange-500', text: 'text-orange-700', bar: 'bg-orange-500' },
+                                    { bg: 'bg-slate-500', text: 'text-blue-700', bar: 'bg-blue-500' },
+                                    { bg: 'bg-slate-500', text: 'text-slate-700', bar: 'bg-slate-500' },
+                                ]
+                                const color = rankColors[index]
+                                
+                                return (
+                                    <div key={brand.brand_name} className="group rounded-lg border border-slate-100 bg-white p-4 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${color.bg}`}>
+                                                    {index + 1}
+                                                </div>
+                                                <div>
+                                                    <span className="font-semibold text-slate-900">{brand.brand_name}</span>
+                                                    <div className={`text-xs font-medium mt-0.5 ${color.text}`}>
+                                                        อันดับ {index + 1}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-bold text-slate-900 text-sm">฿{brand.revenue.toLocaleString()}</div>
+                                                <div className={`text-xs font-semibold ${color.text}`}>{brand.percentage}%</div>
+                                            </div>
                                         </div>
-                                        <span className="font-medium text-slate-900">{brand.brand_name}</span>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full ${color.bar}`}
+                                                style={{ width: `${brand.percentage}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="font-semibold text-slate-900">฿{brand.revenue.toLocaleString()}</div>
-                                        <div className="text-sm text-slate-500">{brand.percentage}%</div>
-                                    </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </div>
                 </div>
